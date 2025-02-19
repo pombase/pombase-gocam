@@ -129,7 +129,9 @@ impl NoctuaModel {
 ///   println!("subject_id: {}", subject_id);
 ///   let subject_individual = model.get_individual(subject_id).unwrap();
 ///   let first_type = &subject_individual.types[0];
-///   println!("first_type label: {}", first_type.label);
+///   if let Some(ref label) = first_type.label {
+///     println!("first_type label: {}", label);
+///   }
 /// }
 ///
 /// ```
