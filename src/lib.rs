@@ -82,6 +82,15 @@ impl NoctuaModel {
 /// let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
 /// let model = parse(&mut source).unwrap();
 /// assert!(model.id() == "gomodel:66187e4700001744");
+///
+/// for fact in model.all_facts() {
+///   let subject_id = &fact.subject;
+///   println!("subject_id: {}", subject_id);
+///   let subject_individual = model.get_individual(subject_id).unwrap();
+///   let first_type = &subject_individual.types[0];
+///   println!("first_type label: {}", first_type.label);
+/// }
+///
 /// ```
 pub fn parse(source: &mut dyn Read) -> Result<NoctuaModel> {
     let reader = BufReader::new(source);
