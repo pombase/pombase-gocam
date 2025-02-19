@@ -43,6 +43,7 @@ pub struct Annotation {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Fact {
+    #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
     pub subject: IndividualId,
     pub object: IndividualId,
@@ -67,6 +68,7 @@ pub struct IndividualType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Individual {
+    #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
     pub id: IndividualId,
     #[serde(rename = "type")]
