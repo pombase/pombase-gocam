@@ -11,10 +11,22 @@ type IndividualId = String;
 type PropertyId = String;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Annotation {
+    pub key: String,
+    pub value: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(rename = "value-type")]
+    pub value_type: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Fact {
+    pub annotations: Vec<Annotation>,
     pub subject: IndividualId,
     pub object: IndividualId,
     pub property: PropertyId,
+    #[serde(rename = "property-label")]
+    pub property_label: String,
 }
 
 impl Fact {
@@ -33,6 +45,7 @@ pub struct IndividualType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Individual {
+    pub annotations: Vec<Annotation>,
     pub id: IndividualId,
     #[serde(rename = "type")]
     pub types: Vec<IndividualType>,
@@ -40,6 +53,7 @@ pub struct Individual {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct RawModel {
+    annotations: Vec<Annotation>,
     id: ModelId,
     facts: Vec<Fact>,
     individuals: Vec<Individual>,
@@ -47,6 +61,7 @@ pub struct RawModel {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct NoctuaModel {
+    _annotations: Vec<Annotation>,
     _id: ModelId,
     _facts: HashMap<FactId, Fact>,
     _individuals: HashMap<IndividualId, Individual>,
@@ -55,6 +70,10 @@ pub struct NoctuaModel {
 impl NoctuaModel {
     pub fn id(&self) -> &ModelId {
         &self._id
+    }
+
+    pub fn annotations(&self) -> Box<dyn Iterator<Item = &Annotation> + '_> {
+        Box::new(self._annotations.iter())
     }
 
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
@@ -109,6 +128,7 @@ pub fn parse(source: &mut dyn Read) -> Result<NoctuaModel> {
     }
 
     Ok(NoctuaModel {
+        _annotations: raw_model.annotations,
         _id: raw_model.id,
         _facts: fact_map,
         _individuals: individual_map,
