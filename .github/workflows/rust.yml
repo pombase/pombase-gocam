@@ -1,4 +1,4 @@
-name: "Test pombase-noctua"
+name: "Test pombase-gocam"
 
 on:
   push:
