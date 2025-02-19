@@ -84,14 +84,14 @@ pub struct RawModel {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct NoctuaModel {
+pub struct GoCamModel {
     _annotations: Vec<Annotation>,
     _id: ModelId,
     _facts: HashMap<FactId, Fact>,
     _individuals: HashMap<IndividualId, Individual>,
 }
 
-impl NoctuaModel {
+impl GoCamModel {
     pub fn id(&self) -> &ModelId {
         &self._id
     }
@@ -137,7 +137,7 @@ impl NoctuaModel {
 /// }
 ///
 /// ```
-pub fn parse(source: &mut dyn Read) -> Result<NoctuaModel> {
+pub fn parse(source: &mut dyn Read) -> Result<GoCamModel> {
     let reader = BufReader::new(source);
 
     let raw_model: RawModel = serde_json::from_reader(reader)?;
@@ -158,7 +158,7 @@ pub fn parse(source: &mut dyn Read) -> Result<NoctuaModel> {
         individual_map.insert(individual.id.clone(), individual);
     }
 
-    Ok(NoctuaModel {
+    Ok(GoCamModel {
         _annotations: raw_model.annotations,
         _id: raw_model.id,
         _facts: fact_map,
