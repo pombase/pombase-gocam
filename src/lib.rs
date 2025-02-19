@@ -72,7 +72,17 @@ impl NoctuaModel {
     }
 }
 
-
+/// Parses a GO-CAM model from a stream
+///
+/// # Example:
+///
+/// ```
+/// use std::fs::File;
+/// use pombase_gocam::parse;
+/// let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+/// let model = parse(&mut source).unwrap();
+/// assert!(model.id() == "gomodel:66187e4700001744");
+/// ```
 pub fn parse(source: &mut dyn Read) -> Result<NoctuaModel> {
     let reader = BufReader::new(source);
 
