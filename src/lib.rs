@@ -59,8 +59,8 @@ impl Fact {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct IndividualType {
-    pub id: String,
-    pub label: String,
+    pub id: Option<String>,
+    pub label: Option<String>,
     #[serde(rename = "type")]
     pub type_string: String,
 }
