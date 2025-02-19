@@ -1,5 +1,7 @@
 # pombase-gocam
 
+[![build status](https://github.com/pombase/pombase-gocam/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/pombase/pombase-gocam/actions)
+
 Code for parsing [GO-CAM](https://geneontology.org/docs/gocam-overview)
 JSON format model files.
 
