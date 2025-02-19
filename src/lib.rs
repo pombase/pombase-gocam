@@ -57,11 +57,11 @@ impl NoctuaModel {
         &self._id
     }
 
-    pub fn all_facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
+    pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
         Box::new(self._facts.values())
     }
 
-    pub fn all_individuals(&self) -> Box<dyn Iterator<Item = &Individual> + '_> {
+    pub fn individuals(&self) -> Box<dyn Iterator<Item = &Individual> + '_> {
         Box::new(self._individuals.values())
     }
 
@@ -83,7 +83,7 @@ impl NoctuaModel {
 /// let model = parse(&mut source).unwrap();
 /// assert!(model.id() == "gomodel:66187e4700001744");
 ///
-/// for fact in model.all_facts() {
+/// for fact in model.facts() {
 ///   let subject_id = &fact.subject;
 ///   println!("subject_id: {}", subject_id);
 ///   let subject_individual = model.get_individual(subject_id).unwrap();
@@ -126,11 +126,11 @@ mod tests {
         let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
         let model = parse(&mut source).unwrap();
         assert!(model.id() == "gomodel:66187e4700001744");
-        assert!(model.all_facts().count() == 42);
-        assert!(model.all_individuals().count() == 82);
+        assert!(model.facts().count() == 42);
+        assert!(model.individuals().count() == 82);
 
         let individual1_id =
-            &model.all_facts().next().unwrap().object;
+            &model.facts().next().unwrap().object;
 
         let lookup_individual1 = model.get_individual(individual1_id).unwrap();
 
