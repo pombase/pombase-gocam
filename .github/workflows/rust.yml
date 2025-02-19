@@ -1,4 +1,4 @@
-name: Rust
+name: "Test pombase-noctua"
 
 on:
   push:
@@ -11,8 +11,14 @@ env:
 
 jobs:
   build:
+    name: Build and test pombase-noctua
 
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toolchain:
+          - stable
 
     steps:
     - uses: actions/checkout@v4
