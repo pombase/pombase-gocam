@@ -57,12 +57,18 @@ impl NoctuaModel {
         &self._id
     }
 
-    pub fn all_facts(&self) -> impl Iterator + use<'_>  {
-        self._facts.values()
+    pub fn all_facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
+        Box::new(self._facts.values())
     }
 
-    pub fn all_individuals(&self) -> impl Iterator + use<'_>  {
-        self._individuals.values()
+    pub fn all_individuals(&self) -> Box<dyn Iterator<Item = &Individual> + '_> {
+        Box::new(self._individuals.values())
+    }
+
+    pub fn get_individual(&self, individual_id: &IndividualId)
+        -> Option<&Individual>
+    {
+        self._individuals.get(individual_id)
     }
 }
 
@@ -103,5 +109,12 @@ mod tests {
         assert!(model.id() == "gomodel:66187e4700001744");
         assert!(model.all_facts().count() == 42);
         assert!(model.all_individuals().count() == 82);
+
+        let individual1_id =
+            &model.all_facts().next().unwrap().object;
+
+        let lookup_individual1 = model.get_individual(individual1_id).unwrap();
+
+        assert!(*individual1_id == lookup_individual1.id);
     }
 }
