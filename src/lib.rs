@@ -128,6 +128,8 @@ pub struct Individual {
     pub id: IndividualId,
     #[serde(rename = "type")]
     pub types: Vec<IndividualType>,
+    #[serde(rename = "root-type")]
+    pub root_types: Vec<IndividualType>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -255,8 +257,15 @@ mod tests {
         assert_eq!(first_fact.property_label, "part of");
         assert_eq!(first_fact.id(), "gomodel:66187e4700001744/66187e4700001758-BFO:0000050-gomodel:66187e4700001744/66187e4700001760");
 
-        let lookup_individual1 = model.fact_object(&first_fact);
+        let fact_object = model.fact_object(&first_fact);
+        assert_eq!(first_fact.object, fact_object.id);
 
-        assert_eq!(first_fact.object, lookup_individual1.id);
+        let object_first_type = &fact_object.types[0];
+        assert_eq!(object_first_type.label.clone().unwrap(),
+                   "meiotic centromeric cohesion protection in anaphase I");
+
+        let object_first_root_type = &fact_object.root_types[0];
+        assert_eq!(object_first_root_type.id.clone().unwrap(),
+                   "GO:0008150");
     }
 }
