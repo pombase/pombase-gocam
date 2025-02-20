@@ -127,7 +127,7 @@ impl GoCamModel {
     }
 }
 
-pub fn parse_raw(source: &mut dyn Read) -> Result<RawModel> {
+pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<RawModel> {
     let reader = BufReader::new(source);
 
     let raw_model: RawModel = serde_json::from_reader(reader)?;
@@ -142,10 +142,10 @@ pub fn parse_raw(source: &mut dyn Read) -> Result<RawModel> {
 ///
 /// ```
 /// use std::fs::File;
-/// use pombase_gocam::parse;
+/// use pombase_gocam::gocam_parse;
 ///
 /// let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
-/// let model = parse(&mut source).unwrap();
+/// let model = gocam_parse(&mut source).unwrap();
 /// assert_eq!(model.id(), "gomodel:66187e4700001744");
 ///
 /// for fact in model.facts() {
@@ -158,8 +158,8 @@ pub fn parse_raw(source: &mut dyn Read) -> Result<RawModel> {
 ///   }
 /// }
 /// ```
-pub fn parse(source: &mut dyn Read) -> Result<GoCamModel> {
-    let raw_model = parse_raw(source)?;
+pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamModel> {
+    let raw_model = gocam_parse_raw(source)?;
 
     let mut fact_map = BTreeMap::new();
     let mut individual_map = BTreeMap::new();
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn parse_test() {
         let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
-        let model = parse(&mut source).unwrap();
+        let model = gocam_parse(&mut source).unwrap();
         assert!(model.id() == "gomodel:66187e4700001744");
         assert!(model.facts().count() == 42);
         assert!(model.individuals().count() == 82);
