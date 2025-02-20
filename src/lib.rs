@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{BufReader, Read}};
+use std::{collections::BTreeMap, io::{BufReader, Read}};
 
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
@@ -31,11 +31,13 @@ type ModelId = String;
 type FactId = String;
 type IndividualId = String;
 type PropertyId = String;
+type AnnotationKey = String;
+type AnnotationValue = String;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Annotation {
-    pub key: String,
-    pub value: String,
+    pub key: AnnotationKey,
+    pub value: AnnotationValue,
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(rename = "value-type")]
     pub value_type: Option<String>,
@@ -77,18 +79,18 @@ pub struct Individual {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct RawModel {
-    annotations: Vec<Annotation>,
-    id: ModelId,
-    facts: Vec<Fact>,
-    individuals: Vec<Individual>,
+    pub annotations: Vec<Annotation>,
+    pub id: ModelId,
+    pub facts: Vec<Fact>,
+    pub individuals: Vec<Individual>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GoCamModel {
     _annotations: Vec<Annotation>,
     _id: ModelId,
-    _facts: HashMap<FactId, Fact>,
-    _individuals: HashMap<IndividualId, Individual>,
+    _facts: BTreeMap<FactId, Fact>,
+    _individuals: BTreeMap<IndividualId, Individual>,
 }
 
 impl GoCamModel {
@@ -108,12 +110,27 @@ impl GoCamModel {
         Box::new(self._individuals.values())
     }
 
+    pub fn fact_subject(&self, fact: &Fact) -> &Individual {
+        self.get_individual(&fact.subject)
+    }
+
     pub fn get_individual(&self, individual_id: &IndividualId)
-        -> Option<&Individual>
+        -> &Individual
     {
         self._individuals.get(individual_id)
+            .expect(&format!("can't find individual: {}",
+                            individual_id))
     }
 }
+
+pub fn parse_raw(source: &mut dyn Read) -> Result<RawModel> {
+    let reader = BufReader::new(source);
+
+    let raw_model: RawModel = serde_json::from_reader(reader)?;
+
+    Ok(raw_model)
+}
+
 
 /// Parses a GO-CAM model from a stream
 ///
@@ -122,35 +139,31 @@ impl GoCamModel {
 /// ```
 /// use std::fs::File;
 /// use pombase_gocam::parse;
+///
 /// let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
 /// let model = parse(&mut source).unwrap();
-/// assert!(model.id() == "gomodel:66187e4700001744");
+/// assert_eq!(model.id(), "gomodel:66187e4700001744");
 ///
 /// for fact in model.facts() {
 ///   let subject_id = &fact.subject;
 ///   println!("subject_id: {}", subject_id);
-///   let subject_individual = model.get_individual(subject_id).unwrap();
+///   let subject_individual = model.get_individual(subject_id);
 ///   let first_type = &subject_individual.types[0];
 ///   if let Some(ref label) = first_type.label {
-///     println!("first_type label: {}", label);
+///     println!("type label: {}", label);
 ///   }
 /// }
-///
 /// ```
 pub fn parse(source: &mut dyn Read) -> Result<GoCamModel> {
-    let reader = BufReader::new(source);
+    let raw_model = parse_raw(source)?;
 
-    let raw_model: RawModel = serde_json::from_reader(reader)?;
-
-    let mut fact_map = HashMap::new();
-    let mut individual_map = HashMap::new();
+    let mut fact_map = BTreeMap::new();
+    let mut individual_map = BTreeMap::new();
 
     for mut fact in raw_model.facts.into_iter() {
-         if fact.property_label == fact.property {
-             if let Some(&rel_name) = REL_NAMES.get(&fact.property) {
-                 fact.property_label = rel_name.to_owned();
-             }
-         }
+        if let Some(&rel_name) = REL_NAMES.get(&fact.property) {
+            fact.property_label = rel_name.to_owned();
+        }
         fact_map.insert(fact.id(), fact);
     }
 
@@ -181,11 +194,13 @@ mod tests {
         assert!(model.individuals().count() == 82);
 
         let first_fact = model.facts().next().unwrap();
-        assert_ne!(first_fact.property, first_fact.property_label);
+        assert_eq!(first_fact.property, "BFO:0000050");
+        assert_eq!(first_fact.property_label, "part of");
+        assert_eq!(first_fact.id(), "gomodel:66187e4700001744/66187e4700001758-BFO:0000050-gomodel:66187e4700001744/66187e4700001760");
 
         let individual1_id = &first_fact.object;
 
-        let lookup_individual1 = model.get_individual(individual1_id).unwrap();
+        let lookup_individual1 = model.get_individual(individual1_id);
 
         assert_eq!(*individual1_id, lookup_individual1.id);
     }
