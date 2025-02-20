@@ -114,6 +114,10 @@ impl GoCamModel {
         self.get_individual(&fact.subject)
     }
 
+    pub fn fact_object(&self, fact: &Fact) -> &Individual {
+        self.get_individual(&fact.object)
+    }
+
     pub fn get_individual(&self, individual_id: &IndividualId)
         -> &Individual
     {
@@ -198,10 +202,8 @@ mod tests {
         assert_eq!(first_fact.property_label, "part of");
         assert_eq!(first_fact.id(), "gomodel:66187e4700001744/66187e4700001758-BFO:0000050-gomodel:66187e4700001744/66187e4700001760");
 
-        let individual1_id = &first_fact.object;
+        let lookup_individual1 = model.fact_object(&first_fact);
 
-        let lookup_individual1 = model.get_individual(individual1_id);
-
-        assert_eq!(*individual1_id, lookup_individual1.id);
+        assert_eq!(first_fact.object, lookup_individual1.id);
     }
 }
