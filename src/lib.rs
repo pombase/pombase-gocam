@@ -157,6 +157,12 @@ impl GoCamModel {
         Box::new(self._annotations.iter())
     }
 
+    pub fn title(&self) -> Option<&AnnotationValue> {
+        self.annotations().filter(|annotation| annotation.key == "title")
+            .map(|annotation| &annotation.value)
+            .next()
+    }
+
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
         Box::new(self._facts.values())
     }
