@@ -162,7 +162,7 @@ fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>,
 {
     annotations.filter(|annotation| annotation.key == key)
         .map(|annotation| &annotation.value)
-        .map(|s| s.replace("\n", " "))
+        .map(|s| s.replace(&['\n', '\t'], " ").trim_matches(' ').to_owned())
         .collect()
 }
 
