@@ -80,12 +80,12 @@ static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "RO:0012010" => "removes input for",
 };
 
-type ModelId = String;
-type FactId = String;
-type IndividualId = String;
-type PropertyId = String;
-type AnnotationKey = String;
-type AnnotationValue = String;
+pub type ModelId = String;
+pub type FactId = String;
+pub type IndividualId = String;
+pub type PropertyId = String;
+pub type AnnotationKey = String;
+pub type AnnotationValue = String;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Annotation {
@@ -121,6 +121,14 @@ pub struct IndividualType {
     pub type_string: String,
 }
 
+impl IndividualType {
+    pub fn label_or_id(&self) -> &str {
+        self.label.as_ref().map(|s| s.as_str())
+            .or(self.id.as_ref().map(|s| s.as_str()))
+            .unwrap_or("UNKNOWN")
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Individual {
     #[serde(skip_serializing_if="Vec::is_empty", default)]
@@ -148,6 +156,16 @@ pub struct GoCamModel {
     _individuals: BTreeMap<IndividualId, Individual>,
 }
 
+fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>,
+                     key: &str)
+    -> Vec<String>
+{
+    annotations.filter(|annotation| annotation.key == key)
+        .map(|annotation| &annotation.value)
+        .map(|s| s.replace("\n", " "))
+        .collect()
+}
+
 impl GoCamModel {
     pub fn id(&self) -> &ModelId {
         &self._id
@@ -157,10 +175,15 @@ impl GoCamModel {
         Box::new(self._annotations.iter())
     }
 
-    pub fn title(&self) -> Option<&AnnotationValue> {
-        self.annotations().filter(|annotation| annotation.key == "title")
-            .map(|annotation| &annotation.value)
-            .next()
+    pub fn title(&self) -> String {
+        annotation_values(self.annotations(), "title")
+            .join(",")
+    }
+
+    pub fn taxon(&self) -> String {
+        annotation_values(self.annotations(),
+                          "https://w3id.org/biolink/vocab/in_taxon")
+            .join(",")
     }
 
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
@@ -254,9 +277,12 @@ mod tests {
     fn parse_test() {
         let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
         let model = gocam_parse(&mut source).unwrap();
-        assert!(model.id() == "gomodel:66187e4700001744");
-        assert!(model.facts().count() == 42);
-        assert!(model.individuals().count() == 82);
+        assert_eq!(model.id(), "gomodel:66187e4700001744");
+        assert_eq!(model.facts().count(), 42);
+        assert_eq!(model.individuals().count(), 82);
+
+        assert_eq!(model.title(), "meiotic cohesion protection in anaphase I (GO:1990813)");
+        assert_eq!(model.taxon(), "NCBITaxon:4896");
 
         let first_fact = model.facts().next().unwrap();
         assert_eq!(first_fact.property, "BFO:0000050");
