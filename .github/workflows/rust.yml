@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly
+          - stable
 
     steps:
       - uses: actions/checkout@v4
