@@ -18,7 +18,7 @@ use std::fs::File;
 use pombase_gocam::parse;
 
 let mut source = File::open("gomodel:665912ed00002626.json").unwrap();
-let model = parse(&mut source).unwrap();
+let model = gocam_parse(&mut source).unwrap();
 
 for fact in model.facts() {
   let subject_id = &fact.subject;
