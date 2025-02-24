@@ -122,6 +122,14 @@ pub struct IndividualType {
 }
 
 impl IndividualType {
+    pub fn id(&self) -> &str {
+        self.id.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_ID")
+    }
+
+    pub fn label(&self) -> &str {
+        self.label.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_LABEL")
+    }
+
     pub fn label_or_id(&self) -> &str {
         self.label.as_ref().map(|s| s.as_str())
             .or(self.id.as_ref().map(|s| s.as_str()))
