@@ -149,11 +149,11 @@ pub struct Individual {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct RawModel {
-    pub annotations: Vec<Annotation>,
-    pub id: ModelId,
-    pub facts: Vec<Fact>,
-    pub individuals: Vec<Individual>,
+struct SerdeModel {
+    annotations: Vec<Annotation>,
+    id: ModelId,
+    facts: Vec<Fact>,
+    individuals: Vec<Individual>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -219,10 +219,10 @@ impl GoCamModel {
     }
 }
 
-pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<RawModel> {
+fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
     let reader = BufReader::new(source);
 
-    let raw_model: RawModel = serde_json::from_reader(reader)?;
+    let raw_model: SerdeModel = serde_json::from_reader(reader)?;
 
     Ok(raw_model)
 }
