@@ -157,7 +157,7 @@ struct SerdeModel {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct GoCamModel {
+pub struct GoCamRawModel {
     _annotations: Vec<Annotation>,
     _id: ModelId,
     _facts: BTreeMap<FactId, Fact>,
@@ -174,7 +174,7 @@ fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>,
         .collect()
 }
 
-impl GoCamModel {
+impl GoCamRawModel {
     pub fn id(&self) -> &ModelId {
         &self._id
     }
@@ -250,7 +250,7 @@ fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
 ///   }
 /// }
 /// ```
-pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamModel> {
+pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamRawModel> {
     let raw_model = gocam_parse_raw(source)?;
 
     let mut fact_map = BTreeMap::new();
@@ -267,7 +267,7 @@ pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamModel> {
         individual_map.insert(individual.id.clone(), individual);
     }
 
-    Ok(GoCamModel {
+    Ok(GoCamRawModel {
         _annotations: raw_model.annotations,
         _id: raw_model.id,
         _facts: fact_map,
