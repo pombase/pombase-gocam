@@ -123,6 +123,15 @@ pub struct IndividualType {
     pub type_string: String,
 }
 
+const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
+/*
+const CELLULAR_COMPONENT_ID: &str = "GO:0032991";
+const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
+*/
+const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
+const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
+const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
+
 impl IndividualType {
     pub fn id(&self) -> &str {
         self.id.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_ID")
@@ -148,6 +157,99 @@ pub struct Individual {
     pub types: Vec<IndividualType>,
     #[serde(rename = "root-type")]
     pub root_types: Vec<IndividualType>,
+}
+
+impl Individual {
+    pub fn has_root_term(&self, term_id: &str) -> bool {
+        for individual_type in &self.root_types {
+            if let Some(ref individual_type_id) = individual_type.id {
+                if individual_type_id == term_id {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn individual_is_activity(&self) -> bool {
+        self.has_root_term(MOLECULAR_FUNCTION_ID)
+    }
+
+  /*
+    fn individual_is_component(individual: &Individual) -> bool {
+        has_root_term(individual, CELLULAR_COMPONENT_ID)
+    }
+
+    fn individual_is_process(individual: &Individual) -> bool {
+        has_root_term(individual, BIOLOGICAL_PROCESS_ID)
+    }
+  */
+
+    fn individual_is_complex(&self) -> bool {
+        self.has_root_term(PROTEIN_CONTAINING_COMPLEX_ID)
+    }
+
+    pub fn individual_is_gene(&self) -> bool {
+        if !self.has_root_term(CHEBI_CHEMICAL_ENTITY_ID) {
+            return false;
+        }
+
+        if self.has_root_term(CHEBI_PROTEIN_ID) {
+            return false;
+        }
+
+        let Some(individual_type) = self.get_individual_type()
+        else {
+            return false;
+        };
+
+        if let Some(ref id) = individual_type.id {
+            if id.starts_with("CHEBI:") {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn individual_is_chemical(&self) -> bool {
+        if !self.has_root_term(CHEBI_CHEMICAL_ENTITY_ID) {
+            return false;
+        }
+
+        let Some(individual_type) = self.get_individual_type()
+        else {
+            return false;
+        };
+
+        if let Some(ref id) = individual_type.id {
+            if id.starts_with("CHEBI:") {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn get_individual_type(&self) -> Option<&IndividualType> {
+        self.types.get(0)
+    }
+
+    fn individual_is_unknown_protein(&self) -> bool {
+        let Some(individual_type) = self.get_individual_type()
+        else {
+            return false;
+        };
+
+        if let Some(ref individual_type_id) = individual_type.id {
+            if individual_type_id == CHEBI_PROTEIN_ID {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -477,108 +579,6 @@ impl Display for GoCamEdge {
 }
 
 
-
-const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
-/*
-const CELLULAR_COMPONENT_ID: &str = "GO:0032991";
-const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
-*/
-const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
-
-const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
-const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
-
-fn has_root_term(individual: &Individual, term_id: &str) -> bool {
-    for individual_type in &individual.root_types {
-        if let Some(ref individual_type_id) = individual_type.id {
-            if individual_type_id == term_id {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-fn individual_is_activity(individual: &Individual) -> bool {
-    has_root_term(individual, MOLECULAR_FUNCTION_ID)
-}
-
-/*
-fn individual_is_component(individual: &Individual) -> bool {
-    has_root_term(individual, CELLULAR_COMPONENT_ID)
-}
-
-fn individual_is_process(individual: &Individual) -> bool {
-    has_root_term(individual, BIOLOGICAL_PROCESS_ID)
-}
-*/
-
-fn individual_is_complex(individual: &Individual) -> bool {
-    has_root_term(individual, PROTEIN_CONTAINING_COMPLEX_ID)
-}
-
-pub fn individual_is_gene(individual: &Individual) -> bool {
-    if !has_root_term(individual, CHEBI_CHEMICAL_ENTITY_ID) {
-        return false;
-    }
-
-    if has_root_term(individual, CHEBI_PROTEIN_ID) {
-        return false;
-    }
-
-    let Some(individual_type) = get_individual_type(individual)
-    else {
-        return false;
-    };
-
-    if let Some(ref id) = individual_type.id {
-        if id.starts_with("CHEBI:") {
-            return false;
-        }
-    }
-
-    true
-}
-
-fn individual_is_chemical(individual: &Individual) -> bool {
-    if !has_root_term(individual, CHEBI_CHEMICAL_ENTITY_ID) {
-        return false;
-    }
-
-    let Some(individual_type) = get_individual_type(individual)
-    else {
-        return false;
-    };
-
-    if let Some(ref id) = individual_type.id {
-        if id.starts_with("CHEBI:") {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn get_individual_type(individual: &Individual) -> Option<&IndividualType> {
-    individual.types.get(0)
-}
-
-fn individual_is_unknown_protein(individual: &Individual) -> bool {
-    let Some(individual_type) = get_individual_type(individual)
-    else {
-        return false;
-    };
-
-    if let Some(ref individual_type_id) = individual_type.id {
-        if individual_type_id == CHEBI_PROTEIN_ID {
-            return true;
-        }
-    }
-
-    false
-}
-
 fn is_gene_id(identifier: &str) -> bool {
     ["PomBase:", "FB:", "UniProtKB:", "MGI:", "WB:", "RGD:", "RefSeq:",
      "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:"]
@@ -675,17 +675,17 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     let mut node_map = BTreeMap::new();
 
     for individual in model.individuals() {
-        if individual_is_activity(individual) ||
+        if individual.individual_is_activity() ||
             bare_genes_and_modified_proteins.contains(&individual.id) ||
-            individual_is_chemical(individual) &&
-            !individual_is_unknown_protein(individual)
+            individual.individual_is_chemical() &&
+            !individual.individual_is_unknown_protein()
         {
-            let Some(individual_type) = get_individual_type(individual)
+            let Some(individual_type) = individual.get_individual_type()
             else {
                 continue;
             };
             let detail =
-                if individual_is_chemical(individual) {
+                if individual.individual_is_chemical() {
                     GoCamNodeType::Chemical
                 } else {
                     if bare_genes_and_modified_proteins.contains(&individual.id) {
@@ -717,7 +717,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     let mut complex_map = HashMap::new();
 
     for individual in model.individuals() {
-        if individual_is_complex(individual) {
+        if individual.individual_is_complex() {
             let Some(complex_type) = individual.types.get(0)
             else {
                 continue;
@@ -760,7 +760,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
         };
 
         let object_individual = model.fact_object(fact);
-        let Some(object_type) = get_individual_type(object_individual)
+        let Some(object_type) = object_individual.get_individual_type()
         else {
             continue;
         };
