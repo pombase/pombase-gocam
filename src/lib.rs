@@ -504,7 +504,7 @@ pub enum GoCamNodeType {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamNode {
     pub individual_gocam_id: IndividualId,
-    pub id: String,
+    pub node_id: String,
     pub label: String,
     pub node_type: GoCamNodeType,
     pub has_input: Vec<GoCamInput>,
@@ -516,7 +516,7 @@ pub struct GoCamNode {
 
 impl Display for GoCamNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\t", self.id)?;
+        write!(f, "{}\t", self.node_id)?;
         write!(f, "{}\t", self.label)?;
 
         let (node_type, enabled_by_type, enabled_by_id, enabled_by_label) = match &self.node_type {
@@ -613,7 +613,7 @@ impl GoCamNode {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.id()
         } else {
-            &self.id
+            &self.node_id
         }
     }
 }
@@ -754,7 +754,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 };
             let gocam_node = GoCamNode {
                 individual_gocam_id: individual.id.clone(),
-                id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
+                node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
                 label: individual_type.label.clone().unwrap_or_else(|| "NO_LABEL".to_owned()),
                 node_type: detail,
                 has_input: vec![],
@@ -969,7 +969,7 @@ mod tests {
 
         let first_node = model.node_iterator().next().unwrap();
 
-        assert_eq!(first_node.id, "GO:0140483");
+        assert_eq!(first_node.node_id, "GO:0140483");
 
         assert_eq!(model.node_iterator().count(), 12);
     }
