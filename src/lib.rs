@@ -172,7 +172,7 @@ impl Individual {
         false
     }
 
-    fn individual_is_activity(&self) -> bool {
+    pub fn individual_is_activity(&self) -> bool {
         self.has_root_term(MOLECULAR_FUNCTION_ID)
     }
 
@@ -186,7 +186,7 @@ impl Individual {
     }
   */
 
-    fn individual_is_complex(&self) -> bool {
+    pub fn individual_is_complex(&self) -> bool {
         self.has_root_term(PROTEIN_CONTAINING_COMPLEX_ID)
     }
 
@@ -213,7 +213,7 @@ impl Individual {
         true
     }
 
-    fn individual_is_chemical(&self) -> bool {
+    pub fn individual_is_chemical(&self) -> bool {
         if !self.has_root_term(CHEBI_CHEMICAL_ENTITY_ID) {
             return false;
         }
@@ -232,11 +232,11 @@ impl Individual {
         false
     }
 
-    fn get_individual_type(&self) -> Option<&IndividualType> {
+    pub fn get_individual_type(&self) -> Option<&IndividualType> {
         self.types.get(0)
     }
 
-    fn individual_is_unknown_protein(&self) -> bool {
+    pub fn individual_is_unknown_protein(&self) -> bool {
         let Some(individual_type) = self.get_individual_type()
         else {
             return false;
