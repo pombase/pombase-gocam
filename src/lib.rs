@@ -509,8 +509,8 @@ pub struct GoCamNode {
     pub node_type: GoCamNodeType,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
-    pub located_in: Vec<GoCamComponent>,
-    pub occurs_in: Vec<GoCamComponent>,
+    pub located_in: Option<GoCamComponent>,
+    pub occurs_in: Option<GoCamComponent>,
     pub part_of_process: Option<GoCamProcess>,
 }
 
@@ -552,17 +552,16 @@ impl Display for GoCamNode {
         } else {
             write!(f, "\t")?;
         }
-        let occurs_in_string =
-            self.occurs_in.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
-        if occurs_in_string.len() > 0 {
-            write!(f, "{}\t", occurs_in_string)?
+
+        if let Some(ref occurs_in) = self.occurs_in {
+            write!(f, "{}\t", occurs_in.label_or_id())?;
         } else {
             write!(f, "\t")?;
         }
-        let located_in_string =
-            self.located_in.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
-        if located_in_string.len() > 0 {
-            write!(f, "{}", located_in_string)?;
+        if let Some(ref located_in) = self.located_in {
+            write!(f, "{}", located_in.label_or_id())?;
+        } else {
+            write!(f, "\t")?;
         }
 
         Ok(())
@@ -759,8 +758,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 node_type: detail,
                 has_input: vec![],
                 has_output: vec![],
-                located_in: vec![],
-                occurs_in: vec![],
+                located_in: None,
+                occurs_in: None,
                 part_of_process: None,
             };
 
@@ -853,10 +852,18 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 subject_node.has_output.push(object_type.clone());
             },
             "located in" => {
-                subject_node.located_in.push(object_type.clone());
+                if subject_node.located_in.is_some() {
+                    panic!("{}: {} is located in multiple components", model.id(),
+                           subject_node.description());
+                }
+                subject_node.located_in = Some(object_type.clone());
             },
             "occurs in" => {
-                subject_node.occurs_in.push(object_type.clone());
+                if subject_node.occurs_in.is_some() {
+                    panic!("{}: {} is occurs in multiple components", model.id(),
+                           subject_node.description());
+                }
+                subject_node.occurs_in = Some(object_type.clone());
             },
             "part of" => {
                 subject_node.part_of_process = Some(object_type.clone());
