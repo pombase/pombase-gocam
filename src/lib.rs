@@ -4,9 +4,9 @@ extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 use phf::phf_map;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
-use petgraph::{graph::NodeReferences, visit::IntoNodeReferences, Graph};
+use petgraph::{graph::NodeReferences, visit::{EdgeRef, IntoNodeReferences}, Graph};
 
 static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "BFO:0000050" => "part of",
@@ -344,6 +344,25 @@ pub struct GoCamModel {
     graph: GoCamGraph,
 }
 
+fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
+    let mut model_iter = models.iter();
+
+    let Some(first_model) = model_iter.next()
+    else {
+        return Err(anyhow!("no models passed to check_model_taxons()"));
+    };
+
+    for this_model in model_iter {
+        if first_model.taxon != this_model.taxon {
+            return Err(anyhow!("mismatched taxons: {} ({}) != {} ({})",
+                               first_model.taxon, first_model.id,
+                               this_model.taxon, this_model.id));
+        }
+    }
+
+    Ok(first_model.taxon().to_owned())
+}
+
 impl GoCamModel {
     pub fn new(raw_model: GoCamRawModel) -> GoCamModel {
         let graph = make_graph(&raw_model);
@@ -376,6 +395,41 @@ impl GoCamModel {
 
     pub fn taxon(&self) -> &str {
         &self.taxon
+    }
+
+    pub fn merge_models(new_id: &str, new_title: &str, models: &[&GoCamModel])
+         -> Result<GoCamModel>
+    {
+        let mut merged_graph = GoCamGraph::new();
+
+        let mut idx_map = HashMap::new();
+        let taxon = check_model_taxons(models)?;
+
+        for model in models {
+            for (old_idx, node) in model.graph().node_references() {
+                let new_idx = merged_graph.add_node(node.to_owned());
+                idx_map.insert(old_idx, new_idx);
+            }
+
+            for edge_ref in model.graph().edge_references() {
+                let edge = edge_ref.weight();
+
+                let old_source_idx = edge_ref.source();
+                let old_target_idx = edge_ref.target();
+
+                let new_source_idx = idx_map.get(&old_source_idx).unwrap();
+                let new_target_idx = idx_map.get(&old_target_idx).unwrap();
+
+                merged_graph.add_edge(*new_source_idx, *new_target_idx, edge.to_owned());
+            }
+        }
+
+        Ok(GoCamModel {
+            id: new_id.to_owned(),
+            title: new_title.to_owned(),
+            taxon,
+            graph: merged_graph,
+        })
     }
 }
 
@@ -869,7 +923,6 @@ fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
     graph
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::fs::File;
@@ -917,5 +970,27 @@ mod tests {
         let first_node = model.node_iterator().next().unwrap();
 
         assert_eq!(first_node.id, "GO:0140483");
+
+        assert_eq!(model.node_iterator().count(), 12);
+    }
+
+    #[test]
+    fn merge_test() {
+        let mut source1 = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+        let model1 = make_gocam_model(&mut source1).unwrap();
+        assert_eq!(model1.id(), "gomodel:66187e4700001744");
+
+        assert_eq!(model1.node_iterator().count(), 12);
+
+        let mut source2 = File::open("tests/data/gomodel:665912ed00000015.json").unwrap();
+        let model2 = make_gocam_model(&mut source2).unwrap();
+        assert_eq!(model2.id(), "gomodel:665912ed00000015");
+
+        assert_eq!(model2.node_iterator().count(), 25);
+
+        let merged = GoCamModel::merge_models("new_id", "new_title",
+                                              &[&model1, &model2]).unwrap();
+
+        assert_eq!(merged.node_iterator().count(), 37);
     }
 }
