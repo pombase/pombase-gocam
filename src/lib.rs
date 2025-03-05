@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
+use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
 
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
@@ -462,6 +462,16 @@ impl GoCamModel {
                 ret.push(node_overlap);
             }
         }
+
+        ret.sort_by(|a, b| {
+            let ord = a.model_ids.cmp(&b.model_ids);
+
+            if ord == Ordering::Equal {
+                a.node_description.cmp(&b.node_description)
+            } else {
+                ord
+            }
+        });
 
         ret
     }
