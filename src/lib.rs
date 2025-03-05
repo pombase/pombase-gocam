@@ -1,4 +1,4 @@
-use std::{collections::{BTreeMap, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
 
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
@@ -513,7 +513,7 @@ pub struct GoCamNodeOverlap {
     pub part_of_process_label: String,
     pub occurs_in_id: String,
     pub occurs_in_label: String,
-    pub model_ids: Vec<ModelId>,
+    pub model_ids: BTreeSet<ModelId>,
 }
 
 pub struct NodeIterator<'a> {
