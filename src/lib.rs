@@ -143,8 +143,8 @@ impl IndividualType {
 
     pub fn label_or_id(&self) -> &str {
         self.label.as_ref().map(|s| s.as_str())
-            .or(self.id.as_ref().map(|s| s.as_str()))
-            .unwrap_or("UNKNOWN")
+        .or(self.id.as_ref().map(|s| s.as_str()))
+        .unwrap_or("UNKNOWN")
     }
 }
 
@@ -176,15 +176,15 @@ impl Individual {
         self.has_root_term(MOLECULAR_FUNCTION_ID)
     }
 
-  /*
+    /*
     fn individual_is_component(individual: &Individual) -> bool {
-        has_root_term(individual, CELLULAR_COMPONENT_ID)
+    has_root_term(individual, CELLULAR_COMPONENT_ID)
     }
 
     fn individual_is_process(individual: &Individual) -> bool {
-        has_root_term(individual, BIOLOGICAL_PROCESS_ID)
+    has_root_term(individual, BIOLOGICAL_PROCESS_ID)
     }
-  */
+    */
 
     pub fn individual_is_complex(&self) -> bool {
         self.has_root_term(PROTEIN_CONTAINING_COMPLEX_ID)
@@ -269,13 +269,13 @@ pub struct GoCamRawModel {
 }
 
 fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>,
-                     key: &str)
-    -> Vec<String>
+key: &str)
+-> Vec<String>
 {
     annotations.filter(|annotation| annotation.key == key)
-        .map(|annotation| &annotation.value)
-        .map(|s| s.replace(&['\n', '\t'], " ").trim_matches(' ').to_owned())
-        .collect()
+    .map(|annotation| &annotation.value)
+    .map(|s| s.replace(&['\n', '\t'], " ").trim_matches(' ').to_owned())
+    .collect()
 }
 
 impl GoCamRawModel {
@@ -289,13 +289,13 @@ impl GoCamRawModel {
 
     pub fn title(&self) -> String {
         annotation_values(self.annotations(), "title")
-            .join(",")
+        .join(",")
     }
 
     pub fn taxon(&self) -> String {
         annotation_values(self.annotations(),
-                          "https://w3id.org/biolink/vocab/in_taxon")
-            .join(",")
+        "https://w3id.org/biolink/vocab/in_taxon")
+        .join(",")
     }
 
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
@@ -315,11 +315,11 @@ impl GoCamRawModel {
     }
 
     pub fn get_individual(&self, individual_id: &IndividualId)
-        -> &Individual
+    -> &Individual
     {
         self._individuals.get(individual_id)
-            .expect(&format!("can't find individual: {}",
-                            individual_id))
+        .expect(&format!("can't find individual: {}",
+        individual_id))
     }
 }
 
@@ -355,8 +355,8 @@ fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
     for this_model in model_iter {
         if first_model.taxon != this_model.taxon {
             return Err(anyhow!("mismatched taxons: {} ({}) != {} ({})",
-                               first_model.taxon, first_model.id,
-                               this_model.taxon, this_model.id));
+            first_model.taxon, first_model.id,
+            this_model.taxon, this_model.id));
         }
     }
 
@@ -397,8 +397,60 @@ impl GoCamModel {
         &self.taxon
     }
 
+    pub fn find_activity_overlaps(models: &[&GoCamModel])
+        -> Vec<GoCamNodeOverlap>
+    {
+        let mut seen_activities = HashMap::new();
+
+        let make_key = |node: &GoCamNode| {
+            let (node_type, enabled_by_type, enabled_by_id, _) =
+                node.node_type_summary_strings();
+            (node.node_id.to_owned(),
+             node.description(),
+             node_type.to_owned(),
+             enabled_by_type.to_owned(), enabled_by_id.to_owned(),
+             node.occurs_in.as_ref().unwrap().id.to_owned().unwrap())
+        };
+
+        for model in models {
+            for node in model.node_iterator() {
+                if node.occurs_in.is_none() {
+                    continue;
+                };
+
+                let key = make_key(node);
+
+                seen_activities
+                    .entry(key)
+                    .or_insert_with(Vec::new)
+                    .push(model.id());
+            }
+        }
+
+        let mut ret = vec![];
+
+        for (key, model_ids) in seen_activities {
+            if model_ids.len() > 1 {
+                let (node_id, node_description, node_type, enabled_by_type, enabled_by_id,
+                     occurs_in) = key;
+                let node_overlap = GoCamNodeOverlap {
+                    node_id,
+                    node_description,
+                    node_type,
+                    enabled_by_type,
+                    enabled_by_id,
+                    occurs_in,
+                    model_ids: model_ids.iter().map(|&s| s.to_owned()).collect(),
+                };
+                ret.push(node_overlap);
+            }
+        }
+
+        ret
+    }
+
     pub fn merge_models(new_id: &str, new_title: &str, models: &[&GoCamModel])
-         -> Result<GoCamModel>
+    -> Result<GoCamModel>
     {
         let mut merged_graph = GoCamGraph::new();
 
@@ -431,6 +483,17 @@ impl GoCamModel {
             graph: merged_graph,
         })
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct GoCamNodeOverlap {
+    pub node_id: String,
+    pub node_description: String,
+    pub node_type: String,
+    pub enabled_by_type: String,
+    pub enabled_by_id: String,
+    pub occurs_in: String,
+    pub model_ids: Vec<ModelId>,
 }
 
 pub struct NodeIterator<'a> {
@@ -514,12 +577,11 @@ pub struct GoCamNode {
     pub part_of_process: Option<GoCamProcess>,
 }
 
-impl Display for GoCamNode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\t", self.node_id)?;
-        write!(f, "{}\t", self.label)?;
-
-        let (node_type, enabled_by_type, enabled_by_id, enabled_by_label) = match &self.node_type {
+impl GoCamNode {
+    fn node_type_summary_strings(&self)
+         -> (&str, &str, &str, &str)
+    {
+        match &self.node_type {
             GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
             GoCamNodeType::Chemical => ("chemical", "", "", ""),
             GoCamNodeType::Gene(_) => ("gene", "", "", ""),
@@ -530,7 +592,18 @@ impl Display for GoCamNode {
                 GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
                 GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
             }
-        };
+        }
+    }
+}
+
+impl Display for GoCamNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\t", self.node_id)?;
+        write!(f, "{}\t", self.label)?;
+
+        let (node_type, enabled_by_type, enabled_by_id, enabled_by_label) =
+            self.node_type_summary_strings();
+
         write!(f, "{}\t{}\t{}\t{}\t", node_type, enabled_by_type, enabled_by_id, enabled_by_label)?;
 
         if let Some(ref part_of_process) = self.part_of_process {
@@ -539,14 +612,14 @@ impl Display for GoCamNode {
             write!(f, "\t")?;
         }
         let has_input_string =
-            self.has_input.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+        self.has_input.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
         if has_input_string.len() > 0 {
             write!(f, "{}\t", has_input_string)?;
         } else {
             write!(f, "\t")?;
         }
         let has_output_string =
-            self.has_output.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+        self.has_output.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
         if has_output_string.len() > 0 {
             write!(f, "{}\t", has_output_string)?;
         } else {
@@ -634,27 +707,27 @@ impl Display for GoCamEdge {
 
 fn is_gene_id(identifier: &str) -> bool {
     ["PomBase:", "FB:", "UniProtKB:", "MGI:", "WB:", "RGD:", "RefSeq:",
-     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:"]
-        .iter().any(|s| identifier.starts_with(*s))
+    "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:"]
+    .iter().any(|s| identifier.starts_with(*s))
 }
 
 fn is_connecting_fact(rel_name: &str) -> bool {
     ["causally upstream of, negative effect",
-     "causally upstream of, positive effect",
-     "provides input for",
-     "directly provides input for",
-     "removes input for",
-     "constitutively upstream of",
-     "directly negatively regulates",
-     "directly positively regulates",
-     "indirectly negatively regulates",
-     "indirectly positively regulates",
-     "has small molecular activator",
-     "has small molecular inhibitor",
-     "is small molecule activator of",
-     "is small molecule inhibitor of",
-     "input of",
-     "has output"]
+    "causally upstream of, positive effect",
+    "provides input for",
+    "directly provides input for",
+    "removes input for",
+    "constitutively upstream of",
+    "directly negatively regulates",
+    "directly positively regulates",
+    "indirectly negatively regulates",
+    "indirectly positively regulates",
+    "has small molecular activator",
+    "has small molecular inhibitor",
+    "is small molecule activator of",
+    "is small molecule inhibitor of",
+    "input of",
+    "has output"]
     .iter().any(|s| rel_name == *s)
 }
 
@@ -720,37 +793,37 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 
     for fact in model.facts() {
         if fact.property_label == "has input" ||
-            fact.property_label == "has output" {
-                bare_genes_and_modified_proteins.insert(fact.object.clone());
-           }
+        fact.property_label == "has output" {
+            bare_genes_and_modified_proteins.insert(fact.object.clone());
+        }
     }
 
     let mut node_map = BTreeMap::new();
 
     for individual in model.individuals() {
         if individual.individual_is_activity() ||
-            bare_genes_and_modified_proteins.contains(&individual.id) ||
-            individual.individual_is_chemical() &&
-            !individual.individual_is_unknown_protein()
+        bare_genes_and_modified_proteins.contains(&individual.id) ||
+        individual.individual_is_chemical() &&
+        !individual.individual_is_unknown_protein()
         {
             let Some(individual_type) = individual.get_individual_type()
             else {
                 continue;
             };
             let detail =
-                if individual.individual_is_chemical() {
-                    GoCamNodeType::Chemical
-                } else {
-                    if bare_genes_and_modified_proteins.contains(&individual.id) {
-                        if individual_type.id().starts_with("PR:") {
-                            GoCamNodeType::ModifiedProtein(individual_type.clone())
-                        } else {
-                            GoCamNodeType::Gene(individual_type.clone())
-                        }
+            if individual.individual_is_chemical() {
+                GoCamNodeType::Chemical
+            } else {
+                if bare_genes_and_modified_proteins.contains(&individual.id) {
+                    if individual_type.id().starts_with("PR:") {
+                        GoCamNodeType::ModifiedProtein(individual_type.clone())
                     } else {
-                        GoCamNodeType::Unknown
+                        GoCamNodeType::Gene(individual_type.clone())
                     }
-                };
+                } else {
+                    GoCamNodeType::Unknown
+                }
+            };
             let gocam_node = GoCamNode {
                 individual_gocam_id: individual.id.clone(),
                 node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
@@ -801,7 +874,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             };
 
             let complex_gene = complex_part_type.id().to_owned();
-//            eprintln!("{}", complex_gene);
+            //            eprintln!("{}", complex_gene);
             complex.has_part_genes.push(complex_gene);
         }
     }
@@ -831,8 +904,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     }
                     else if object_type_id.starts_with("GO:") || object_type_id.starts_with("ComplexPortal:") {
                         let complex = complex_map.get(&fact.object)
-                            .expect(&format!("expected complex {}", fact.object))
-                            .to_owned();
+                        .expect(&format!("expected complex {}", fact.object))
+                        .to_owned();
                         let complex_enabler = GoCamEnabledBy::Complex(complex);
                         subject_node.node_type = GoCamNodeType::Activity(complex_enabler);
                     }
@@ -854,14 +927,14 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             "located in" => {
                 if subject_node.located_in.is_some() {
                     panic!("{}: {} is located in multiple components", model.id(),
-                           subject_node.description());
+                    subject_node.description());
                 }
                 subject_node.located_in = Some(object_type.clone());
             },
             "occurs in" => {
                 if subject_node.occurs_in.is_some() {
                     panic!("{}: {} is occurs in multiple components", model.id(),
-                           subject_node.description());
+                    subject_node.description());
                 }
                 subject_node.occurs_in = Some(object_type.clone());
             },
@@ -879,7 +952,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     for fact in model.facts() {
         if is_connecting_fact(fact.property_label.as_str()) {
             let connection = (fact.subject.clone(), fact.property_label.clone(),
-                              fact.object.clone());
+            fact.object.clone());
             connectons.push(connection);
         }
     }
@@ -912,7 +985,7 @@ fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
         let object_id = &fact.object;
 
         if let (Some(__), Some(_)) =
-              (node_map.get(subject_id), node_map.get(object_id))
+        (node_map.get(subject_id), node_map.get(object_id))
         {
             let subject_idx = id_map.get(subject_id).unwrap();
             let object_idx = id_map.get(object_id).unwrap();
@@ -957,11 +1030,11 @@ mod tests {
 
         let object_first_type = &fact_object.types[0];
         assert_eq!(object_first_type.label.clone().unwrap(),
-                   "meiotic centromeric cohesion protection in anaphase I");
+        "meiotic centromeric cohesion protection in anaphase I");
 
         let object_first_root_type = &fact_object.root_types[0];
         assert_eq!(object_first_root_type.id.clone().unwrap(),
-                   "GO:0008150");
+        "GO:0008150");
     }
 
 
@@ -996,8 +1069,35 @@ mod tests {
         assert_eq!(model2.node_iterator().count(), 25);
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[&model1, &model2]).unwrap();
+        &[&model1, &model2]).unwrap();
 
         assert_eq!(merged.node_iterator().count(), 37);
+    }
+
+    #[test]
+    fn find_activity_overlaps() {
+        let mut source1 = File::open("tests/data/gomodel:663d668500002302.json").unwrap();
+        let model1 = make_gocam_model(&mut source1).unwrap();
+        assert_eq!(model1.id(), "gomodel:663d668500002302");
+
+        assert_eq!(model1.node_iterator().count(), 15);
+
+        let mut source2 = File::open("tests/data/gomodel:665912ed00000015.json").unwrap();
+        let model2 = make_gocam_model(&mut source2).unwrap();
+        assert_eq!(model2.id(), "gomodel:665912ed00000015");
+
+        assert_eq!(model2.node_iterator().count(), 25);
+
+        let mut source3 = File::open("tests/data/gomodel:6796b94c00004743.json").unwrap();
+        let model3 = make_gocam_model(&mut source3).unwrap();
+        assert_eq!(model3.id(), "gomodel:6796b94c00004743");
+
+        assert_eq!(model3.node_iterator().count(), 17);
+
+        let overlaps = GoCamModel::find_activity_overlaps(&[&model1, &model2, &model3]);
+
+        assert_eq!(overlaps.len(), 1);
+
+        eprintln!("overlap: {:?}", overlaps[0]);
     }
 }
