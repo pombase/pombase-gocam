@@ -405,11 +405,13 @@ impl GoCamModel {
         let make_key = |node: &GoCamNode| {
             let (node_type, enabled_by_type, enabled_by_id, _) =
                 node.node_type_summary_strings();
+            let occurs_in_type = node.occurs_in.as_ref().unwrap();
             (node.node_id.to_owned(),
              node.description(),
              node_type.to_owned(),
              enabled_by_type.to_owned(), enabled_by_id.to_owned(),
-             node.occurs_in.as_ref().unwrap().id.to_owned().unwrap())
+             occurs_in_type.id.to_owned().unwrap(),
+             occurs_in_type.label.to_owned().unwrap())
         };
 
         for model in models {
@@ -432,14 +434,15 @@ impl GoCamModel {
         for (key, model_ids) in seen_activities {
             if model_ids.len() > 1 {
                 let (node_id, node_description, node_type, enabled_by_type, enabled_by_id,
-                     occurs_in) = key;
+                     occurs_in_id, occurs_in_label) = key;
                 let node_overlap = GoCamNodeOverlap {
                     node_id,
                     node_description,
                     node_type,
                     enabled_by_type,
                     enabled_by_id,
-                    occurs_in,
+                    occurs_in_id,
+                    occurs_in_label,
                     model_ids: model_ids.iter().map(|&s| s.to_owned()).collect(),
                 };
                 ret.push(node_overlap);
@@ -492,7 +495,8 @@ pub struct GoCamNodeOverlap {
     pub node_type: String,
     pub enabled_by_type: String,
     pub enabled_by_id: String,
-    pub occurs_in: String,
+    pub occurs_in_id: String,
+    pub occurs_in_label: String,
     pub model_ids: Vec<ModelId>,
 }
 
@@ -1098,6 +1102,10 @@ mod tests {
 
         assert_eq!(overlaps.len(), 1);
 
-        eprintln!("overlap: {:?}", overlaps[0]);
+        let overlap = &overlaps[0];
+
+        assert_eq!(overlap.node_description,
+                   "triose-phosphate isomerase activity [enabled by] tpi1 Spom");
+        assert_eq!(overlap.model_ids.len(), 2);
     }
 }
