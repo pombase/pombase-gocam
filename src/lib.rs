@@ -1096,11 +1096,11 @@ mod tests {
 
     #[test]
     fn find_activity_overlaps() {
-        let mut source1 = File::open("tests/data/gomodel:663d668500002302.json").unwrap();
+        let mut source1 = File::open("tests/data/gomodel:66a3e0bb00001342.json").unwrap();
         let model1 = make_gocam_model(&mut source1).unwrap();
-        assert_eq!(model1.id(), "gomodel:663d668500002302");
+        assert_eq!(model1.id(), "gomodel:66a3e0bb00001342");
 
-        assert_eq!(model1.node_iterator().count(), 15);
+        assert_eq!(model1.node_iterator().count(), 29);
 
         let mut source2 = File::open("tests/data/gomodel:665912ed00000015.json").unwrap();
         let model2 = make_gocam_model(&mut source2).unwrap();
@@ -1108,13 +1108,12 @@ mod tests {
 
         assert_eq!(model2.node_iterator().count(), 25);
 
-        let mut source3 = File::open("tests/data/gomodel:6796b94c00004743.json").unwrap();
+        let mut source3 = File::open("tests/data/gomodel:678073a900003175.json").unwrap();
         let model3 = make_gocam_model(&mut source3).unwrap();
-        assert_eq!(model3.id(), "gomodel:6796b94c00004743");
+        assert_eq!(model3.id(), "gomodel:678073a900003175");
 
-        assert_eq!(model3.node_iterator().count(), 17);
+        assert_eq!(model3.node_iterator().count(), 13);
 
-        /*
         let overlaps = GoCamModel::find_activity_overlaps(&[&model1, &model2, &model3]);
 
         assert_eq!(overlaps.len(), 1);
@@ -1122,8 +1121,7 @@ mod tests {
         let overlap = &overlaps[0];
 
         assert_eq!(overlap.node_description,
-                   "triose-phosphate isomerase activity [enabled by] tpi1 Spom");
+                   "homoserine O-acetyltransferase activity [enabled by] met6 Spom");
         assert_eq!(overlap.model_ids.len(), 2);
-        */
     }
 }
