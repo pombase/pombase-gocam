@@ -289,13 +289,21 @@ impl GoCamRawModel {
 
     pub fn title(&self) -> String {
         annotation_values(self.annotations(), "title")
-        .join(",")
+            .join(",")
+    }
+
+    pub fn date(&self) -> String {
+        annotation_values(self.annotations(), "date")
+            .join(",")
     }
 
     pub fn taxon(&self) -> String {
-        annotation_values(self.annotations(),
-        "https://w3id.org/biolink/vocab/in_taxon")
-        .join(",")
+        annotation_values(self.annotations(), "https://w3id.org/biolink/vocab/in_taxon")
+            .join(",")
+    }
+
+    pub fn contributors(&self) -> BTreeSet<String> {
+        BTreeSet::from_iter(annotation_values(self.annotations(), "contributor"))
     }
 
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
@@ -341,6 +349,8 @@ pub struct GoCamModel {
     id: String,
     title: String,
     taxon: String,
+    date: String,
+    contributors: BTreeSet<String>,
     graph: GoCamGraph,
 }
 
@@ -371,6 +381,8 @@ impl GoCamModel {
             id: raw_model.id().to_owned(),
             title: raw_model.title().to_owned(),
             taxon: raw_model.taxon().to_owned(),
+            date: raw_model.date().to_owned(),
+            contributors: raw_model.contributors(),
             graph,
         }
     }
@@ -395,6 +407,14 @@ impl GoCamModel {
 
     pub fn taxon(&self) -> &str {
         &self.taxon
+    }
+
+    pub fn date(&self) -> &str {
+        &self.date
+    }
+
+    pub fn contributors(&self) -> &BTreeSet<String> {
+        &self.contributors
     }
 
     pub fn find_activity_overlaps(models: &[&GoCamModel])
@@ -484,6 +504,8 @@ impl GoCamModel {
         let mut idx_map = HashMap::new();
         let taxon = check_model_taxons(models)?;
 
+        let mut contributors = BTreeSet::new();
+
         for model in models {
             for (old_idx, node) in model.graph().node_references() {
                 let new_idx = merged_graph.add_node(node.to_owned());
@@ -501,12 +523,16 @@ impl GoCamModel {
 
                 merged_graph.add_edge(*new_source_idx, *new_target_idx, edge.to_owned());
             }
+
+            contributors.extend(model.contributors().iter().cloned());
         }
 
         Ok(GoCamModel {
             id: new_id.to_owned(),
             title: new_title.to_owned(),
             taxon,
+            date: "now".to_owned(),
+            contributors,
             graph: merged_graph,
         })
     }
