@@ -336,13 +336,47 @@ pub type GoCamGraph = Graph::<GoCamNode, GoCamEdge>;
 pub type GoCamGene = IndividualType;
 pub type GoCamChemical = IndividualType;
 pub type GoCamModifiedProtein = IndividualType;
-pub type GoCamComponent = IndividualType;
 pub type GoCamProcess = IndividualType;
 pub type GoCamInput = IndividualType;
 pub type GoCamOutput = IndividualType;
 pub type GoCamGeneIdentifier = String;
 
 pub type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum GoCamComponent {
+    ComplexComponent(IndividualType),
+    OtherComponent(IndividualType),
+}
+
+impl GoCamComponent {
+    pub fn id(&self) -> &str {
+        match self {
+            GoCamComponent::ComplexComponent(individual_type) |
+            GoCamComponent::OtherComponent(individual_type) => {
+                individual_type.id()
+            }
+        }
+    }
+
+    pub fn label(&self) -> &str {
+        match self {
+            GoCamComponent::ComplexComponent(individual_type) |
+            GoCamComponent::OtherComponent(individual_type) => {
+                individual_type.label()
+            }
+        }
+    }
+
+    pub fn label_or_id(&self) -> &str {
+        match self {
+            GoCamComponent::ComplexComponent(individual_type) |
+            GoCamComponent::OtherComponent(individual_type) => {
+                individual_type.label_or_id()
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamModel {
@@ -985,14 +1019,26 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     panic!("{}: {} is located in multiple components", model.id(),
                     subject_node.description());
                 }
-                subject_node.located_in = Some(object_type.clone());
+                let located_in =
+                    if object_individual.individual_is_complex() {
+                        GoCamComponent::ComplexComponent(object_type.clone())
+                    } else {
+                        GoCamComponent::OtherComponent(object_type.clone())
+                    };
+                subject_node.located_in = Some(located_in);
             },
             "occurs in" => {
                 if subject_node.occurs_in.is_some() {
                     panic!("{}: {} is occurs in multiple components", model.id(),
                     subject_node.description());
                 }
-                subject_node.occurs_in = Some(object_type.clone());
+                let occurs_in =
+                    if object_individual.individual_is_complex() {
+                        GoCamComponent::ComplexComponent(object_type.clone())
+                    } else {
+                        GoCamComponent::OtherComponent(object_type.clone())
+                    };
+                subject_node.occurs_in = Some(occurs_in);
             },
             "part of" => {
                 subject_node.part_of_process = Some(object_type.clone());
