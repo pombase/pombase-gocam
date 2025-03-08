@@ -89,7 +89,7 @@ pub type PropertyId = String;
 pub type AnnotationKey = String;
 pub type AnnotationValue = String;
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Annotation {
     pub key: AnnotationKey,
     pub value: AnnotationValue,
@@ -98,7 +98,7 @@ pub struct Annotation {
     pub value_type: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fact {
     #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
@@ -172,7 +172,15 @@ impl Individual {
         false
     }
 
-    pub fn individual_is_activity(&self) -> bool {
+    pub fn individual_is_activity(&self, model: &GoCamRawModel) -> bool {
+        if let Some(individual_type) = self.get_individual_type() {
+            // See: https://github.com/pombase/pombase-chado/issues/1262#issuecomment-2708083647
+            if individual_type.label().starts_with("obsolete ") &&
+                individual_type.id().starts_with("GO:") {
+                    return model.facts_of_subject(individual_type.id()).len() == 0;
+                }
+        }
+
         self.has_root_term(MOLECULAR_FUNCTION_ID)
     }
 
@@ -266,6 +274,9 @@ pub struct GoCamRawModel {
     _id: ModelId,
     _facts: BTreeMap<FactId, Fact>,
     _individuals: BTreeMap<IndividualId, Individual>,
+
+    _facts_by_object: HashMap<IndividualId, HashSet<FactId>>,
+    _facts_by_subject: HashMap<IndividualId, HashSet<FactId>>,
 }
 
 fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>, key: &str)
@@ -321,7 +332,31 @@ impl GoCamRawModel {
         self.get_individual(&fact.object)
     }
 
-    pub fn get_individual(&self, individual_id: &IndividualId)
+    pub fn facts_of_subject(&self, subject_id: &str)
+        -> HashSet<Fact>
+    {
+        if let Some(fact_ids) = self._facts_by_subject.get(subject_id) {
+            fact_ids.iter().filter_map(|fact_id| self._facts.get(fact_id))
+                    .cloned()
+                    .collect()
+        } else {
+            HashSet::new()
+        }
+    }
+
+    pub fn facts_of_object(&self, object_id: &str)
+        -> HashSet<Fact>
+    {
+        if let Some(fact_ids) = self._facts_by_object.get(object_id) {
+            fact_ids.iter().filter_map(|fact_id| self._facts.get(fact_id))
+                    .cloned()
+                    .collect()
+        } else {
+            HashSet::new()
+        }
+    }
+
+    pub fn get_individual(&self, individual_id: &str)
         -> &Individual
     {
         self._individuals.get(individual_id)
@@ -855,10 +890,21 @@ pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamRawModel> {
     let mut fact_map = BTreeMap::new();
     let mut individual_map = BTreeMap::new();
 
+    let mut _facts_by_subject = HashMap::new();
+    let mut _facts_by_object = HashMap::new();
+
     for mut fact in raw_model.facts.into_iter() {
         if let Some(&rel_name) = REL_NAMES.get(&fact.property) {
             fact.property_label = rel_name.to_owned();
         }
+
+        _facts_by_subject.entry(fact.subject.clone())
+                         .or_insert_with(HashSet::new)
+                         .insert(fact.id());
+        _facts_by_object.entry(fact.object.clone())
+                        .or_insert_with(HashSet::new)
+                        .insert(fact.id());
+
         fact_map.insert(fact.id(), fact);
     }
 
@@ -871,6 +917,9 @@ pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamRawModel> {
         _id: raw_model.id,
         _facts: fact_map,
         _individuals: individual_map,
+
+        _facts_by_subject,
+        _facts_by_object,
     })
 }
 
@@ -888,7 +937,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     let mut node_map = BTreeMap::new();
 
     for individual in model.individuals() {
-        if individual.individual_is_activity() ||
+        if individual.individual_is_activity(model) ||
             bare_genes_and_modified_proteins.contains(&individual.id) ||
             individual.individual_is_chemical() &&
             !individual.individual_is_unknown_protein()
