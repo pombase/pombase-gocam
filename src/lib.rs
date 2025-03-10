@@ -524,17 +524,25 @@ impl GoCamModel {
                 seen_activities
                     .entry(key)
                     .or_insert_with(Vec::new)
-                    .push(model.id());
+                    .push((model.id(), model.title(), node.individual_gocam_id.clone()));
             }
         }
 
         let mut ret = vec![];
 
-        for (key, model_ids) in seen_activities {
-            if model_ids.len() > 1 {
+        for (key, model_and_individual) in seen_activities.into_iter() {
+            if model_and_individual.len() > 1 {
                 let (node_id, node_description, node_type, enabled_by_type, enabled_by_id,
                      part_of_process_id, part_of_process_label,
                      occurs_in_id, occurs_in_label) = key;
+                let mut model_ids = BTreeSet::new();
+                let mut model_titles = BTreeSet::new();
+                let mut overlapping_individual_ids = BTreeSet::new();
+                for (model_id, model_title, individual_gocam_id) in model_and_individual {
+                    model_ids.insert(model_id.to_owned());
+                    model_titles.insert(model_title.to_owned());
+                    overlapping_individual_ids.insert(individual_gocam_id);
+                }
                 let node_overlap = GoCamNodeOverlap {
                     node_id,
                     node_description,
@@ -545,7 +553,9 @@ impl GoCamModel {
                     part_of_process_label,
                     occurs_in_id,
                     occurs_in_label,
-                    model_ids: model_ids.iter().map(|&s| s.to_owned()).collect(),
+                    overlapping_individual_ids,
+                    model_ids,
+                    model_titles,
                 };
                 ret.push(node_overlap);
             }
@@ -617,7 +627,9 @@ pub struct GoCamNodeOverlap {
     pub part_of_process_label: String,
     pub occurs_in_id: String,
     pub occurs_in_label: String,
+    pub overlapping_individual_ids: BTreeSet<IndividualId>,
     pub model_ids: BTreeSet<ModelId>,
+    pub model_titles: BTreeSet<String>,
 }
 
 pub struct NodeIterator<'a> {
@@ -1251,5 +1263,10 @@ mod tests {
         assert_eq!(overlap.node_description,
                    "homoserine O-acetyltransferase activity [enabled by] met6 Spom");
         assert_eq!(overlap.model_ids.len(), 2);
+
+        let first_overlapping_individual =
+            overlap.overlapping_individual_ids.iter().next().unwrap();
+        assert_eq!(first_overlapping_individual,
+                   "gomodel:66a3e0bb00001342/678073a900003752");
     }
 }
