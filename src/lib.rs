@@ -115,7 +115,7 @@ impl Fact {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndividualType {
     pub id: Option<String>,
     pub label: Option<String>,
@@ -377,7 +377,7 @@ pub type GoCamGeneIdentifier = String;
 
 pub type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamComponent {
     ComplexComponent(IndividualType),
     OtherComponent(IndividualType),
@@ -491,31 +491,25 @@ impl GoCamModel {
         let mut seen_activities = HashMap::new();
 
         let make_key = |node: &GoCamNode| {
-            let Some(ref occurs_in_type) = node.occurs_in
+            let Some(ref occurs_in) = node.occurs_in
             else {
                 return None;
             };
-            let Some(ref part_of_process_type) = node.part_of_process
+            let Some(ref part_of_process) = node.part_of_process
             else {
                 return None;
             };
 
-            let (node_type, enabled_by_type, enabled_by_id, _) =
-                node.node_type_summary_strings();
-
-            Some((node.node_id.to_owned(),
-                  node.description(),
-                  node_type.to_owned(),
-                  enabled_by_type.to_owned(), enabled_by_id.to_owned(),
-                  part_of_process_type.id().to_owned(),
-                  part_of_process_type.label().to_owned(),
-                  occurs_in_type.id().to_owned(),
-                  occurs_in_type.label().to_owned()))
+            Some((node.node_id.clone(),
+                  node.label.clone(),
+                  node.node_type.clone(),
+                  part_of_process.clone(),
+                  occurs_in.clone(),
+                  node.located_in.clone()))
         };
 
         for model in models {
             for node in model.node_iterator() {
-
                 let Some(key) = make_key(node)
                 else {
                     continue;
@@ -532,9 +526,10 @@ impl GoCamModel {
 
         for (key, model_and_individual) in seen_activities.into_iter() {
             if model_and_individual.len() > 1 {
-                let (node_id, node_description, node_type, enabled_by_type, enabled_by_id,
-                     part_of_process_id, part_of_process_label,
-                     occurs_in_id, occurs_in_label) = key;
+                let (node_id, node_label, node_type,
+                     part_of_process,
+                     occurs_in,
+                     located_in) = key;
                 let mut model_ids = BTreeSet::new();
                 let mut model_titles = BTreeSet::new();
                 let mut overlapping_individual_ids = BTreeSet::new();
@@ -543,16 +538,16 @@ impl GoCamModel {
                     model_titles.insert(model_title.to_owned());
                     overlapping_individual_ids.insert(individual_gocam_id);
                 }
+
                 let node_overlap = GoCamNodeOverlap {
                     node_id,
-                    node_description,
+                    node_label,
                     node_type,
-                    enabled_by_type,
-                    enabled_by_id,
-                    part_of_process_id,
-                    part_of_process_label,
-                    occurs_in_id,
-                    occurs_in_label,
+                    has_input: vec![],
+                    has_output: vec![],
+                    part_of_process,
+                    occurs_in,
+                    located_in,
                     overlapping_individual_ids,
                     model_ids,
                     model_titles,
@@ -565,7 +560,7 @@ impl GoCamModel {
             let ord = a.model_ids.cmp(&b.model_ids);
 
             if ord == Ordering::Equal {
-                a.node_description.cmp(&b.node_description)
+                a.node_label.cmp(&b.node_label)
             } else {
                 ord
             }
@@ -579,6 +574,31 @@ impl GoCamModel {
     {
         let mut merged_graph = GoCamGraph::new();
 
+        let mut overlap_map = HashMap::new();
+
+        let overlaps = Self::find_activity_overlaps(models);
+
+        for overlap in overlaps.into_iter() {
+            let overlap_id = overlap.id();
+            let overlap_node = GoCamNode {
+                individual_gocam_id: overlap_id,
+                node_id: overlap.node_id,
+                label: overlap.node_label,
+                node_type: overlap.node_type,
+                has_input: vec![],
+                has_output: vec![],
+                occurs_in: Some(overlap.occurs_in),
+                part_of_process: Some(overlap.part_of_process),
+                located_in: overlap.located_in,
+            };
+
+            let overlap_node_idx = merged_graph.add_node(overlap_node);
+
+            for overlapping_individual in &overlap.overlapping_individual_ids {
+                overlap_map.insert(overlapping_individual.clone(), overlap_node_idx);
+            }
+        }
+
         let mut idx_map = HashMap::new();
         let taxon = check_model_taxons(models)?;
 
@@ -586,8 +606,12 @@ impl GoCamModel {
 
         for model in models {
             for (old_idx, node) in model.graph().node_references() {
-                let new_idx = merged_graph.add_node(node.to_owned());
-                idx_map.insert(old_idx, new_idx);
+                if let Some(overlap_node_idx) = overlap_map.get(&node.individual_gocam_id) {
+                    idx_map.insert(old_idx, *overlap_node_idx);
+                } else {
+                    let new_idx = merged_graph.add_node(node.to_owned());
+                    idx_map.insert(old_idx, new_idx);
+                }
             }
 
             for edge_ref in model.graph().edge_references() {
@@ -619,17 +643,22 @@ impl GoCamModel {
 #[derive(Clone, Debug)]
 pub struct GoCamNodeOverlap {
     pub node_id: String,
-    pub node_description: String,
-    pub node_type: String,
-    pub enabled_by_type: String,
-    pub enabled_by_id: String,
-    pub part_of_process_id: String,
-    pub part_of_process_label: String,
-    pub occurs_in_id: String,
-    pub occurs_in_label: String,
+    pub node_label: String,
+    pub node_type: GoCamNodeType,
+    pub has_input: Vec<GoCamInput>,
+    pub has_output: Vec<GoCamOutput>,
+    pub located_in: Option<GoCamComponent>,
+    pub occurs_in: GoCamComponent,
+    pub part_of_process: GoCamProcess,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
     pub model_ids: BTreeSet<ModelId>,
     pub model_titles: BTreeSet<String>,
+}
+
+impl GoCamNodeOverlap {
+    pub fn id(&self) -> String {
+        self.overlapping_individual_ids.iter().cloned().collect::<Vec<_>>().join("-")
+    }
 }
 
 pub struct NodeIterator<'a> {
@@ -644,7 +673,7 @@ impl<'a> Iterator for NodeIterator<'a> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GoCamComplex {
     pub id: Option<String>,
     pub label: Option<String>,
@@ -661,7 +690,7 @@ impl GoCamComplex {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamEnabledBy {
     Complex(GoCamComplex),
     Gene(GoCamGene),
@@ -691,7 +720,7 @@ impl GoCamEnabledBy {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamNodeType {
     Unknown,
     Chemical,
@@ -1260,8 +1289,7 @@ mod tests {
 
         let overlap = &overlaps[0];
 
-        assert_eq!(overlap.node_description,
-                   "homoserine O-acetyltransferase activity [enabled by] met6 Spom");
+        assert_eq!(overlap.node_label, "homoserine O-acetyltransferase activity");
         assert_eq!(overlap.model_ids.len(), 2);
 
         let first_overlapping_individual =
