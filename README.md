@@ -17,7 +17,7 @@ curl -L https://live-go-cam.geneontology.io/product/json/low-level/665912ed00002
 use std::fs::File;
 use pombase_gocam::parse;
 
-let mut source = File::open("gomodel:665912ed00002626.json").unwrap();
+let mut source = File::open("gomodel_665912ed00002626.json").unwrap();
 let model = gocam_parse(&mut source).unwrap();
 
 for fact in model.facts() {

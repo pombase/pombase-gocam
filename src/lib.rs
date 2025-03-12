@@ -1008,7 +1008,7 @@ fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
 /// use std::fs::File;
 /// use pombase_gocam::gocam_parse;
 ///
-/// let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+/// let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
 /// let model = gocam_parse(&mut source).unwrap();
 /// assert_eq!(model.id(), "gomodel:66187e4700001744");
 ///
@@ -1297,7 +1297,7 @@ mod tests {
 
     #[test]
     fn parse_raw_test() {
-        let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
         let model = gocam_parse(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
         assert_eq!(model.facts().count(), 42);
@@ -1326,7 +1326,7 @@ mod tests {
 
     #[test]
     fn parse_test() {
-        let mut source = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
         let model = make_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
 
@@ -1342,13 +1342,13 @@ mod tests {
 
     #[test]
     fn merge_test() {
-        let mut source1 = File::open("tests/data/gomodel:66187e4700001744.json").unwrap();
+        let mut source1 = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
         let model1 = make_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66187e4700001744");
 
         assert_eq!(model1.node_iterator().count(), 12);
 
-        let mut source2 = File::open("tests/data/gomodel:665912ed00000015.json").unwrap();
+        let mut source2 = File::open("tests/data/gomodel_665912ed00000015.json").unwrap();
         let model2 = make_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:665912ed00000015");
 
@@ -1362,19 +1362,19 @@ mod tests {
 
     #[test]
     fn find_overlaps_test() {
-        let mut source1 = File::open("tests/data/gomodel:66a3e0bb00001342.json").unwrap();
+        let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
         let model1 = make_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66a3e0bb00001342");
 
         assert_eq!(model1.node_iterator().count(), 29);
 
-        let mut source2 = File::open("tests/data/gomodel:665912ed00000015.json").unwrap();
+        let mut source2 = File::open("tests/data/gomodel_665912ed00000015.json").unwrap();
         let model2 = make_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:665912ed00000015");
 
         assert_eq!(model2.node_iterator().count(), 25);
 
-        let mut source3 = File::open("tests/data/gomodel:678073a900003175.json").unwrap();
+        let mut source3 = File::open("tests/data/gomodel_678073a900003175.json").unwrap();
         let model3 = make_gocam_model(&mut source3).unwrap();
         assert_eq!(model3.id(), "gomodel:678073a900003175");
 
