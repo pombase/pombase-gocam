@@ -31,6 +31,6 @@ for fact in model.facts() {
 }
 ```
 
-# PomBase
+# Authors
 
 The library was developed by the [PomBase](https://www.pombase.org/) project.

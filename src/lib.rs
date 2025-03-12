@@ -1,7 +1,50 @@
-use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
+//! A library for parsing and processing [GO-CAM](https://geneontology.org/docs/gocam-overview)
+//! JSON format model files
+//!
+//! The main struct is [GoCamModel] representating a graph of nodes
+//! (activities, chemical, complexes etc.) and edges (most causal
+//! relations).
+//!
+//! This representation is similar to the
+//! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
+//!
+//! # Example:
+//!
+//! ```
+//! use std::fs::File;
+//! use pombase_gocam::gocam_parse;
+//!
+//! let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+//! let raw_model = gocam_parse(&mut source).unwrap();
+//! assert_eq!(raw_model.id(), "gomodel:66187e4700001744");
+//!
+//! for fact in raw_model.facts() {
+//!     let subject_id = &fact.subject;
+//!     println!("subject_id: {}", subject_id);
+//!     let subject_individual = raw_model.get_individual(subject_id);
+//!     let first_type = &subject_individual.types[0];
+//!     if let Some(ref label) = first_type.label {
+//!         println!("type label: {}", label);
+//!     }
+//! }
+//!
+//! // Higher level representation:
+//! use pombase_gocam::GoCamModel;
+//! let model = GoCamModel::new(raw_model);
+//!
+//! for node in model.node_iterator() {
+//!     println!("node: {}", node);
+//! }
+//!```
+
+use std::{cmp::Ordering,
+          collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+          fmt::{self, Display},
+          io::{BufReader, Read}};
 
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
+
 use phf::phf_map;
 
 use anyhow::{Result, anyhow};
@@ -738,7 +781,7 @@ impl GoCamNodeOverlap {
     }
 }
 
-/// A iterator over GoCamNodes
+/// An iterator over [GoCamNode]
 pub struct NodeIterator<'a> {
     node_refs: NodeReferences<'a, GoCamNode>,
 }
@@ -811,8 +854,16 @@ pub enum GoCamNodeType {
     Activity(GoCamEnabledBy),
 }
 
+/// A gene, chemical, complex or modified protein OR an activity
+/// (enabled by gene, chemical, complex or modified protein).  These
+/// fields more or less match Figure 1 in
+/// [the GO-CAM paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC7012280/)
+/// except for:
+///  - `individual_gocam_id` which is the ID of the corresponding
+///  Individual in the [GoCamRawModel]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamNode {
+    /// Individual ID in raw model from the JSON file
     pub individual_gocam_id: IndividualId,
     pub node_id: String,
     pub label: String,
