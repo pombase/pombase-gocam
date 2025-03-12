@@ -8,7 +8,9 @@ use anyhow::{Result, anyhow};
 
 use petgraph::{graph::NodeReferences, visit::{EdgeRef, IntoNodeReferences}, Graph};
 
-static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
+/// A map of edge relation term IDs to term names.  Example:
+/// "RO:0002211" => "regulates",
+pub static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "BFO:0000050" => "part of",
     "BFO:0000051" => "has part",
     "RO:0002233" => "has input",
@@ -89,22 +91,31 @@ pub type PropertyId = String;
 pub type AnnotationKey = String;
 pub type AnnotationValue = String;
 
+/// An item from the `annotations` collection of the model, a fact or
+/// an Individual.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Annotation {
+    /// A key like "date" or "contributor"
     pub key: AnnotationKey,
+    /// The value, like "2025-03-07"
     pub value: AnnotationValue,
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(rename = "value-type")]
     pub value_type: Option<String>,
 }
 
+/// A fact/relation conecting two individuals in the model
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fact {
     #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub annotations: Vec<Annotation>,
+    /// The ID of the subject Individual
     pub subject: IndividualId,
+    /// The ID of the object Individual
     pub object: IndividualId,
+    /// The relation ID (from [REL_NAMES])
     pub property: PropertyId,
+    /// The retation name
     #[serde(rename = "property-label")]
     pub property_label: String,
 }
@@ -115,6 +126,7 @@ impl Fact {
     }
 }
 
+/// An ID and a label.  Used in the `type` and `root-type` fields.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IndividualType {
     pub id: Option<String>,
@@ -124,23 +136,23 @@ pub struct IndividualType {
 }
 
 const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
-/*
-const CELLULAR_COMPONENT_ID: &str = "GO:0032991";
-const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
-*/
 const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
 const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
 
 impl IndividualType {
+    /// Return the ID or if the ID is None return "UNKNOWN_ID"
     pub fn id(&self) -> &str {
         self.id.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_ID")
     }
 
+    /// Return the label or if the label is None return "UNKNOWN_ID"
     pub fn label(&self) -> &str {
         self.label.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_LABEL")
     }
 
+    // Return the label, if set (not None).  Otherise return the ID.
+    // If the label and ID are both unset, return "UNKNOWN"
     pub fn label_or_id(&self) -> &str {
         self.label.as_ref().map(|s| s.as_str())
             .or(self.id.as_ref().map(|s| s.as_str()))
@@ -148,6 +160,7 @@ impl IndividualType {
     }
 }
 
+/// A node in the raw GO-CAM model
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Individual {
     #[serde(skip_serializing_if="Vec::is_empty", default)]
@@ -160,6 +173,8 @@ pub struct Individual {
 }
 
 impl Individual {
+    /// Return true if the term_id is in the root_terms of this
+    /// Individual
     pub fn has_root_term(&self, term_id: &str) -> bool {
         for individual_type in &self.root_types {
             if let Some(ref individual_type_id) = individual_type.id {
@@ -172,6 +187,8 @@ impl Individual {
         false
     }
 
+    /// Return true id this Individual is an activity, by checking for
+    /// "molecular_function" in the root_terms
     pub fn individual_is_activity(&self, model: &GoCamRawModel) -> bool {
         if let Some(individual_type) = self.get_individual_type() {
             // See: https://github.com/pombase/pombase-chado/issues/1262#issuecomment-2708083647
@@ -183,16 +200,6 @@ impl Individual {
 
         self.has_root_term(MOLECULAR_FUNCTION_ID)
     }
-
-    /*
-    fn individual_is_component(individual: &Individual) -> bool {
-    has_root_term(individual, CELLULAR_COMPONENT_ID)
-    }
-
-    fn individual_is_process(individual: &Individual) -> bool {
-    has_root_term(individual, BIOLOGICAL_PROCESS_ID)
-    }
-    */
 
     pub fn individual_is_complex(&self) -> bool {
         self.has_root_term(PROTEIN_CONTAINING_COMPLEX_ID)
@@ -240,10 +247,13 @@ impl Individual {
         false
     }
 
+    /// Return the first element of the types collection
     pub fn get_individual_type(&self) -> Option<&IndividualType> {
         self.types.get(0)
     }
 
+    /// Return true if the Individual is "protein" from ChEBI, but not
+    /// a specific protein
     pub fn individual_is_unknown_protein(&self) -> bool {
         let Some(individual_type) = self.get_individual_type()
         else {
@@ -268,6 +278,8 @@ struct SerdeModel {
     individuals: Vec<Individual>,
 }
 
+/// A container for the GO-CAM JSON format, containing annotations,
+/// facts and individuals
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GoCamRawModel {
     _annotations: Vec<Annotation>,
@@ -293,6 +305,7 @@ impl GoCamRawModel {
         &self._id
     }
 
+    /// An iterator over the top-level Annotations of this model
     pub fn annotations(&self) -> Box<dyn Iterator<Item = &Annotation> + '_> {
         Box::new(self._annotations.iter())
     }
@@ -302,36 +315,48 @@ impl GoCamRawModel {
             .join(",")
     }
 
+    /// The date the model last changed
     pub fn date(&self) -> String {
         annotation_values(self.annotations(), "date")
             .join(",")
     }
 
+    /// The taxon ID in the format "NCBITaxon:4896" or possible a
+    /// comma separated list like: "NCBITaxon:4896,NCBITaxon:559292"
     pub fn taxon(&self) -> String {
         annotation_values(self.annotations(), "https://w3id.org/biolink/vocab/in_taxon")
             .join(",")
     }
 
+    #[allow(rustdoc::bare_urls)]
+    /// A set of contributor ORCIDs like:
+    /// "https://orcid.org/0000-0001-6330-7526"
     pub fn contributors(&self) -> BTreeSet<String> {
         BTreeSet::from_iter(annotation_values(self.annotations(), "contributor"))
     }
 
+    /// An iterator over the facts
     pub fn facts(&self) -> Box<dyn Iterator<Item = &Fact> + '_>  {
         Box::new(self._facts.values())
     }
 
+    /// An iterator over the individuals
     pub fn individuals(&self) -> Box<dyn Iterator<Item = &Individual> + '_> {
         Box::new(self._individuals.values())
     }
 
+    /// Return the subject &Individual of a given Fact
     pub fn fact_subject(&self, fact: &Fact) -> &Individual {
         self.get_individual(&fact.subject)
     }
 
+    /// Return the object &Individual of a given Fact
     pub fn fact_object(&self, fact: &Fact) -> &Individual {
         self.get_individual(&fact.object)
     }
 
+    /// Return a copy of the subject Facts of an Individual - every
+    /// Fact where the subject Individual has the given subject_id
     pub fn facts_of_subject(&self, subject_id: &str)
         -> HashSet<Fact>
     {
@@ -344,6 +369,8 @@ impl GoCamRawModel {
         }
     }
 
+    /// Return a copy of the object Facts of an Individual - every
+    /// Fact where the object Individual has the given object_id
     pub fn facts_of_object(&self, object_id: &str)
         -> HashSet<Fact>
     {
@@ -356,6 +383,8 @@ impl GoCamRawModel {
         }
     }
 
+    /// Return the Individual with the given an IndividualId.  IDs
+    /// have the format "gomodel:67c10cc400002026/67c10cc400002109",
     pub fn get_individual(&self, individual_id: &str)
         -> &Individual
     {
@@ -365,18 +394,33 @@ impl GoCamRawModel {
     }
 }
 
+/// The internal Graph representation of a GoCamModel
 pub type GoCamGraph = Graph::<GoCamNode, GoCamEdge>;
 
+/// A gene in a node, possibly enabling an activity
 pub type GoCamGene = IndividualType;
+
+/// A chemical in a node, possibly enabling an activity
 pub type GoCamChemical = IndividualType;
+
+/// A PRO modified protein in a node, possibly enabling an activity
 pub type GoCamModifiedProtein = IndividualType;
+
+/// A GO biological process
 pub type GoCamProcess = IndividualType;
+
+/// The `has_input` of an activity
 pub type GoCamInput = IndividualType;
+
+/// The `has_output` of an activity
 pub type GoCamOutput = IndividualType;
+
+/// A gene ID with DB prefix, like "PomBase:SPAC9E9.05"
 pub type GoCamGeneIdentifier = String;
 
-pub type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
+type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
+/// A GO cellular component
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamComponent {
     ComplexComponent(IndividualType),
@@ -384,6 +428,7 @@ pub enum GoCamComponent {
 }
 
 impl GoCamComponent {
+    /// The component ID, which will be a GO component term ID
     pub fn id(&self) -> &str {
         match self {
             GoCamComponent::ComplexComponent(individual_type) |
@@ -393,6 +438,7 @@ impl GoCamComponent {
         }
     }
 
+    /// The component name, which will be a GO component term name
     pub fn label(&self) -> &str {
         match self {
             GoCamComponent::ComplexComponent(individual_type) |
@@ -402,6 +448,7 @@ impl GoCamComponent {
         }
     }
 
+    /// The label (if set) otherwise the ID
     pub fn label_or_id(&self) -> &str {
         match self {
             GoCamComponent::ComplexComponent(individual_type) |
@@ -412,6 +459,9 @@ impl GoCamComponent {
     }
 }
 
+/// A high level representation of the model with nodes for
+/// activities, chemicals, complexes etc. and edges for causal
+/// dependencies between nodes
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamModel {
     id: String,
@@ -442,6 +492,7 @@ fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
 }
 
 impl GoCamModel {
+    /// Create a GoCamModel from a GoCamRawModel
     pub fn new(raw_model: GoCamRawModel) -> GoCamModel {
         let graph = make_graph(&raw_model);
 
@@ -455,10 +506,12 @@ impl GoCamModel {
         }
     }
 
+    /// Return the petgraph::Graph representation of the model 
     pub fn graph(&self) -> &GoCamGraph {
         &self.graph
     }
 
+    /// Return an iterator over the nodes (GoCamNode) of the model
     pub fn node_iterator(&self) -> NodeIterator {
         NodeIterator {
             node_refs: self.graph().node_references(),
@@ -473,19 +526,31 @@ impl GoCamModel {
         &self.title
     }
 
+    /// The taxon ID in the format "NCBITaxon:4896" or possible a
+    /// comma separated list like: "NCBITaxon:4896,NCBITaxon:559292"
     pub fn taxon(&self) -> &str {
         &self.taxon
     }
 
+    /// The date the model last changed
     pub fn date(&self) -> &str {
         &self.date
     }
 
+    #[allow(rustdoc::bare_urls)]
+    /// A set of contributor ORCIDs like:
+    /// "https://orcid.org/0000-0001-6330-7526"
     pub fn contributors(&self) -> &BTreeSet<String> {
         &self.contributors
     }
 
-    pub fn find_activity_overlaps(models: &[&GoCamModel])
+    /// Return the overlaps between models.  A GoCamNodeOverlap is
+    /// returned for each pair of models that have an activity in
+    /// common.  The pair of activities much have the same MF term, be
+    /// enabled by the same thing (gene, complex, modified protein or
+    /// chemical), have the same process and same the component
+    /// ("occurs in").  The process and component must be non-None.
+    pub fn find_overlaps(models: &[&GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
         let mut seen_activities = HashMap::new();
@@ -573,6 +638,13 @@ impl GoCamModel {
         ret
     }
 
+    /// Merge the `models` that have nodes in common, returning a new
+    /// [GoCamModel] with the `new_id` as the ID and `new_title` as
+    /// the title.
+    ///
+    /// We use the result of calling [Self::find_overlaps] to find
+    /// nodes in common between all the `models`.  A new [GoCamModel]
+    /// is returned with the models merged at those nodes.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[&GoCamModel])
         -> Result<GoCamModel>
     {
@@ -580,7 +652,7 @@ impl GoCamModel {
 
         let mut overlap_map = HashMap::new();
 
-        let overlaps = Self::find_activity_overlaps(models);
+        let overlaps = Self::find_overlaps(models);
 
         for overlap in overlaps.into_iter() {
             let overlap_id = overlap.id();
@@ -644,6 +716,7 @@ impl GoCamModel {
     }
 }
 
+/// An overlap returned by find_node_overlaps
 #[derive(Clone, Debug)]
 pub struct GoCamNodeOverlap {
     pub node_id: String,
@@ -665,6 +738,7 @@ impl GoCamNodeOverlap {
     }
 }
 
+/// A iterator over GoCamNodes
 pub struct NodeIterator<'a> {
     node_refs: NodeReferences<'a, GoCamNode>,
 }
@@ -677,6 +751,8 @@ impl<'a> Iterator for NodeIterator<'a> {
     }
 }
 
+/// A complex can have a GO complex ID (from the CC GO aspect) or a
+/// Complex Portal ID
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GoCamComplex {
     pub id: Option<String>,
@@ -694,6 +770,7 @@ impl GoCamComplex {
     }
 }
 
+/// An enabler of an activity
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamEnabledBy {
     Complex(GoCamComplex),
@@ -724,6 +801,7 @@ impl GoCamEnabledBy {
     }
 }
 
+/// The type of a node in a GoCamModel
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GoCamNodeType {
     Unknown,
@@ -744,23 +822,6 @@ pub struct GoCamNode {
     pub located_in: Option<GoCamComponent>,
     pub occurs_in: Option<GoCamComponent>,
     pub part_of_process: Option<GoCamProcess>,
-}
-
-impl GoCamNode {
-    fn node_type_summary_strings(&self) -> (&str, &str, &str, &str) {
-        match &self.node_type {
-            GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
-            GoCamNodeType::Chemical => ("chemical", "", "", ""),
-            GoCamNodeType::Gene(_) => ("gene", "", "", ""),
-            GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
-            GoCamNodeType::Activity(enabled_by) => match enabled_by {
-                GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label()),
-                GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
-                GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
-                GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
-            }
-        }
-    }
 }
 
 impl Display for GoCamNode {
@@ -809,6 +870,21 @@ impl Display for GoCamNode {
 }
 
 impl GoCamNode {
+    fn node_type_summary_strings(&self) -> (&str, &str, &str, &str) {
+        match &self.node_type {
+            GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
+            GoCamNodeType::Chemical => ("chemical", "", "", ""),
+            GoCamNodeType::Gene(_) => ("gene", "", "", ""),
+            GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
+            GoCamNodeType::Activity(enabled_by) => match enabled_by {
+                GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label()),
+                GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
+                GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
+                GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
+            }
+        }
+    }
+
     /// The type of this node, e.g. "chemical" or "enabled_by_gene"
     pub fn type_string(&self) -> &str {
         match &self.node_type {
@@ -825,6 +901,8 @@ impl GoCamNode {
         }
     }
 
+    /// Returns "X [enabled by] Y" for activities, otherwise returns
+    /// the node label
     pub fn description(&self) -> String {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             format!("{} [enabled by] {}", self.label, enabler.label())
@@ -833,6 +911,7 @@ impl GoCamNode {
         }
     }
 
+    /// The label of the enabler, otherwise "" 
     pub fn enabler_label(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.label()
@@ -841,6 +920,7 @@ impl GoCamNode {
         }
     }
 
+    /// The label of the enabler, otherwise "" 
     pub fn enabler_id(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.id()
@@ -849,6 +929,9 @@ impl GoCamNode {
         }
     }
 
+    /// If this node is an activity, return the ID of the enabler.
+    /// Otherwise return the ID of the node (i.e. the chemical,
+    /// complex, modified protein or gene ID).
     pub fn db_id(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.id()
@@ -858,6 +941,14 @@ impl GoCamNode {
     }
 }
 
+/// An edge in the model.
+///
+///  - `id` - the term ID of the relation connecting two nodes, for
+///  example "RO:0002629"
+///  - `label` - the term name of the relation, e.g. "directly
+///  positively regulates",
+///
+/// see [REL_NAMES] for a list of possible relations
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamEdge {
     pub fact_gocam_id: FactId,
@@ -908,7 +999,8 @@ fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
 }
 
 
-/// Parses a GO-CAM model from a stream
+/// Parses a GO-CAM model from a stream in a raw representation of
+/// Individuals and Facts
 ///
 /// # Example:
 ///
@@ -1269,7 +1361,7 @@ mod tests {
     }
 
     #[test]
-    fn find_activity_overlaps() {
+    fn find_overlaps_test() {
         let mut source1 = File::open("tests/data/gomodel:66a3e0bb00001342.json").unwrap();
         let model1 = make_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66a3e0bb00001342");
@@ -1288,7 +1380,7 @@ mod tests {
 
         assert_eq!(model3.node_iterator().count(), 13);
 
-        let overlaps = GoCamModel::find_activity_overlaps(&[&model1, &model2, &model3]);
+        let overlaps = GoCamModel::find_overlaps(&[&model1, &model2, &model3]);
 
         assert_eq!(overlaps.len(), 1);
 
