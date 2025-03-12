@@ -539,6 +539,10 @@ impl GoCamModel {
                     overlapping_individual_ids.insert(individual_gocam_id);
                 }
 
+                if model_ids.len() < 2 {
+                    continue;
+                }
+
                 let node_overlap = GoCamNodeOverlap {
                     node_id,
                     node_label,
@@ -805,6 +809,7 @@ impl Display for GoCamNode {
 }
 
 impl GoCamNode {
+    /// The type of this node, e.g. "chemical" or "enabled_by_gene"
     pub fn type_string(&self) -> &str {
         match &self.node_type {
             GoCamNodeType::Unknown => "unknown",
@@ -1116,8 +1121,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             },
             "occurs in" => {
                 if subject_node.occurs_in.is_some() {
-                    panic!("{}: {} is occurs in multiple components", model.id(),
-                           subject_node.description());
+                    eprintln!("{}: {} occurs in multiple components", model.id(),
+                              subject_node.description());
                 }
                 let occurs_in =
                     if object_individual.individual_is_complex() {
