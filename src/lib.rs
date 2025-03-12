@@ -232,7 +232,7 @@ impl Individual {
         };
 
         if let Some(ref id) = individual_type.id {
-            if id.starts_with("CHEBI:") {
+            if id.starts_with("CHEBI:") || id.starts_with("SO:") {
                 return true;
             }
         }
