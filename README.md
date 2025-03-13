@@ -9,11 +9,12 @@ Code for parsing and processing [GO-CAM](https://geneontology.org/docs/gocam-ove
 JSON format model files.
 
 There is a low level representation which closely matches the JSON
-data: [GoCamRawModel] (with Fact, Individual and Annotation structs).
+data: [GoCamRawModel](https://docs.rs/pombase-gocam/latest/pombase_gocam/struct.GoCamRawModel.html)
+(containing Fact, Individual and Annotation structs).
 
-And a higher level representation, [GoCamModel], implemented as a
-graph of nodes (activities, chemical, complexes etc.) and edges
-(mostly causal relations).
+And a higher level representation, [GoCamModel](https://docs.rs/pombase-gocam/latest/pombase_gocam/struct.GoCamModel.html),
+implemented as a graph of nodes (activities, chemical, complexes etc.)
+and edges (mostly causal relations).
 
 The high level representation is similar to the
 [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
