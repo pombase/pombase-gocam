@@ -1447,6 +1447,11 @@ mod tests {
         assert_eq!(overlap.node_label, "homoserine O-acetyltransferase activity");
         assert_eq!(overlap.model_ids.len(), 2);
 
+        assert_eq!(overlap.part_of_process.id(), "GO:0071266");
+        assert_eq!(overlap.part_of_process.label(), "'de novo' L-methionine biosynthetic process");
+        assert_eq!(overlap.occurs_in.id(), "GO:0005829");
+        assert_eq!(overlap.occurs_in.label(), "cytosol");
+
         let first_overlapping_individual =
             overlap.overlapping_individual_ids.iter().next().unwrap();
         assert_eq!(first_overlapping_individual,
