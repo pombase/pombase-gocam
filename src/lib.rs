@@ -437,7 +437,7 @@ impl GoCamRawModel {
     }
 }
 
-/// The internal Graph representation of a GoCamModel
+/// The Graph representation of a GO-CAM model.  See: [GoCamModel::graph()]
 pub type GoCamGraph = Graph::<GoCamNode, GoCamEdge>;
 
 /// A gene in a node, possibly enabling an activity
@@ -504,7 +504,7 @@ impl GoCamComponent {
 
 /// A high level representation of the model with nodes for
 /// activities, chemicals, complexes etc. and edges for causal
-/// dependencies between nodes
+/// dependencies between nodes/activities.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamModel {
     id: String,
@@ -536,6 +536,12 @@ fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
 
 impl GoCamModel {
     /// Create a GoCamModel from a GoCamRawModel
+    ///
+    /// Example:
+    /// ```ignore
+    /// use pombase_gocam::GoCamModel;
+    /// let model = GoCamModel::new(raw_model);
+    /// ```
     pub fn new(raw_model: GoCamRawModel) -> GoCamModel {
         let graph = make_graph(&raw_model);
 
@@ -549,12 +555,12 @@ impl GoCamModel {
         }
     }
 
-    /// Return the petgraph::Graph representation of the model 
+    /// Return the [petgraph::Graph] representation of the model 
     pub fn graph(&self) -> &GoCamGraph {
         &self.graph
     }
 
-    /// Return an iterator over the nodes (GoCamNode) of the model
+    /// Return an iterator over the nodes ([GoCamNode]) of the model
     pub fn node_iterator(&self) -> NodeIterator {
         NodeIterator {
             node_refs: self.graph().node_references(),
@@ -587,10 +593,10 @@ impl GoCamModel {
         &self.contributors
     }
 
-    /// Return the overlaps between models.  A GoCamNodeOverlap is
+    /// Return the overlaps between models.  A [GoCamNodeOverlap] is
     /// returned for each pair of models that have an activity in
-    /// common.  The pair of activities much have the same MF term, be
-    /// enabled by the same thing (gene, complex, modified protein or
+    /// common.  The pair of activities must have the same MF term, be
+    /// enabled by the same entity (gene, complex, modified protein or
     /// chemical), have the same process and same the component
     /// ("occurs in").  The process and component must be non-None.
     pub fn find_overlaps(models: &[&GoCamModel])
@@ -685,7 +691,7 @@ impl GoCamModel {
     /// [GoCamModel] with the `new_id` as the ID and `new_title` as
     /// the title.
     ///
-    /// We use the result of calling [Self::find_overlaps] to find
+    /// We use the result of calling [Self::find_overlaps()] to find
     /// nodes in common between all the `models`.  A new [GoCamModel]
     /// is returned with the models merged at those nodes.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[&GoCamModel])
@@ -759,7 +765,7 @@ impl GoCamModel {
     }
 }
 
-/// An overlap returned by find_node_overlaps
+/// An overlap returned by [GoCamModel::find_overlaps()]
 #[derive(Clone, Debug)]
 pub struct GoCamNodeOverlap {
     pub node_id: String,
@@ -781,7 +787,7 @@ impl GoCamNodeOverlap {
     }
 }
 
-/// An iterator over [GoCamNode]
+/// An iterator over [GoCamNode], returned by [GoCamModel::node_iterator()]
 pub struct NodeIterator<'a> {
     node_refs: NodeReferences<'a, GoCamNode>,
 }
@@ -992,7 +998,7 @@ impl GoCamNode {
     }
 }
 
-/// An edge in the model.
+/// An edge in the model - a causal relation between two activities.
 ///
 ///  - `id` - the term ID of the relation connecting two nodes, for
 ///  example "RO:0002629"
@@ -1297,6 +1303,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     node_map
 }
 
+/// Read from a JSON source and return a [GoCamModel].
 pub fn make_gocam_model(source: &mut dyn Read) -> Result<GoCamModel> {
     let raw_model = gocam_parse(source)?;
 
