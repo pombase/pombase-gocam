@@ -555,7 +555,7 @@ impl GoCamModel {
         }
     }
 
-    /// Return the [petgraph::Graph] representation of the model 
+    /// Return the [petgraph::Graph] representation of the model
     pub fn graph(&self) -> &GoCamGraph {
         &self.graph
     }
@@ -968,7 +968,7 @@ impl GoCamNode {
         }
     }
 
-    /// The label of the enabler, otherwise "" 
+    /// The label of the enabler, otherwise ""
     pub fn enabler_label(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.label()
@@ -977,7 +977,7 @@ impl GoCamNode {
         }
     }
 
-    /// The label of the enabler, otherwise "" 
+    /// The label of the enabler, otherwise ""
     pub fn enabler_id(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.id()
