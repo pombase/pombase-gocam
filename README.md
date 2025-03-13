@@ -8,19 +8,18 @@
 Code for parsing and processing [GO-CAM](https://geneontology.org/docs/gocam-overview)
 JSON format model files.
 
-The main struct is [GoCamModel] representating a graph of nodes
-(activities, chemical, complexes etc.) and edges (most causal
-relations).
+There is a low level representation which closely matches the JSON
+data: [GoCamRawModel] (with Fact, Individual and Annotation structs).
 
-This representation is similar to the
+And a higher level representation, [GoCamModel], implemented as a
+graph of nodes (activities, chemical, complexes etc.) and edges
+(mostly causal relations).
+
+The high level representation is similar to the
 [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
 
-See the [documentation](https://docs.rs/pombase-gocam/latest/pombase_gocam/)
+See the [documentation on docs.rs](https://docs.rs/pombase-gocam/latest/pombase_gocam/)
 for usage.
-
-A lower level representation is available, [GoCamRawModel], which is
-closely matches the GO-CAM JSON (with Fact, Individual and Annotation
-structs).
 
 # Example
 
@@ -32,27 +31,35 @@ curl -L https://live-go-cam.geneontology.io/product/json/low-level/665912ed00002
 
 ```rust
 use std::fs::File;
-use pombase_gocam::parse;
+use pombase_gocam::gocam_parse;
 
-let mut source = File::open("gomodel_665912ed00002626.json").unwrap();
-let model = gocam_parse(&mut source).unwrap();
+fn main() {
+    let mut source = File::open("gomodel_665912ed00002626.json").unwrap();
 
-for fact in model.facts() {
-  let subject_id = &fact.subject;
-  println!("subject_id: {}", subject_id);
-  let subject_individual = model.get_individual(subject_id);
-  let type = &subject_individual.types[0];
-  if let Some(ref label) = type.label {
-    println!("type label: {}", label);
-  }
-}
+    // Low level representation:
+    let raw_model = gocam_parse(&mut source).unwrap();
 
-// Higher level representation:
-use pombase_gocam::GoCamModel;
-let model = GoCamModel::new(raw_model);
+    for fact in raw_model.facts() {
+        let subject_id = &fact.subject;
+        println!("subject_id: {}", subject_id);
+        let subject_individual = raw_model.get_individual(subject_id);
+        let individual_type = &subject_individual.types[0];
+        if let Some(ref label) = individual_type.label {
+            println!("type label: {}", label);
+        }
+    }
 
-for node in model.node_iterator() {
-    println!("node: {}", node);
+    // Higher level representation:
+    use pombase_gocam::{GoCamModel, GoCamNodeType};
+    let model = GoCamModel::new(raw_model);
+
+    for node in model.node_iterator() {
+        println!("node: {}", node);
+
+        if let GoCamNodeType::Activity(ref enabler) = node.node_type {
+            println!("enabler ID: {}", enabler.id());
+        }
+    }
 }
 ```
 
