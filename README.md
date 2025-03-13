@@ -26,7 +26,7 @@ structs).
 
 ```bash
 curl -L https://live-go-cam.geneontology.io/product/json/low-level/665912ed00002626.json |
-  jq . > gomodel:665912ed00002626.json
+  jq . > gomodel_665912ed00002626.json
 
 ```
 
