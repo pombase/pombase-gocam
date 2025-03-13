@@ -15,6 +15,8 @@
 //! use pombase_gocam::gocam_parse;
 //!
 //! let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+//!
+//! // Low level representation:
 //! let raw_model = gocam_parse(&mut source).unwrap();
 //! assert_eq!(raw_model.id(), "gomodel:66187e4700001744");
 //!
@@ -29,11 +31,14 @@
 //! }
 //!
 //! // Higher level representation:
-//! use pombase_gocam::GoCamModel;
+//! use pombase_gocam::{GoCamModel, GoCamNodeType};
 //! let model = GoCamModel::new(raw_model);
 //!
 //! for node in model.node_iterator() {
 //!     println!("node: {}", node);
+//!     if let GoCamNodeType::Activity(ref enabler) = node.node_type {
+//!         println!("enabler ID: {}", enabler.id());
+//!     }
 //! }
 //!```
 
@@ -782,6 +787,8 @@ pub struct GoCamNodeOverlap {
 }
 
 impl GoCamNodeOverlap {
+    /// A unique ID for this overlap, created from the Individual IDs
+    /// of the nodes/activities
     pub fn id(&self) -> String {
         self.overlapping_individual_ids.iter().cloned().collect::<Vec<_>>().join("-")
     }
@@ -829,6 +836,7 @@ pub enum GoCamEnabledBy {
 }
 
 impl GoCamEnabledBy {
+    /// The ID of the variant
     pub fn id(&self) -> &str {
         let maybe_id = match self {
             GoCamEnabledBy::Complex(complex) => &complex.id,
@@ -839,6 +847,7 @@ impl GoCamEnabledBy {
         maybe_id.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN")
     }
 
+    /// The label of the variant
     pub fn label(&self) -> &str {
         let maybe_label = match self {
             GoCamEnabledBy::Complex(complex) => &complex.label,
