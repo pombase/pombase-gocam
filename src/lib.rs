@@ -208,6 +208,13 @@ impl IndividualType {
     }
 }
 
+impl Display for IndividualType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.label(), self.id())?;
+        Ok(())
+    }
+}
+
 /// A node in the raw GO-CAM model
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Individual {
@@ -504,6 +511,13 @@ impl GoCamComponent {
                 individual_type.label_or_id()
             }
         }
+    }
+}
+
+impl Display for GoCamComponent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "component: {} ({})", self.label(), self.id())?;
+        Ok(())
     }
 }
 
@@ -838,6 +852,13 @@ pub enum GoCamEnabledBy {
     ModifiedProtein(GoCamModifiedProtein),
 }
 
+impl Display for GoCamEnabledBy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "enabled by: {} ({})", self.label(), self.id())?;
+        Ok(())
+    }
+}
+
 impl GoCamEnabledBy {
     /// The ID of the variant
     pub fn id(&self) -> &str {
@@ -872,6 +893,24 @@ pub enum GoCamNodeType {
     Activity(GoCamEnabledBy),
 }
 
+impl Display for GoCamNodeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GoCamNodeType::Unknown => write!(f, "unknown")?,
+            GoCamNodeType::Chemical => write!(f, "chemical")?,
+            GoCamNodeType::Gene(gene) => write!(f, "gene: {} ({})", gene.label(), gene.id())?,
+            GoCamNodeType::ModifiedProtein(modified_protein) => {
+                write!(f, "modified protein: {} ({})",
+                       modified_protein.label(), modified_protein.id())?;
+            },
+            GoCamNodeType::Activity(activity) => {
+                write!(f, "{}", activity)?;
+            },
+        }
+        Ok(())
+    }
+}
+
 /// A gene, chemical, complex or modified protein OR an activity
 /// (enabled by gene, chemical, complex or modified protein).  These
 /// fields more or less match Figure 1 in
@@ -893,72 +932,12 @@ pub struct GoCamNode {
     pub part_of_process: Option<GoCamProcess>,
 }
 
-impl Display for GoCamNode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\t", self.node_id)?;
-        write!(f, "{}\t", self.label)?;
-
-        let (node_type, enabled_by_type, enabled_by_id, enabled_by_label) =
-            self.node_type_summary_strings();
-
-        write!(f, "{}\t{}\t{}\t{}\t", node_type, enabled_by_type, enabled_by_id, enabled_by_label)?;
-
-        if let Some(ref part_of_process) = self.part_of_process {
-            write!(f, "{}\t", part_of_process.label_or_id())?;
-        } else {
-            write!(f, "\t")?;
-        }
-        let has_input_string =
-            self.has_input.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
-        if has_input_string.len() > 0 {
-            write!(f, "{}\t", has_input_string)?;
-        } else {
-            write!(f, "\t")?;
-        }
-        let has_output_string =
-            self.has_output.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
-        if has_output_string.len() > 0 {
-            write!(f, "{}\t", has_output_string)?;
-        } else {
-            write!(f, "\t")?;
-        }
-
-        if let Some(ref occurs_in) = self.occurs_in {
-            write!(f, "{}\t", occurs_in.label_or_id())?;
-        } else {
-            write!(f, "\t")?;
-        }
-        if let Some(ref located_in) = self.located_in {
-            write!(f, "{}", located_in.label_or_id())?;
-        } else {
-            write!(f, "\t")?;
-        }
-
-        Ok(())
-    }
-}
-
 impl GoCamNode {
     fn is_activity(&self) -> bool {
         if let GoCamNodeType::Activity(_) = self.node_type {
             return true;
         } else {
             return false;
-        }
-    }
-
-    fn node_type_summary_strings(&self) -> (&str, &str, &str, &str) {
-        match &self.node_type {
-            GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
-            GoCamNodeType::Chemical => ("chemical", "", "", ""),
-            GoCamNodeType::Gene(_) => ("gene", "", "", ""),
-            GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
-            GoCamNodeType::Activity(enabled_by) => match enabled_by {
-                GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label()),
-                GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
-                GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
-                GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
-            }
         }
     }
 
@@ -1015,6 +994,30 @@ impl GoCamNode {
         } else {
             &self.node_id
         }
+    }
+}
+
+impl Display for GoCamNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.node_id,
+               self.label, self.node_type)?;
+        for has_input in &self.has_input {
+            write!(f, " [has input] {}", has_input)?;
+        }
+        for has_output in &self.has_output {
+            write!(f, " [has output] {}", has_output)?;
+        }
+        if let Some(ref located_in) = self.located_in {
+            write!(f, " [located in] {}", located_in)?;
+        }
+        if let Some(ref occurs_in) = self.occurs_in {
+            write!(f, " [occurs in] {}", occurs_in)?;
+        }
+        if let Some(ref part_of_process) = self.part_of_process {
+            write!(f, " [part of] {}", part_of_process)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -1416,6 +1419,10 @@ mod tests {
         assert_eq!(first_node.node_id, "GO:0140483");
 
         assert_eq!(model.node_iterator().count(), 12);
+
+        assert_eq!(first_node.to_string(),
+                   "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] component: kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
+
     }
 
     #[test]
