@@ -610,20 +610,23 @@ impl GoCamModel {
         let mut seen_activities = HashMap::new();
 
         let make_key = |node: &GoCamNode| {
-            let Some(ref occurs_in) = node.occurs_in
-            else {
-                return None;
-            };
-            let Some(ref part_of_process) = node.part_of_process
-            else {
-                return None;
-            };
+
+            if node.is_activity() {
+                if node.occurs_in.is_none() ||
+                   node.part_of_process.is_none() {
+                    return None;
+                }
+            } else {
+                if node.located_in.is_none() {
+                    return None;
+                }
+            }
 
             Some((node.node_id.clone(),
                   node.label.clone(),
                   node.node_type.clone(),
-                  part_of_process.clone(),
-                  occurs_in.clone(),
+                  node.part_of_process.clone(),
+                  node.occurs_in.clone(),
                   node.located_in.clone()))
         };
 
@@ -717,8 +720,8 @@ impl GoCamModel {
                 node_type: overlap.node_type,
                 has_input: vec![],
                 has_output: vec![],
-                occurs_in: Some(overlap.occurs_in),
-                part_of_process: Some(overlap.part_of_process),
+                occurs_in: overlap.occurs_in,
+                part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
             };
 
@@ -779,8 +782,8 @@ pub struct GoCamNodeOverlap {
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
     pub located_in: Option<GoCamComponent>,
-    pub occurs_in: GoCamComponent,
-    pub part_of_process: GoCamProcess,
+    pub occurs_in: Option<GoCamComponent>,
+    pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
     pub model_ids: BTreeSet<ModelId>,
     pub model_titles: BTreeSet<String>,
@@ -936,6 +939,14 @@ impl Display for GoCamNode {
 }
 
 impl GoCamNode {
+    fn is_activity(&self) -> bool {
+        if let GoCamNodeType::Activity(_) = self.node_type {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     fn node_type_summary_strings(&self) -> (&str, &str, &str, &str) {
         match &self.node_type {
             GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
