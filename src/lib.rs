@@ -8,7 +8,7 @@
 //! This representation is similar to the
 //! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
 //!
-//! # Example:
+//! # Example
 //!
 //! ```
 //! use std::fs::File;
