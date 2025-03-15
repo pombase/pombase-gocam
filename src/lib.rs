@@ -8,7 +8,7 @@
 //! This representation is similar to the
 //! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
 //!
-//! # Example
+//! ## Example
 //!
 //! ```
 //! use std::fs::File;
@@ -554,13 +554,17 @@ fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
 }
 
 impl GoCamModel {
-    /// Create a GoCamModel from a GoCamRawModel
+    /// Create a [GoCamModel] from a [GoCamRawModel]
     ///
-    /// Example:
-    /// ```ignore
-    /// use pombase_gocam::GoCamModel;
-    /// let model = GoCamModel::new(raw_model);
+    /// ## Example
     /// ```
+    /// use pombase_gocam::GoCamModel;
+    /// let mut source = std::fs::File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+    /// let raw_model = pombase_gocam::gocam_parse_raw(&mut source).unwrap();
+    /// let model = pombase_gocam::GoCamModel::new(raw_model);
+    /// ```
+    ///
+    /// See also [parse_gocam_model()].
     pub fn new(raw_model: GoCamRawModel) -> GoCamModel {
         let graph = make_graph(&raw_model);
 
@@ -1082,7 +1086,7 @@ fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
 /// Parses a GO-CAM model from a stream in a raw representation of
 /// Individuals and Facts
 ///
-/// # Example:
+/// ## Example
 ///
 /// ```
 /// use std::fs::File;
@@ -1327,6 +1331,13 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 }
 
 /// Read from a JSON source and return a [GoCamModel].
+///
+/// ## Example
+/// ```
+/// let mut source = std::fs::File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+/// let model = pombase_gocam::parse_gocam_model(&mut source).unwrap();
+/// ```
+
 pub fn parse_gocam_model(source: &mut dyn Read) -> Result<GoCamModel> {
     let raw_model = gocam_parse_raw(source)?;
 
