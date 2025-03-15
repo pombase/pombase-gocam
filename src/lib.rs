@@ -12,12 +12,12 @@
 //!
 //! ```
 //! use std::fs::File;
-//! use pombase_gocam::gocam_parse;
+//! use pombase_gocam::gocam_parse_raw;
 //!
 //! let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
 //!
 //! // Low level representation:
-//! let raw_model = gocam_parse(&mut source).unwrap();
+//! let raw_model = gocam_parse_raw(&mut source).unwrap();
 //! assert_eq!(raw_model.id(), "gomodel:66187e4700001744");
 //!
 //! for fact in raw_model.facts() {
@@ -1070,7 +1070,7 @@ fn is_connecting_fact(rel_name: &str) -> bool {
         .iter().any(|s| rel_name == *s)
 }
 
-fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
+fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
     let reader = BufReader::new(source);
 
     let raw_model: SerdeModel = serde_json::from_reader(reader)?;
@@ -1086,10 +1086,10 @@ fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
 ///
 /// ```
 /// use std::fs::File;
-/// use pombase_gocam::gocam_parse;
+/// use pombase_gocam::gocam_parse_raw;
 ///
 /// let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
-/// let model = gocam_parse(&mut source).unwrap();
+/// let model = gocam_parse_raw(&mut source).unwrap();
 /// assert_eq!(model.id(), "gomodel:66187e4700001744");
 ///
 /// for fact in model.facts() {
@@ -1102,8 +1102,8 @@ fn gocam_parse_raw(source: &mut dyn Read) -> Result<SerdeModel> {
 ///   }
 /// }
 /// ```
-pub fn gocam_parse(source: &mut dyn Read) -> Result<GoCamRawModel> {
-    let raw_model = gocam_parse_raw(source)?;
+pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel> {
+    let raw_model = gocam_parse_raw_helper(source)?;
 
     let mut fact_map = BTreeMap::new();
     let mut individual_map = BTreeMap::new();
@@ -1327,8 +1327,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 }
 
 /// Read from a JSON source and return a [GoCamModel].
-pub fn make_gocam_model(source: &mut dyn Read) -> Result<GoCamModel> {
-    let raw_model = gocam_parse(source)?;
+pub fn parse_gocam_model(source: &mut dyn Read) -> Result<GoCamModel> {
+    let raw_model = gocam_parse_raw(source)?;
 
     let model = GoCamModel::new(raw_model);
 
@@ -1379,7 +1379,7 @@ mod tests {
     #[test]
     fn parse_raw_test() {
         let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
-        let model = gocam_parse(&mut source).unwrap();
+        let model = gocam_parse_raw(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
         assert_eq!(model.facts().count(), 42);
         assert_eq!(model.individuals().count(), 82);
@@ -1408,7 +1408,7 @@ mod tests {
     #[test]
     fn parse_test() {
         let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
-        let model = make_gocam_model(&mut source).unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
 
         assert_eq!(model.title(), "meiotic cohesion protection in anaphase I (GO:1990813)");
@@ -1428,13 +1428,13 @@ mod tests {
     #[test]
     fn merge_test() {
         let mut source1 = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
-        let model1 = make_gocam_model(&mut source1).unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66187e4700001744");
 
         assert_eq!(model1.node_iterator().count(), 12);
 
         let mut source2 = File::open("tests/data/gomodel_665912ed00000015.json").unwrap();
-        let model2 = make_gocam_model(&mut source2).unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:665912ed00000015");
 
         assert_eq!(model2.node_iterator().count(), 25);
@@ -1448,19 +1448,19 @@ mod tests {
     #[test]
     fn find_overlaps_test() {
         let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
-        let model1 = make_gocam_model(&mut source1).unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66a3e0bb00001342");
 
         assert_eq!(model1.node_iterator().count(), 29);
 
         let mut source2 = File::open("tests/data/gomodel_665912ed00000015.json").unwrap();
-        let model2 = make_gocam_model(&mut source2).unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:665912ed00000015");
 
         assert_eq!(model2.node_iterator().count(), 25);
 
         let mut source3 = File::open("tests/data/gomodel_678073a900003175.json").unwrap();
-        let model3 = make_gocam_model(&mut source3).unwrap();
+        let model3 = parse_gocam_model(&mut source3).unwrap();
         assert_eq!(model3.id(), "gomodel:678073a900003175");
 
         assert_eq!(model3.node_iterator().count(), 13);
