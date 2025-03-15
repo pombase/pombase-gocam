@@ -2,7 +2,7 @@
 name = "pombase-gocam"
 description = "Parser for Gene Ontology Consortium GO-CAM JSON files"
 repository = "https://github.com/pombase/pombase-gocam"
-version = "0.40.0"
+version = "0.41.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
