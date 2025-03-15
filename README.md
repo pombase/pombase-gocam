@@ -32,13 +32,13 @@ curl -L https://live-go-cam.geneontology.io/product/json/low-level/665912ed00002
 
 ```rust
 use std::fs::File;
-use pombase_gocam::gocam_parse;
+use pombase_gocam::gocam_parse_raw;
 
 fn main() {
     let mut source = File::open("gomodel_665912ed00002626.json").unwrap();
 
     // Low level representation:
-    let raw_model = gocam_parse(&mut source).unwrap();
+    let raw_model = gocam_parse_raw(&mut source).unwrap();
 
     for fact in raw_model.facts() {
         let subject_id = &fact.subject;
