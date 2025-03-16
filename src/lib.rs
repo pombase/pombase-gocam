@@ -1,12 +1,16 @@
 //! A library for parsing and processing [GO-CAM](https://geneontology.org/docs/gocam-overview)
 //! JSON format model files
 //!
-//! The main struct is [GoCamModel] representating a graph of nodes
-//! (activities, chemical, complexes etc.) and edges (most causal
-//! relations).
+//! There is a low level representation which closely matches the JSON
+//! data: [GoCamRawModel] (containing Fact, Individual and Annotation
+//! structs).
+//! 
+//! And a higher level representation, [GoCamModel], implemented as a
+//! graph of nodes (activities, chemical, complexes etc.)  and edges
+//! (mostly causal relations).
 //!
 //! This representation is similar to the
-//! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
+//! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py).
 //!
 //! ## Example
 //!
