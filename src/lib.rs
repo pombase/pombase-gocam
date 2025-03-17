@@ -4,7 +4,7 @@
 //! There is a low level representation which closely matches the JSON
 //! data: [GoCamRawModel] (containing Fact, Individual and Annotation
 //! structs).
-//! 
+//!
 //! And a higher level representation, [GoCamModel], implemented as a
 //! graph of nodes (activities, chemical, complexes etc.)  and edges
 //! (mostly causal relations).
@@ -731,9 +731,23 @@ impl GoCamModel {
 
         let mut overlap_map = HashMap::new();
 
+        // needed to make sure we only join on activities, not chemicals
+        let mut overlapping_activity_count = HashMap::new();
+
         let overlaps = Self::find_overlaps(models);
+        for overlap in overlaps.iter() {
+            if let GoCamNodeType::Activity(_) = overlap.node_type {
+                overlapping_activity_count.entry(overlap.model_ids.clone())
+                    .and_modify(|v| *v += 1)
+                    .or_insert(1);
+            }
+        }
 
         for overlap in overlaps.into_iter() {
+            if !overlapping_activity_count.contains_key(&overlap.model_ids) {
+                continue;
+            }
+
             let overlap_id = overlap.id();
             let overlap_node = GoCamNode {
                 individual_gocam_id: overlap_id,
