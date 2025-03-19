@@ -264,6 +264,19 @@ impl Individual {
         self.has_root_term(PROTEIN_CONTAINING_COMPLEX_ID)
     }
 
+    pub fn individual_is_modified_protein(&self) -> bool {
+        let Some(individual_type) = self.get_individual_type()
+        else {
+            return false;
+        };
+
+        if let Some(ref id) = individual_type.id {
+            return id.starts_with("PR:");
+        }
+
+        return false;
+    }
+
     pub fn individual_is_gene(&self) -> bool {
         if !self.has_root_term(CHEBI_CHEMICAL_ENTITY_ID) {
             return false;
@@ -1168,10 +1181,14 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     let mut bare_genes_and_modified_proteins = HashSet::new();
 
     for fact in model.facts() {
-        if fact.property_label == "has input" ||
-            fact.property_label == "has output" {
-                bare_genes_and_modified_proteins.insert(fact.object.clone());
-            }
+        let object = model.fact_object(fact);
+        if !object.individual_is_gene() && !object.individual_is_modified_protein() {
+            continue;
+        };
+
+        if fact.property_label == "has input" || fact.property_label == "has output" {
+            bare_genes_and_modified_proteins.insert(fact.object.clone());
+        }
     }
 
     let mut node_map = BTreeMap::new();
