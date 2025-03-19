@@ -191,6 +191,7 @@ const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
 const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
 const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
+const SO_MRNA_ID: &str = "SO:0000234";
 
 impl IndividualType {
     /// Return the ID or if the ID is None return "UNKNOWN_ID"
@@ -314,6 +315,19 @@ impl Individual {
             if id.starts_with("CHEBI:") || id.starts_with("SO:") {
                 return true;
             }
+        }
+
+        false
+    }
+
+    pub fn individual_is_unknown_mrna(&self) -> bool {
+        let Some(individual_type) = self.get_individual_type()
+        else {
+            return false;
+        };
+
+        if let Some(ref id) = individual_type.id {
+            return id == SO_MRNA_ID;
         }
 
         false
@@ -925,6 +939,7 @@ pub enum GoCamNodeType {
     Chemical,
     Gene(GoCamGene),
     ModifiedProtein(GoCamModifiedProtein),
+    UnknownMRNA,
     Activity(GoCamEnabledBy),
 }
 
@@ -938,6 +953,7 @@ impl Display for GoCamNodeType {
                 write!(f, "modified protein: {} ({})",
                        modified_protein.label(), modified_protein.id())?;
             },
+            GoCamNodeType::UnknownMRNA => write!(f, "unknown mRNA")?,
             GoCamNodeType::Activity(activity) => {
                 write!(f, "{}", activity)?;
             },
@@ -981,6 +997,7 @@ impl GoCamNode {
         match &self.node_type {
             GoCamNodeType::Unknown => "unknown",
             GoCamNodeType::Chemical => "chemical",
+            GoCamNodeType::UnknownMRNA => "unknown_mrna",
             GoCamNodeType::Gene(_) => "gene",
             GoCamNodeType::ModifiedProtein(_) => "modified_protein",
             GoCamNodeType::Activity(activity) => match activity {
@@ -1177,17 +1194,19 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel> {
 }
 
 fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
-    // genes that are the object of a has_input or has_output relation
-    let mut bare_genes_and_modified_proteins = HashSet::new();
+    // genes, modified proteins and unknown mRNAs that are the object
+    // of a has_input or has_output relation
+    let mut interesting_inputs_and_outputs = HashSet::new();
 
     for fact in model.facts() {
         let object = model.fact_object(fact);
-        if !object.individual_is_gene() && !object.individual_is_modified_protein() {
+        if !object.individual_is_gene() && !object.individual_is_modified_protein() &&
+           !object.individual_is_unknown_mrna() {
             continue;
         };
 
         if fact.property_label == "has input" || fact.property_label == "has output" {
-            bare_genes_and_modified_proteins.insert(fact.object.clone());
+            interesting_inputs_and_outputs.insert(fact.object.clone());
         }
     }
 
@@ -1195,7 +1214,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 
     for individual in model.individuals() {
         if individual.individual_is_activity(model) ||
-            bare_genes_and_modified_proteins.contains(&individual.id) ||
+            interesting_inputs_and_outputs.contains(&individual.id) ||
             individual.individual_is_chemical() &&
             !individual.individual_is_unknown_protein()
         {
@@ -1207,11 +1226,15 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 if individual.individual_is_chemical() {
                     GoCamNodeType::Chemical
                 } else {
-                    if bare_genes_and_modified_proteins.contains(&individual.id) {
-                        if individual_type.id().starts_with("PR:") {
-                            GoCamNodeType::ModifiedProtein(individual_type.clone())
+                    if interesting_inputs_and_outputs.contains(&individual.id) {
+                        if individual.individual_is_unknown_mrna() {
+                            GoCamNodeType::UnknownMRNA
                         } else {
-                            GoCamNodeType::Gene(individual_type.clone())
+                            if individual.individual_is_modified_protein() {
+                                GoCamNodeType::ModifiedProtein(individual_type.clone())
+                            } else {
+                                GoCamNodeType::Gene(individual_type.clone())
+                            }
                         }
                     } else {
                         GoCamNodeType::Unknown
