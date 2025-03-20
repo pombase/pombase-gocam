@@ -800,6 +800,8 @@ impl GoCamModel {
 
         let mut contributors = BTreeSet::new();
 
+        let mut seen_edge = HashSet::new();
+
         for model in models {
             for (old_idx, node) in model.graph().node_references() {
                 if let Some(overlap_node_idx) = overlap_map.get(&node.individual_gocam_id) {
@@ -816,10 +818,13 @@ impl GoCamModel {
                 let old_source_idx = edge_ref.source();
                 let old_target_idx = edge_ref.target();
 
-                let new_source_idx = idx_map.get(&old_source_idx).unwrap();
-                let new_target_idx = idx_map.get(&old_target_idx).unwrap();
+                let new_source_idx = idx_map.get(&old_source_idx).unwrap().to_owned();
+                let new_target_idx = idx_map.get(&old_target_idx).unwrap().to_owned();
 
-                merged_graph.add_edge(*new_source_idx, *new_target_idx, edge.to_owned());
+                if !seen_edge.contains(&(new_source_idx, new_target_idx, edge.label.to_owned())) {
+                    seen_edge.insert((new_source_idx, new_target_idx, edge.label.to_owned()));
+                    merged_graph.add_edge(new_source_idx, new_target_idx, edge.to_owned());
+                }
             }
 
             contributors.extend(model.contributors().iter().cloned());
