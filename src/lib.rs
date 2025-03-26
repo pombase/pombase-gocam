@@ -566,7 +566,7 @@ pub struct GoCamModel {
     graph: GoCamGraph,
 }
 
-fn check_model_taxons(models: &[&GoCamModel]) -> Result<String> {
+fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
     let mut model_iter = models.iter();
 
     let Some(first_model) = model_iter.next()
@@ -654,7 +654,7 @@ impl GoCamModel {
     /// enabled by the same entity (gene, complex, modified protein or
     /// chemical), have the same process and same the component
     /// ("occurs in").  The process and component must be non-None.
-    pub fn find_overlaps(models: &[&GoCamModel])
+    pub fn find_overlaps(models: &[GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
         let mut seen_activities = HashMap::new();
@@ -752,7 +752,7 @@ impl GoCamModel {
     /// We use the result of calling [Self::find_overlaps()] to find
     /// nodes in common between all the `models`.  A new [GoCamModel]
     /// is returned with the models merged at those nodes.
-    pub fn merge_models(new_id: &str, new_title: &str, models: &[&GoCamModel])
+    pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel])
         -> Result<GoCamModel>
     {
         let mut merged_graph = GoCamGraph::new();
@@ -1518,7 +1518,7 @@ mod tests {
         assert_eq!(model2.node_iterator().count(), 25);
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[&model1, &model2]).unwrap();
+                                              &[model1, model2]).unwrap();
 
         assert_eq!(merged.node_iterator().count(), 37);
     }
@@ -1543,7 +1543,7 @@ mod tests {
 
         assert_eq!(model3.node_iterator().count(), 13);
 
-        let overlaps = GoCamModel::find_overlaps(&[&model1, &model2, &model3]);
+        let overlaps = GoCamModel::find_overlaps(&[model1, model2, model3]);
 
         assert_eq!(overlaps.len(), 1);
 
