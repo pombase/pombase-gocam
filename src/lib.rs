@@ -508,6 +508,7 @@ type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
 /// A GO cellular component
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum GoCamComponent {
     ComplexComponent(IndividualType),
     OtherComponent(IndividualType),
@@ -842,7 +843,8 @@ impl GoCamModel {
 }
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
 pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
@@ -899,6 +901,7 @@ impl GoCamComplex {
 
 /// An enabler of an activity
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum GoCamEnabledBy {
     Complex(GoCamComplex),
     Gene(GoCamGene),
@@ -939,6 +942,7 @@ impl GoCamEnabledBy {
 
 /// The type of a node in a GoCamModel
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum GoCamNodeType {
     Unknown,
     Chemical,
