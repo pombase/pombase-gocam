@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    name: Build and test pombase-noctua
+    name: Build and test pombase-gocam
 
     runs-on: ubuntu-latest
 
