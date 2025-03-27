@@ -675,9 +675,17 @@ impl GoCamModel {
                 }
             }
 
+            let enabler_id =
+                if let GoCamNodeType::Activity(ref enabler) = node.node_type {
+                    Some(enabler.id().to_owned())
+                } else {
+                    None
+                };
+
             Some((node.node_id.clone(),
                   node.label.clone(),
                   node.node_type.clone(),
+                  enabler_id,
                   node.part_of_process.clone(),
                   node.occurs_in.clone(),
                   node.located_in.clone()))
@@ -702,6 +710,7 @@ impl GoCamModel {
         for (key, model_and_individual) in seen_activities.into_iter() {
             if model_and_individual.len() > 1 {
                 let (node_id, node_label, node_type,
+                     enabler_id,
                      part_of_process,
                      occurs_in,
                      located_in) = key;
@@ -722,6 +731,7 @@ impl GoCamModel {
                     node_id,
                     node_label,
                     node_type,
+                    enabler_id,
                     has_input: vec![],
                     has_output: vec![],
                     part_of_process,
@@ -790,11 +800,12 @@ impl GoCamModel {
                 occurs_in: overlap.occurs_in,
                 part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
+                source_ids: overlap.overlapping_individual_ids.clone(),
             };
 
             let overlap_node_idx = merged_graph.add_node(overlap_node);
 
-            for overlapping_individual in &overlap.overlapping_individual_ids {
+            for overlapping_individual in overlap.overlapping_individual_ids.iter() {
                 overlap_map.insert(overlapping_individual.clone(), overlap_node_idx);
             }
         }
@@ -852,6 +863,7 @@ pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
     pub node_type: GoCamNodeType,
+    pub enabler_id: Option<String>,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
     pub located_in: Option<GoCamComponent>,
@@ -993,6 +1005,7 @@ pub struct GoCamNode {
     pub located_in: Option<GoCamComponent>,
     pub occurs_in: Option<GoCamComponent>,
     pub part_of_process: Option<GoCamProcess>,
+    pub source_ids: BTreeSet<IndividualId>,
 }
 
 impl GoCamNode {
@@ -1252,6 +1265,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                         GoCamNodeType::Unknown
                     }
                 };
+            let mut source_ids = BTreeSet::new();
+            source_ids.insert(individual.id.clone());
             let gocam_node = GoCamNode {
                 individual_gocam_id: individual.id.clone(),
                 node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
@@ -1262,6 +1277,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 located_in: None,
                 occurs_in: None,
                 part_of_process: None,
+                source_ids,
             };
 
             node_map.insert(individual.id.clone(), gocam_node);
