@@ -577,8 +577,8 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
     for this_model in model_iter {
         // a hack to cope with models with more than one taxon:
         // "NCBITaxon:4896,NCBITaxon:559292"
-        if first_model.taxon.contains(&this_model.taxon) ||
-           this_model.taxon.contains(&first_model.taxon) {
+        if !first_model.taxon.contains(&this_model.taxon) &&
+           !this_model.taxon.contains(&first_model.taxon) {
             return Err(anyhow!("mismatched taxons: {} ({}) != {} ({})",
                                first_model.taxon, first_model.id,
                                this_model.taxon, this_model.id));
