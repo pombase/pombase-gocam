@@ -701,7 +701,8 @@ impl GoCamModel {
                 seen_activities
                     .entry(key)
                     .or_insert_with(Vec::new)
-                    .push((model.id(), model.title(), node.individual_gocam_id.clone()));
+                    .push((model.id().replace("gomodel:", ""), model.title(),
+                           node.individual_gocam_id.clone()));
             }
         }
 
