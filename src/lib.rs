@@ -801,6 +801,7 @@ impl GoCamModel {
                 part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
                 source_ids: overlap.overlapping_individual_ids.clone(),
+                model_id: overlap.model_ids.iter().next().unwrap().to_owned(),
             };
 
             let overlap_node_idx = merged_graph.add_node(overlap_node);
@@ -1006,6 +1007,7 @@ pub struct GoCamNode {
     pub occurs_in: Option<GoCamComponent>,
     pub part_of_process: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
+    pub model_id: ModelId,
 }
 
 impl GoCamNode {
@@ -1278,6 +1280,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 occurs_in: None,
                 part_of_process: None,
                 source_ids,
+                model_id: model.id().clone(),
             };
 
             node_map.insert(individual.id.clone(), gocam_node);
@@ -1514,6 +1517,7 @@ mod tests {
         let first_node = model.node_iterator().next().unwrap();
 
         assert_eq!(first_node.node_id, "GO:0140483");
+        assert_eq!(first_node.model_id, "gomodel:66187e4700001744");
 
         assert_eq!(model.node_iterator().count(), 12);
 
