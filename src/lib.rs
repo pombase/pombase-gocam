@@ -966,6 +966,16 @@ pub enum GoCamNodeType {
     Activity(GoCamEnabledBy),
 }
 
+impl GoCamNodeType {
+    pub fn is_activity(&self) -> bool {
+        if let GoCamNodeType::Activity(_) = self {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 impl Display for GoCamNodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
