@@ -1137,26 +1137,6 @@ fn is_gene_id(identifier: &str) -> bool {
         .iter().any(|s| identifier.starts_with(*s))
 }
 
-fn is_connecting_fact(rel_name: &str) -> bool {
-    ["causally upstream of, negative effect",
-     "causally upstream of, positive effect",
-     "provides input for",
-     "directly provides input for",
-     "removes input for",
-     "constitutively upstream of",
-     "directly negatively regulates",
-     "directly positively regulates",
-     "indirectly negatively regulates",
-     "indirectly positively regulates",
-     "has small molecular activator",
-     "has small molecular inhibitor",
-     "is small molecule activator of",
-     "is small molecule inhibitor of",
-     "input of",
-     "has output"]
-        .iter().any(|s| rel_name == *s)
-}
-
 fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
     let reader = BufReader::new(source);
 
@@ -1416,16 +1396,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             &_ => {
                 // eprintln!("ignoring rel from fact: {} {}", fact.property_label, fact.id());
             }
-        }
-    }
-
-    let mut connectons = vec![];
-
-    for fact in model.facts() {
-        if is_connecting_fact(fact.property_label.as_str()) {
-            let connection = (fact.subject.clone(), fact.property_label.clone(),
-                              fact.object.clone());
-            connectons.push(connection);
         }
     }
 
