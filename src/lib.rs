@@ -498,6 +498,7 @@ pub type GoCamModifiedProtein = IndividualType;
 pub struct GoCamProcess {
     pub id: String,
     pub label: String,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_parent: Option<Box<GoCamProcess>>,
 }
 
@@ -895,11 +896,15 @@ pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
     pub node_type: GoCamNodeType,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub enabler_id: Option<String>,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub occurs_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
     pub models: BTreeSet<(ModelId, String)>,
@@ -1043,8 +1048,11 @@ pub struct GoCamNode {
     pub node_type: GoCamNodeType,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub occurs_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
     pub models: BTreeSet<(ModelId, ModelTitle)>,
