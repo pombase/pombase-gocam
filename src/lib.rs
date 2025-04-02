@@ -248,7 +248,7 @@ impl Individual {
         false
     }
 
-    /// Return true id this Individual is an activity, by checking for
+    /// Return true if this Individual is an activity, by checking for
     /// "molecular_function" in the root_terms
     pub fn individual_is_activity(&self, model: &GoCamRawModel) -> bool {
         if let Some(individual_type) = self.get_individual_type() {
