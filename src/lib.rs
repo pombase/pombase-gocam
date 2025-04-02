@@ -494,7 +494,39 @@ pub type GoCamChemical = IndividualType;
 pub type GoCamModifiedProtein = IndividualType;
 
 /// A GO biological process
-pub type GoCamProcess = IndividualType;
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GoCamProcess {
+    pub id: String,
+    pub label: String,
+    pub part_of_parent: Option<Box<GoCamProcess>>,
+}
+
+impl GoCamProcess {
+    pub fn label_or_id(&self) -> &str {
+        if self.label.len() > 0 {
+            self.label.as_str()
+        } else {
+            self.id.as_str()
+        }
+    }
+}
+
+impl From<&IndividualType> for GoCamProcess {
+    fn from(individual_process: &IndividualType) -> GoCamProcess {
+        GoCamProcess {
+            id: individual_process.id().to_owned(),
+            label: individual_process.label().to_owned(),
+            part_of_parent: None,
+        }
+    }
+}
+
+impl Display for GoCamProcess {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.label, self.id)?;
+        Ok(())
+    }
+}
 
 /// The `has_input` of an activity
 pub type GoCamInput = IndividualType;
@@ -1208,6 +1240,29 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel> {
     })
 }
 
+fn process_from_individual(individual: &Individual, model: &GoCamRawModel) -> GoCamProcess {
+    let individual_type = individual.get_individual_type().unwrap();
+    let mut process: GoCamProcess = individual_type.into();
+
+    let subject_facts = model.facts_of_subject(&individual.id);
+
+    for fact in subject_facts.iter() {
+        if fact.property != "BFO:0000050" {
+            continue;
+        }
+        let f_object = model.get_individual(&fact.object);
+        let Some(f_object_type) = f_object.get_individual_type()
+        else {
+            continue;
+        };
+        if f_object_type.id().starts_with("GO:") {
+           process.part_of_parent = Some(Box::new(f_object_type.into()));
+        }
+    }
+
+    process
+}
+
 fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
     // genes, modified proteins and unknown mRNAs that are the object
     // of a has_input or has_output relation
@@ -1391,7 +1446,9 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 subject_node.occurs_in = Some(occurs_in);
             },
             "part of" => {
-                subject_node.part_of_process = Some(object_type.clone());
+                let process = process_from_individual(object_individual, model);
+
+                subject_node.part_of_process = Some(process);
             },
             &_ => {
                 // eprintln!("ignoring rel from fact: {} {}", fact.property_label, fact.id());
@@ -1560,9 +1617,9 @@ mod tests {
         assert_eq!(overlap.node_label, "homoserine O-acetyltransferase activity");
         assert_eq!(overlap.models.len(), 2);
 
-        assert_eq!(overlap.part_of_process.as_ref().unwrap().id(),
+        assert_eq!(overlap.part_of_process.as_ref().unwrap().id,
                    "GO:0071266");
-        assert_eq!(overlap.part_of_process.as_ref().unwrap().label(),
+        assert_eq!(overlap.part_of_process.as_ref().unwrap().label,
                    "'de novo' L-methionine biosynthetic process");
         assert_eq!(overlap.occurs_in.as_ref().unwrap().id(),
                    "GO:0005829");
