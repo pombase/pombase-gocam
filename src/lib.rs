@@ -1173,7 +1173,7 @@ impl Display for GoCamEdge {
 
 fn is_gene_id(identifier: &str) -> bool {
     ["PomBase:", "FB:", "UniProtKB:", "MGI:", "WB:", "RGD:", "RefSeq:",
-     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:"]
+     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:", "AGI_LocusCode:"]
         .iter().any(|s| identifier.starts_with(*s))
 }
 
