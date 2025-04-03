@@ -801,19 +801,19 @@ impl GoCamModel {
     {
         let mut merged_graph = GoCamGraph::new();
 
-        let mut overlap_map = HashMap::new();
-
         // needed to make sure we only join on activities, not chemicals
         let mut overlapping_activity_count = HashMap::new();
 
         let overlaps = Self::find_overlaps(models);
         for overlap in overlaps.iter() {
-            if let GoCamNodeType::Activity(_) = overlap.node_type {
+            if overlap.node_type.is_activity() {
                 overlapping_activity_count.entry(overlap.models.clone())
                     .and_modify(|v| *v += 1)
                     .or_insert(1);
             }
         }
+
+        let mut overlap_map = HashMap::new();
 
         for overlap in overlaps.into_iter() {
             if !overlapping_activity_count.contains_key(&overlap.models) {
