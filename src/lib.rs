@@ -334,6 +334,13 @@ impl Individual {
         false
     }
 
+    pub fn individual_is_mrna(&self) -> bool {
+        if let Some(individual_type) = self.get_individual_type() {
+           return is_mrna_id(individual_type.id());
+        }
+        false
+    }
+
     /// Return the first element of the types collection
     pub fn get_individual_type(&self) -> Option<&IndividualType> {
         self.types.get(0)
@@ -486,6 +493,12 @@ pub type GoCamGraph = Graph::<GoCamNode, GoCamEdge>;
 
 /// A gene in a node, possibly enabling an activity
 pub type GoCamGene = IndividualType;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct GoCamMRNA {
+    pub id: String,
+    pub label: String,
+}
 
 /// A chemical in a node, possibly enabling an activity
 pub type GoCamChemical = IndividualType;
@@ -998,6 +1011,7 @@ pub enum GoCamNodeType {
     Unknown,
     Chemical,
     Gene(GoCamGene),
+    MRNA(GoCamMRNA),
     ModifiedProtein(GoCamModifiedProtein),
     UnknownMRNA,
     Activity(GoCamEnabledBy),
@@ -1019,6 +1033,7 @@ impl Display for GoCamNodeType {
             GoCamNodeType::Unknown => write!(f, "unknown")?,
             GoCamNodeType::Chemical => write!(f, "chemical")?,
             GoCamNodeType::Gene(gene) => write!(f, "gene: {} ({})", gene.label(), gene.id())?,
+            GoCamNodeType::MRNA(mrna) => write!(f, "mrna: {} ({})", mrna.label, mrna.id)?,
             GoCamNodeType::ModifiedProtein(modified_protein) => {
                 write!(f, "modified protein: {} ({})",
                        modified_protein.label(), modified_protein.id())?;
@@ -1074,6 +1089,7 @@ impl GoCamNode {
             GoCamNodeType::Chemical => "chemical",
             GoCamNodeType::UnknownMRNA => "unknown_mrna",
             GoCamNodeType::Gene(_) => "gene",
+            GoCamNodeType::MRNA(_) => "mrna",
             GoCamNodeType::ModifiedProtein(_) => "modified_protein",
             GoCamNodeType::Activity(activity) => match activity {
                 GoCamEnabledBy::Chemical(_) => "enabled_by_chemical",
@@ -1271,15 +1287,24 @@ fn process_from_individual(individual: &Individual, model: &GoCamRawModel) -> Go
     process
 }
 
+fn is_mrna_id(id: &str) -> bool {
+    if let Some(no_suffix) = id.strip_suffix(|c: char| c.is_numeric()) {
+        return no_suffix.ends_with('.')
+    }
+
+    false
+}
+
 fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
-    // genes, modified proteins and unknown mRNAs that are the object
+    // genes, modified proteins and mRNAs that are the object
     // of a has_input or has_output relation
     let mut interesting_inputs_and_outputs = HashSet::new();
 
     for fact in model.facts() {
         let object = model.fact_object(fact);
+
         if !object.individual_is_gene() && !object.individual_is_modified_protein() &&
-           !object.individual_is_unknown_mrna() {
+           !object.individual_is_unknown_mrna() && !object.individual_is_mrna() {
             continue;
         };
 
@@ -1314,7 +1339,15 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                             if individual.individual_is_modified_protein() {
                                 GoCamNodeType::ModifiedProtein(individual_type.clone())
                             } else {
-                                GoCamNodeType::Gene(individual_type.clone())
+                                if is_mrna_id(individual_type.id()) {
+                                    let mrna = GoCamMRNA {
+                                        id: individual_type.id().to_owned(),
+                                        label: individual_type.label().to_owned(),
+                                    };
+                                    GoCamNodeType::MRNA(mrna)
+                                } else {
+                                    GoCamNodeType::Gene(individual_type.clone())
+                                }
                             }
                         }
                     } else {
