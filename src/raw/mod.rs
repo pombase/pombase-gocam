@@ -480,3 +480,38 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel> {
 }
 
 
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use super::*;
+
+    #[test]
+    fn parse_raw_test() {
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+        let model = gocam_parse_raw(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:66187e4700001744");
+        assert_eq!(model.facts().count(), 42);
+        assert_eq!(model.individuals().count(), 82);
+
+        assert_eq!(model.title(), "meiotic cohesion protection in anaphase I (GO:1990813)");
+        assert_eq!(model.taxon(), "NCBITaxon:4896");
+
+        let first_fact = model.facts().next().unwrap();
+        assert_eq!(first_fact.property, "BFO:0000050");
+        assert_eq!(first_fact.property_label, "part of");
+        assert_eq!(first_fact.id(), "gomodel:66187e4700001744/66187e4700001758-BFO:0000050-gomodel:66187e4700001744/66187e4700001760");
+
+        let fact_object = model.fact_object(&first_fact);
+        assert_eq!(first_fact.object, fact_object.id);
+
+        let object_first_type = &fact_object.types[0];
+        assert_eq!(object_first_type.label.clone().unwrap(),
+                   "meiotic centromeric cohesion protection in anaphase I");
+
+        let object_first_root_type = &fact_object.root_types[0];
+        assert_eq!(object_first_root_type.id.clone().unwrap(),
+                   "GO:0008150");
+    }
+
+}
