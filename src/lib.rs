@@ -342,30 +342,17 @@ impl GoCamModel {
     /// the title.
     ///
     /// We use the result of calling [Self::find_overlapping_activities()] to find
-    /// nodes in common between all the `models`.  A new [GoCamModel]
-    /// is returned with the models merged at those nodes.
+    /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel])
         -> Result<GoCamModel>
     {
         let mut merged_graph = GoCamGraph::new();
 
-        // needed to make sure we only join on activities, not chemicals
-        let mut overlapping_activity_count = HashMap::new();
-
         let overlaps = Self::find_overlapping_activities(models);
-        for overlap in overlaps.iter() {
-            overlapping_activity_count.entry(overlap.models.clone())
-                .and_modify(|v| *v += 1)
-                .or_insert(1);
-        }
 
         let mut overlap_map = HashMap::new();
 
         for overlap in overlaps.into_iter() {
-            if !overlapping_activity_count.contains_key(&overlap.models) {
-                continue;
-            }
-
             let overlap_id = overlap.id();
 
             let overlap_node = GoCamNode {
