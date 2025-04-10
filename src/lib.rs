@@ -1171,18 +1171,45 @@ mod tests {
     }
 
     #[test]
-    fn merge_test() {
+    fn overlap_test() {
         let mut source1 = File::open("tests/data/gomodel_662af8fa00000408.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:662af8fa00000408");
-
         assert_eq!(model1.node_iterator().count(), 33);
 
         let mut source2 = File::open("tests/data/gomodel_662af8fa00000499.json").unwrap();
         let model2 = parse_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:662af8fa00000499");
-
         assert_eq!(model2.node_iterator().count(), 21);
+
+        let overlaps = GoCamModel::find_overlapping_activities(&[model1, model2]);
+
+        assert_eq!(overlaps.len(), 3);
+
+        let mut expected_node_ids = HashSet::new();
+        expected_node_ids.insert("GO:0097269".to_owned());
+        expected_node_ids.insert("GO:0005215".to_owned());
+
+        let activity_node_ids: HashSet<_> = overlaps.iter().map(|o| o.node_id.clone()).collect();
+        assert_eq!(activity_node_ids, expected_node_ids);
+
+        let mut expected_enabled_by_ids = HashSet::new();
+        expected_enabled_by_ids.insert("CHEBI:36080".to_owned());
+        expected_enabled_by_ids.insert("PomBase:SPBPJ4664.01".to_owned());
+        expected_enabled_by_ids.insert("PomBase:SPAC19G12.12".to_owned());
+
+        let activity_enabled_by_ids: HashSet<_> =
+            overlaps.iter().map(|o| o.enabled_by.id().to_owned()).collect();
+        assert_eq!(activity_enabled_by_ids, expected_enabled_by_ids);
+    }
+
+    #[test]
+    fn merge_test() {
+        let mut source1 = File::open("tests/data/gomodel_662af8fa00000408.json").unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
+
+        let mut source2 = File::open("tests/data/gomodel_662af8fa00000499.json").unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2]).unwrap();
