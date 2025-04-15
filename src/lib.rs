@@ -55,6 +55,7 @@ extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 
 pub mod raw;
+pub mod graph;
 
 use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
 
