@@ -38,7 +38,7 @@
 //! use pombase_gocam::{GoCamModel, GoCamNodeType};
 //! let model = GoCamModel::new(raw_model);
 //!
-//! for node in model.node_iterator() {
+//! for (_, node) in model.node_iterator() {
 //!     println!("node: {}", node);
 //!     if let GoCamNodeType::Activity(ref enabler) = node.node_type {
 //!         println!("enabler ID: {}", enabler.id());
@@ -57,13 +57,14 @@ extern crate serde_json;
 pub mod raw;
 pub mod graph;
 
+use graph::SubGraphPred;
 use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
 
 use phf::phf_map;
 
 use anyhow::{Result, anyhow};
 
-use petgraph::{graph::NodeReferences, visit::{EdgeRef, IntoNodeReferences}, Graph};
+use petgraph::{graph::{NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Graph};
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -259,8 +260,6 @@ impl GoCamModel {
     pub fn find_overlapping_activities(models: &[GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
-        let mut seen_activities = HashMap::new();
-
         let make_key = |node: &GoCamNode| {
             if node.occurs_in.is_none() ||
                 node.part_of_process.is_none() {
@@ -279,50 +278,114 @@ impl GoCamModel {
                   node.occurs_in.clone().unwrap()))
         };
 
+        let mut models_by_id = HashMap::new();
+
+        let mut activities = HashMap::new();
+
         for model in models {
-            for node in model.node_iterator() {
+            models_by_id.insert(model.id().to_owned(), model);
+
+            for (node_idx, node) in model.node_iterator() {
                 let Some(key) = make_key(node)
                 else {
                     continue;
                 };
 
-                seen_activities
+                activities
                     .entry(key)
+                    .or_insert_with(HashMap::new)
+                    .entry(model.id())
                     .or_insert_with(Vec::new)
-                    .push((model.id(), model.title(), node.individual_gocam_id.clone()));
+                    .push((node_idx, node));
             }
         }
 
+        let possible_overlapping_activities: HashMap<_, _> = 
+            activities
+            .into_iter()
+            .filter_map(|(key, node_details)| {
+                if node_details.len() < 2 {
+                    // there is no overlap
+                    None
+                } else {
+                    let mut models_and_nodes = HashMap::new();
+
+                    for (model_id, nodes) in node_details.into_iter() {
+                        if nodes.len() == 1 {
+                            models_and_nodes.insert(model_id.to_owned(), nodes[0].clone());
+                        } else {
+                            // for now ignore cases where an activity is duplicated in a model
+                            return None;
+                        }
+                    }
+
+                    Some((key, models_and_nodes))
+                }
+            })
+            .collect();
+
         let mut ret = vec![];
 
-        for (key, model_and_individual) in seen_activities.into_iter() {
-            if model_and_individual.len() > 1 {
-                let (node_id, node_label, enabled_by,
-                     part_of_process, occurs_in) = key;
-                let mut models = BTreeSet::new();
-                let mut overlapping_individual_ids = BTreeSet::new();
-                for (model_id, model_title, individual_gocam_id) in model_and_individual {
-                    models.insert((model_id.to_owned(), model_title.to_owned()));
-                    overlapping_individual_ids.insert(individual_gocam_id);
-                }
+        let mut possible_overlap_model_and_nodes = HashMap::new();
 
-                if models.len() < 2 {
-                    continue;
-                }
-
-                let node_overlap = GoCamNodeOverlap {
-                    node_id,
-                    node_label,
-                    enabled_by,
-                    has_input: vec![],
-                    has_output: vec![],
-                    part_of_process,
-                    occurs_in,
-                    overlapping_individual_ids,
-                    models,
-                };
-                ret.push(node_overlap);
+        for (_, models_and_individual) in possible_overlapping_activities.iter() {
+            for (model_id, (_, node)) in models_and_individual.iter() {
+                possible_overlap_model_and_nodes
+                    .entry(model_id.clone())
+                    .or_insert_with(HashSet::new)
+                    .insert(*node);
             }
+        }
+
+        for (key, models_and_individual) in possible_overlapping_activities.into_iter() {
+            let (node_id, node_label, enabled_by,
+                 part_of_process, occurs_in) = key;
+
+            let mut overlapping_individual_ids = BTreeSet::new();
+            let mut found_complete_process = false;
+
+            for (model_id, node_details) in models_and_individual.clone() {
+
+                let model = models_by_id.get(&model_id).unwrap();
+
+                let (node_idx, node) = node_details;
+
+                overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
+
+                let this_model_overlaps_ids =
+                    possible_overlap_model_and_nodes.get(&model_id).unwrap()
+                    .iter().map(|n| n.individual_gocam_id.to_owned()).collect();
+
+                if Self::is_process_sub_graph(*model, node_idx, &this_model_overlaps_ids) {
+                    found_complete_process = true;
+                }
+
+            }
+
+            if !found_complete_process {
+                continue;
+            }
+
+            let model_ids_and_titles =
+                models_and_individual.keys()
+                    .map(|model_id| {
+                        ((*model_id).to_owned(), models_by_id.get(model_id).unwrap().title().to_owned())
+                    })
+                    .collect();
+
+            let node_overlap = GoCamNodeOverlap {
+                node_id: node_id.to_owned(),
+                node_label,
+                enabled_by,
+                has_input: vec![],
+                has_output: vec![],
+                part_of_process,
+                occurs_in,
+                overlapping_individual_ids,
+                models: model_ids_and_titles,
+            };
+
+            ret.push(node_overlap);
         }
 
         ret.sort_by(|a, b| {
@@ -337,6 +400,42 @@ impl GoCamModel {
 
         ret
     }
+
+    fn is_process_sub_graph(model: &GoCamModel, start_idx: NodeIndex, id_overlaps: &HashSet<IndividualId>)
+       -> bool
+    {
+
+        let same_process: SubGraphPred<GoCamNode> =
+            |a: &GoCamNode, b: &GoCamNode| -> bool {
+                let Some(ref a_process) = a.part_of_process
+                else {
+                    return true;
+                };
+                let Some(ref b_process) = b.part_of_process
+                else {
+                    return true;
+                };
+                a_process == b_process
+            };
+
+        let sub_graph = match graph::subgraph_by(&model.graph, start_idx, &same_process) {
+            Ok(sub_graph) => sub_graph,
+            Err(_) => {
+                return false;
+            }
+        };
+
+     //   eprintln!("sub_graph.node_count(): {}", sub_graph.node_count());
+        for node in sub_graph.node_weights() {
+         //   eprintln!("node: {} {} {}", node.individual_gocam_id, node.node_id, node.enabler_label());
+            if node.is_activity() && !id_overlaps.contains(&node.individual_gocam_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
 
     /// Merge the `models` that have nodes in common, returning a new
     /// [GoCamModel] with the `new_id` as the ID and `new_title` as
@@ -452,10 +551,10 @@ pub struct NodeIterator<'a> {
 }
 
 impl<'a> Iterator for NodeIterator<'a> {
-    type Item = &'a GoCamNode;
+    type Item = (NodeIndex, &'a GoCamNode);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.node_refs.next().map(|(_, node)| node)
+        self.node_refs.next().map(|(idx, node)| (idx, node))
     }
 }
 
@@ -730,7 +829,7 @@ impl Display for GoCamNodeType {
 /// except for:
 ///  - `individual_gocam_id` which is the ID of the corresponding
 ///  Individual in the [GoCamRawModel]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GoCamNode {
     /// Individual ID in raw model from the JSON file
     pub individual_gocam_id: IndividualId,
@@ -1144,8 +1243,9 @@ mod tests {
         assert_eq!(model.title(), "meiotic cohesion protection in anaphase I (GO:1990813)");
         assert_eq!(model.taxon(), "NCBITaxon:4896");
 
-        let first_node = model.node_iterator().next().unwrap();
+        let (first_node_idx, first_node) = model.node_iterator().next().unwrap();
 
+        assert_eq!(first_node_idx, 0.into());
         assert_eq!(first_node.node_id, "GO:0140483");
         let (first_node_model_id, first_node_model_title) = first_node.models.iter().next().unwrap();
         assert_eq!(first_node_model_id, "gomodel:66187e4700001744");
@@ -1163,7 +1263,7 @@ mod tests {
         let mut source1 = File::open("tests/data/gomodel_662af8fa00000408.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:662af8fa00000408");
-        assert_eq!(model1.node_iterator().count(), 33);
+        assert_eq!(model1.node_iterator().count(), 32);
 
         let mut source2 = File::open("tests/data/gomodel_662af8fa00000499.json").unwrap();
         let model2 = parse_gocam_model(&mut source2).unwrap();
@@ -1205,8 +1305,8 @@ mod tests {
         assert_eq!(merged.node_iterator().count(), 50);
 
         let merged_activity_db_ids: HashSet<_> =
-            merged.node_iterator().filter_map(|n| if n.models.len() >= 2 {
-                Some((n.label.clone(), n.db_id().to_owned()))
+            merged.node_iterator().filter_map(|(_, node)| if node.models.len() >= 2 {
+                Some((node.label.clone(), node.db_id().to_owned()))
             } else {
                 None
             })

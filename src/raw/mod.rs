@@ -165,7 +165,7 @@ impl Individual {
         };
 
         if let Some(ref id) = individual_type.id {
-            return id.starts_with("PR:");
+            return id.starts_with("PR:") && id != "PR:000000001";
         }
 
         return false;
