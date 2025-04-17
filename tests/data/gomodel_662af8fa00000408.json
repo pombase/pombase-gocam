@@ -10,7 +10,7 @@
     },
     {
       "key": "date",
-      "value": "2025-03-28"
+      "value": "2025-04-13"
     },
     {
       "key": "title",
@@ -51,31 +51,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00000415",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000411",
-      "property": "BFO:0000050",
-      "property-label": "BFO:0000050",
-      "subject": "gomodel:662af8fa00000408/662af8fa00000409"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/678073a900001205",
           "value-type": "IRI"
         },
@@ -100,6 +75,31 @@
     {
       "annotations": [
         {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00000415",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000411",
+      "property": "BFO:0000050",
+      "property-label": "BFO:0000050",
+      "subject": "gomodel:662af8fa00000408/662af8fa00000409"
+    },
+    {
+      "annotations": [
+        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
@@ -116,6 +116,31 @@
       "property": "RO:0002233",
       "property-label": "RO:0002233",
       "subject": "gomodel:662af8fa00000408/678073a900001211"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/67369e7600001674",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-26"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67369e7600001671",
+      "property": "BFO:0000066",
+      "property-label": "BFO:0000066",
+      "subject": "gomodel:662af8fa00000408/67369e7600001668"
     },
     {
       "annotations": [
@@ -166,31 +191,6 @@
       "property": "RO:0002333",
       "property-label": "RO:0002333",
       "subject": "gomodel:662af8fa00000408/67369e7600001692"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
-          "value": "gomodel:662af8fa00000408/67369e7600001674",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-11-26"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67369e7600001671",
-      "property": "BFO:0000066",
-      "property-label": "BFO:0000066",
-      "subject": "gomodel:662af8fa00000408/67369e7600001668"
     },
     {
       "annotations": [
@@ -415,6 +415,26 @@
     {
       "annotations": [
         {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-25"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67c10cc400008532",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/67c10cc400008531"
+    },
+    {
+      "annotations": [
+        {
           "key": "evidence",
           "value": "gomodel:662af8fa00000408/662af8fa00001347",
           "value-type": "IRI"
@@ -436,26 +456,6 @@
       "property": "RO:0002413",
       "property-label": "RO:0002413",
       "subject": "gomodel:662af8fa00000408/662af8fa00001337"
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-03-25"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67c10cc400008532",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/67c10cc400008531"
     },
     {
       "annotations": [
@@ -596,31 +596,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00001410",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00001406",
-      "property": "BFO:0000066",
-      "property-label": "BFO:0000066",
-      "subject": "gomodel:662af8fa00000408/662af8fa00001403"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/662af8fa00000437",
           "value-type": "IRI"
         },
@@ -700,26 +675,6 @@
         },
         {
           "key": "date",
-          "value": "2025-03-25"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67c10cc400008535",
-      "property": "RO:0001025",
-      "property-label": "RO:0001025",
-      "subject": "gomodel:662af8fa00000408/67c10cc400000853"
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
           "value": "2025-01-16"
         },
         {
@@ -731,6 +686,26 @@
       "property": "RO:0002234",
       "property-label": "RO:0002234",
       "subject": "gomodel:662af8fa00000408/662af8fa00000440"
+    },
+    {
+      "annotations": [
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-25"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67c10cc400008535",
+      "property": "RO:0001025",
+      "property-label": "RO:0001025",
+      "subject": "gomodel:662af8fa00000408/67c10cc400000853"
     },
     {
       "annotations": [
@@ -816,36 +791,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00001407",
-          "value-type": "IRI"
-        },
-        {
-          "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00001408",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00001404",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00001403"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/67369e7600004802",
           "value-type": "IRI"
         },
@@ -906,31 +851,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/663d668500002815",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-05-28"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/663d668500002812",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/663d668500002811"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/678073a900001217",
           "value-type": "IRI"
         },
@@ -956,6 +876,31 @@
       "property": "RO:0002233",
       "property-label": "RO:0002233",
       "subject": "gomodel:662af8fa00000408/662af8fa00000447"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/663d668500002815",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-05-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/663d668500002812",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/663d668500002811"
     },
     {
       "annotations": [
@@ -1205,6 +1150,26 @@
     {
       "annotations": [
         {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-01-16"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/678073a900001198",
+      "property": "RO:0002413",
+      "property-label": "RO:0002413",
+      "subject": "gomodel:662af8fa00000408/67369e7600001668"
+    },
+    {
+      "annotations": [
+        {
           "key": "evidence",
           "value": "gomodel:662af8fa00000408/67c10cc400002156",
           "value-type": "IRI"
@@ -1226,26 +1191,6 @@
       "property": "RO:0002413",
       "property-label": "RO:0002413",
       "subject": "gomodel:662af8fa00000408/67c10cc400002124"
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-01-16"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/678073a900001198",
-      "property": "RO:0002413",
-      "property-label": "RO:0002413",
-      "subject": "gomodel:662af8fa00000408/67369e7600001668"
     },
     {
       "annotations": [
@@ -1431,31 +1376,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00001409",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00001405",
-      "property": "BFO:0000050",
-      "property-label": "BFO:0000050",
-      "subject": "gomodel:662af8fa00000408/662af8fa00001403"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/678073a900001197",
           "value-type": "IRI"
         },
@@ -1581,31 +1501,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00000444",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000441",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00000440"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/662af8fa00001342",
           "value-type": "IRI"
         },
@@ -1631,6 +1526,31 @@
       "property": "BFO:0000050",
       "property-label": "BFO:0000050",
       "subject": "gomodel:662af8fa00000408/662af8fa00001337"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00000444",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000441",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/662af8fa00000440"
     },
     {
       "annotations": [
@@ -1781,31 +1701,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00000478",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000475",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00000474"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/67369e7600005942",
           "value-type": "IRI"
         },
@@ -1831,6 +1726,31 @@
       "property": "RO:0002304",
       "property-label": "RO:0002304",
       "subject": "gomodel:662af8fa00000408/662af8fa00000431"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00000478",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000475",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/662af8fa00000474"
     },
     {
       "annotations": [
@@ -1896,31 +1816,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/67086be200000062",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-10-14"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00002331",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00002330"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/662af8fa00000482",
           "value-type": "IRI"
         },
@@ -1946,6 +1841,31 @@
       "property": "RO:0002413",
       "property-label": "RO:0002413",
       "subject": "gomodel:662af8fa00000408/662af8fa00000447"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/67086be200000062",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-10-14"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00002331",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/662af8fa00002330"
     },
     {
       "annotations": [
@@ -2226,6 +2146,31 @@
       "annotations": [
         {
           "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00001341",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-30"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00001338",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/662af8fa00001337"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
           "value": "gomodel:662af8fa00000408/678073a900001214",
           "value-type": "IRI"
         },
@@ -2256,51 +2201,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00001341",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00001338",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00001337"
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-01-16"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/678073a900001212",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/678073a900001211"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/67369e7600001709",
           "value-type": "IRI"
         },
@@ -2321,6 +2221,26 @@
       "property": "RO:0002629",
       "property-label": "RO:0002629",
       "subject": "gomodel:662af8fa00000408/67369e7600001700"
+    },
+    {
+      "annotations": [
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-01-16"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/678073a900001212",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/678073a900001211"
     },
     {
       "annotations": [
@@ -2405,6 +2325,31 @@
     {
       "annotations": [
         {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00000453",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000449",
+      "property": "BFO:0000050",
+      "property-label": "BFO:0000050",
+      "subject": "gomodel:662af8fa00000408/662af8fa00000447"
+    },
+    {
+      "annotations": [
+        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
@@ -2455,27 +2400,22 @@
     {
       "annotations": [
         {
-          "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00000453",
-          "value-type": "IRI"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
           "key": "date",
-          "value": "2024-04-28"
+          "value": "2025-04-13"
         },
         {
           "key": "providedBy",
           "value": "http://www.pombase.org"
         }
       ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000449",
-      "property": "BFO:0000050",
-      "property-label": "BFO:0000050",
-      "subject": "gomodel:662af8fa00000408/662af8fa00000447"
+      "object": "gomodel:662af8fa00000408/6796b94c00006323",
+      "property": "RO:0012009",
+      "property-label": "RO:0012009",
+      "subject": "gomodel:662af8fa00000408/67369e7600004797"
     },
     {
       "annotations": [
@@ -2550,26 +2490,6 @@
     {
       "annotations": [
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-02-12"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67369e7600004017",
-      "property": "RO:0002234",
-      "property-label": "RO:0002234",
-      "subject": "gomodel:662af8fa00000408/6796b94c00006323"
-    },
-    {
-      "annotations": [
-        {
           "key": "evidence",
           "value": "gomodel:662af8fa00000408/67c10cc400008557",
           "value-type": "IRI"
@@ -2591,6 +2511,26 @@
       "property": "RO:0002233",
       "property-label": "RO:0002233",
       "subject": "gomodel:662af8fa00000408/662af8fa00001337"
+    },
+    {
+      "annotations": [
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-02-12"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67369e7600004017",
+      "property": "RO:0002234",
+      "property-label": "RO:0002234",
+      "subject": "gomodel:662af8fa00000408/6796b94c00006323"
     },
     {
       "annotations": [
@@ -2625,46 +2565,6 @@
     {
       "annotations": [
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-12-08"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000409",
-      "property": "RO:0002304",
-      "property-label": "RO:0002304",
-      "subject": "gomodel:662af8fa00000408/67369e7600004797"
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-03-07"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67c10cc400002150",
-      "property": "BFO:0000066",
-      "property-label": "BFO:0000066",
-      "subject": "gomodel:662af8fa00000408/67c10cc400002148"
-    },
-    {
-      "annotations": [
-        {
           "key": "evidence",
           "value": "gomodel:662af8fa00000408/666b894f00001019",
           "value-type": "IRI"
@@ -2686,6 +2586,26 @@
       "property": "BFO:0000050",
       "property-label": "BFO:0000050",
       "subject": "gomodel:662af8fa00000408/666b894f00001014"
+    },
+    {
+      "annotations": [
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-07"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67c10cc400002150",
+      "property": "BFO:0000066",
+      "property-label": "BFO:0000066",
+      "subject": "gomodel:662af8fa00000408/67c10cc400002148"
     },
     {
       "annotations": [
@@ -2796,31 +2716,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/666b894f00001023",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-06-19"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000447",
-      "property": "RO:0002629",
-      "property-label": "RO:0002629",
-      "subject": "gomodel:662af8fa00000408/666b894f00001014"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/678073a900001196",
           "value-type": "IRI"
         },
@@ -2841,6 +2736,31 @@
       "property": "RO:0002234",
       "property-label": "RO:0002234",
       "subject": "gomodel:662af8fa00000408/662af8fa00001361"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/666b894f00001023",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-06-19"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000447",
+      "property": "RO:0002629",
+      "property-label": "RO:0002629",
+      "subject": "gomodel:662af8fa00000408/666b894f00001014"
     },
     {
       "annotations": [
@@ -2896,31 +2816,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/67369e7600001697",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-11-26"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/67369e7600001694",
-      "property": "BFO:0000050",
-      "property-label": "BFO:0000050",
-      "subject": "gomodel:662af8fa00000408/67369e7600001692"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/662af8fa00000481",
           "value-type": "IRI"
         },
@@ -2966,6 +2861,31 @@
       "annotations": [
         {
           "key": "evidence",
+          "value": "gomodel:662af8fa00000408/67369e7600001697",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-26"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/67369e7600001694",
+      "property": "BFO:0000050",
+      "property-label": "BFO:0000050",
+      "subject": "gomodel:662af8fa00000408/67369e7600001692"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
           "value": "gomodel:662af8fa00000408/67369e7600001673",
           "value-type": "IRI"
         },
@@ -2991,31 +2911,6 @@
       "annotations": [
         {
           "key": "evidence",
-          "value": "gomodel:662af8fa00000408/662af8fa00000451",
-          "value-type": "IRI"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2025-01-21"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "object": "gomodel:662af8fa00000408/662af8fa00000448",
-      "property": "RO:0002333",
-      "property-label": "RO:0002333",
-      "subject": "gomodel:662af8fa00000408/662af8fa00000447"
-    },
-    {
-      "annotations": [
-        {
-          "key": "evidence",
           "value": "gomodel:662af8fa00000408/67369e7600001699",
           "value-type": "IRI"
         },
@@ -3036,6 +2931,31 @@
       "property": "RO:0002629",
       "property-label": "RO:0002629",
       "subject": "gomodel:662af8fa00000408/67369e7600001692"
+    },
+    {
+      "annotations": [
+        {
+          "key": "evidence",
+          "value": "gomodel:662af8fa00000408/662af8fa00000451",
+          "value-type": "IRI"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2025-01-21"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
+        }
+      ],
+      "object": "gomodel:662af8fa00000408/662af8fa00000448",
+      "property": "RO:0002333",
+      "property-label": "RO:0002333",
+      "subject": "gomodel:662af8fa00000408/662af8fa00000447"
     },
     {
       "annotations": [
@@ -3532,12 +3452,12 @@
           "value": "PMID:17069919"
         },
         {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
         }
       ],
       "id": "gomodel:662af8fa00000408/662af8fa00000413",
@@ -3814,12 +3734,12 @@
     {
       "annotations": [
         {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
           "key": "date",
           "value": "2024-04-28"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
         },
         {
           "key": "contributor",
@@ -4350,12 +4270,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
         }
       ],
       "id": "gomodel:662af8fa00000408/662af8fa00000449",
@@ -4381,12 +4301,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
         }
       ],
       "id": "gomodel:662af8fa00000408/662af8fa00000450",
@@ -4681,12 +4601,12 @@
     {
       "annotations": [
         {
-          "key": "date",
-          "value": "2024-04-28"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-04-28"
         },
         {
           "key": "with",
@@ -5424,12 +5344,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "with",
-          "value": "PANTHER:PTN000243365 | WB:WBGene00000761 | PomBase:SPBPJ4664.01 | MGI:MGI:1889278 | PomBase:SPAC19G12.12 | SGD:S000000207 | UniProtKB:Q5T2R2 | UniProtKB:Q86YH6 | MGI:MGI:1918615 | TAIR:locus:2062315"
-        },
-        {
           "key": "date",
           "value": "2024-04-30"
+        },
+        {
+          "key": "with",
+          "value": "PANTHER:PTN000243365 | WB:WBGene00000761 | PomBase:SPBPJ4664.01 | MGI:MGI:1889278 | PomBase:SPAC19G12.12 | SGD:S000000207 | UniProtKB:Q5T2R2 | UniProtKB:Q86YH6 | MGI:MGI:1918615 | TAIR:locus:2062315"
         },
         {
           "key": "source",
@@ -5452,303 +5372,6 @@
         {
           "id": "ECO:0000318",
           "label": "biological aspect of ancestor evidence used in manual assertion",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001403",
-      "root-type": [
-        {
-          "id": "GO:0003674",
-          "label": "molecular_function",
-          "type": "class"
-        },
-        {
-          "id": "obo:go/extensions/reacto.owl#molecular_event",
-          "label": "Molecular Event",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "GO:0004337",
-          "label": "(2E,6E)-farnesyl diphosphate synthase activity",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001404",
-      "root-type": [
-        {
-          "id": "CHEBI:33695",
-          "label": "information biomacromolecule",
-          "type": "class"
-        },
-        {
-          "id": "CHEBI:24431",
-          "label": "chemical entity",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "PomBase:SPAC6F12.13c",
-          "label": "fps1 Spom",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001405",
-      "root-type": [
-        {
-          "id": "GO:0008150",
-          "label": "biological_process",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "GO:0045337",
-          "label": "farnesyl diphosphate biosynthetic process",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001406",
-      "root-type": [
-        {
-          "id": "UBERON:0001062",
-          "label": "anatomical entity",
-          "type": "class"
-        },
-        {
-          "id": "GO:0110165",
-          "label": "cellular anatomical structure",
-          "type": "class"
-        },
-        {
-          "id": "GO:0005575",
-          "label": "cellular_component",
-          "type": "class"
-        },
-        {
-          "id": "CARO:0000000",
-          "label": "anatomical entity",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "GO:0005829",
-          "label": "cytosol",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "source",
-          "value": "PMID:17596513"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001407",
-      "root-type": [
-        {
-          "id": "ECO:0000000",
-          "label": "evidence",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "ECO:0000314",
-          "label": "direct assay evidence used in manual assertion",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "source",
-          "value": "GO_REF:0000033"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "with",
-          "value": "PANTHER:PTN000162949 | UniProtKB:Q8II79 | RGD:68953 | TAIR:locus:2160947 | TAIR:locus:2130654 | PomBase:SPAC6F12.13c | SGD:S000003703"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001408",
-      "root-type": [
-        {
-          "id": "ECO:0000000",
-          "label": "evidence",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "ECO:0000318",
-          "label": "biological aspect of ancestor evidence used in manual assertion",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
-          "key": "source",
-          "value": "GO_REF:0000033"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "with",
-          "value": "PANTHER:PTN000162949 | RGD:68953 | SGD:S000003703 | TAIR:locus:2160947 | TAIR:locus:2130654"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001409",
-      "root-type": [
-        {
-          "id": "ECO:0000000",
-          "label": "evidence",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "ECO:0000318",
-          "label": "biological aspect of ancestor evidence used in manual assertion",
-          "type": "class"
-        }
-      ]
-    },
-    {
-      "annotations": [
-        {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
-          "key": "source",
-          "value": "PMID:16823372"
-        },
-        {
-          "key": "date",
-          "value": "2024-04-30"
-        }
-      ],
-      "id": "gomodel:662af8fa00000408/662af8fa00001410",
-      "root-type": [
-        {
-          "id": "ECO:0000000",
-          "label": "evidence",
-          "type": "class"
-        }
-      ],
-      "type": [
-        {
-          "id": "ECO:0007005",
-          "label": "high throughput direct assay evidence used in manual assertion",
           "type": "class"
         }
       ]
@@ -6051,12 +5674,12 @@
           "value": "2024-05-28"
         },
         {
-          "key": "source",
-          "value": "GO_REF:0000116"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "source",
+          "value": "GO_REF:0000116"
         },
         {
           "key": "contributor",
@@ -6273,12 +5896,12 @@
           "value": "PMID:17069919"
         },
         {
-          "key": "date",
-          "value": "2024-05-28"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2024-05-28"
         },
         {
           "key": "contributor",
@@ -6485,12 +6108,12 @@
     {
       "annotations": [
         {
-          "key": "date",
-          "value": "2024-06-19"
-        },
-        {
           "key": "with",
           "value": "UniProtKB:P38797"
+        },
+        {
+          "key": "date",
+          "value": "2024-06-19"
         },
         {
           "key": "providedBy",
@@ -6528,12 +6151,12 @@
           "value": "PANTHER:PTN000268439 | SGD:S000001118 | UniProtKB:Q8NI37 | CGD:CAL0000199113"
         },
         {
-          "key": "date",
-          "value": "2024-06-19"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-06-19"
         },
         {
           "key": "providedBy",
@@ -6602,12 +6225,12 @@
           "value": "2024-06-19"
         },
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
           "key": "source",
           "value": "PMID:30267671"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
           "key": "providedBy",
@@ -6649,12 +6272,12 @@
           "value": "PANTHER:PTN000268439 | SGD:S000001118 | UniProtKB:Q8NI37 | CGD:CAL0000199113"
         },
         {
-          "key": "source",
-          "value": "GO_REF:0000033"
-        },
-        {
           "key": "date",
           "value": "2024-06-19"
+        },
+        {
+          "key": "source",
+          "value": "GO_REF:0000033"
         }
       ],
       "id": "gomodel:662af8fa00000408/666b894f00001021",
@@ -6861,12 +6484,12 @@
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
-          "key": "date",
-          "value": "2025-03-07"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-07"
         }
       ],
       "id": "gomodel:662af8fa00000408/67c10cc400002127",
@@ -6977,12 +6600,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "source",
-          "value": "GO_REF:0000024"
-        },
-        {
           "key": "with",
           "value": "SGD:S000002784"
+        },
+        {
+          "key": "source",
+          "value": "GO_REF:0000024"
         },
         {
           "key": "contributor",
@@ -7329,12 +6952,12 @@
           "value": "FB:FBgn0011769"
         },
         {
-          "key": "date",
-          "value": "2025-03-07"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-07"
         }
       ],
       "id": "gomodel:662af8fa00000408/67c10cc400002161",
@@ -7360,12 +6983,12 @@
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
-          "key": "date",
-          "value": "2025-03-07"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-07"
         }
       ],
       "id": "gomodel:662af8fa00000408/67c10cc400002220",
@@ -7465,12 +7088,12 @@
           "value": "GO_REF:0000024"
         },
         {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
           "key": "date",
           "value": "2025-03-07"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
         },
         {
           "key": "contributor",
@@ -7967,12 +7590,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2025-03-20"
-        },
-        {
           "key": "source",
           "value": "GO_REF:0000033"
+        },
+        {
+          "key": "date",
+          "value": "2025-03-20"
         }
       ],
       "id": "gomodel:662af8fa00000408/67c10cc400006801",
@@ -8496,12 +8119,12 @@
     {
       "annotations": [
         {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
         },
         {
           "key": "date",
@@ -9098,12 +8721,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2024-11-26"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-26"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001670",
@@ -9214,12 +8837,12 @@
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
-          "key": "date",
-          "value": "2024-11-26"
-        },
-        {
           "key": "source",
           "value": "PMID:24911838"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-26"
         },
         {
           "key": "providedBy",
@@ -9476,12 +9099,12 @@
           "value": "PMID:24911838"
         },
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001689",
@@ -9507,16 +9130,16 @@
           "value": "GO_REF:0000033"
         },
         {
-          "key": "with",
-          "value": "PANTHER:PTN000484410 | SGD:S000004191 | UniProtKB:O75208"
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
         },
         {
           "key": "date",
           "value": "2024-11-26"
         },
         {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
+          "key": "with",
+          "value": "PANTHER:PTN000484410 | SGD:S000004191 | UniProtKB:O75208"
         },
         {
           "key": "contributor",
@@ -9617,12 +9240,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2024-11-26"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-26"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001693",
@@ -9874,12 +9497,12 @@
           "value": "2024-11-27"
         },
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001700",
@@ -10023,12 +9646,12 @@
           "value": "GO_REF:0000024"
         },
         {
-          "key": "with",
-          "value": "SGD:S000003087"
-        },
-        {
           "key": "date",
           "value": "2024-11-27"
+        },
+        {
+          "key": "with",
+          "value": "SGD:S000003087"
         },
         {
           "key": "contributor",
@@ -10101,12 +9724,12 @@
           "value": "2024-11-27"
         },
         {
-          "key": "source",
-          "value": "PMID:24911838"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "source",
+          "value": "PMID:24911838"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001706",
@@ -10140,12 +9763,12 @@
           "value": "PANTHER:PTN000059692 | UniProtKB:Q8NI60 | UniProtKB:Q96D53 | PomBase:SPBC2D10.18 | TAIR:locus:2133357 | SGD:S000003087 | WB:WBGene00000767"
         },
         {
-          "key": "date",
-          "value": "2024-11-27"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2024-11-27"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600001707",
@@ -10245,12 +9868,12 @@
     {
       "annotations": [
         {
-          "key": "contributor",
-          "value": "https://orcid.org/0000-0001-6330-7526"
-        },
-        {
           "key": "date",
           "value": "2024-12-05"
+        },
+        {
+          "key": "contributor",
+          "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
           "key": "providedBy",
@@ -10280,12 +9903,12 @@
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
-          "key": "date",
-          "value": "2024-12-05"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "date",
+          "value": "2024-12-05"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600004018",
@@ -10420,12 +10043,12 @@
           "value": "http://www.pombase.org"
         },
         {
-          "key": "date",
-          "value": "2024-12-05"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "date",
+          "value": "2024-12-05"
         },
         {
           "key": "with",
@@ -10756,12 +10379,12 @@
           "value": "RHEA:44452"
         },
         {
-          "key": "providedBy",
-          "value": "http://www.pombase.org"
-        },
-        {
           "key": "contributor",
           "value": "https://orcid.org/0000-0001-6330-7526"
+        },
+        {
+          "key": "providedBy",
+          "value": "http://www.pombase.org"
         }
       ],
       "id": "gomodel:662af8fa00000408/67369e7600005942",
@@ -10787,12 +10410,12 @@
           "value": "PANTHER:PTN005164964 | SGD:S000005456 | TAIR:locus:2052761"
         },
         {
-          "key": "date",
-          "value": "2024-12-12"
-        },
-        {
           "key": "source",
           "value": "GO_REF:0000033"
+        },
+        {
+          "key": "date",
+          "value": "2024-12-12"
         },
         {
           "key": "providedBy",
@@ -11500,12 +11123,12 @@
           "value": "https://orcid.org/0000-0001-6330-7526"
         },
         {
-          "key": "with",
-          "value": "PANTHER:PTN001297884 | UniProtKB:Q5HYK3 | SGD:S000004578 | UniProtKB:P0A887"
-        },
-        {
           "key": "providedBy",
           "value": "http://www.pombase.org"
+        },
+        {
+          "key": "with",
+          "value": "PANTHER:PTN001297884 | UniProtKB:Q5HYK3 | SGD:S000004578 | UniProtKB:P0A887"
         }
       ],
       "id": "gomodel:662af8fa00000408/678073a900001214",
