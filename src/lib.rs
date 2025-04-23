@@ -260,7 +260,7 @@ impl GoCamModel {
     pub fn find_overlapping_activities(models: &[GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
-        let make_key = |node: &GoCamNode| {
+        let make_key = |node: &GoCamNode, input_output: &str| {
             if node.occurs_in.is_none() ||
                 node.part_of_process.is_none() {
                 return None;
@@ -271,11 +271,26 @@ impl GoCamModel {
                 return None;
             };
 
+            let input =
+                if input_output == "input" {
+                    node.has_input.clone()
+                } else {
+                    BTreeSet::new()
+                };
+
+            let output =
+                if input_output == "output" {
+                    node.has_output.clone()
+                } else {
+                    BTreeSet::new()
+                };
+
             Some((node.node_id.clone(),
                   node.label.clone(),
                   enabled_by.clone(),
                   node.part_of_process.clone().unwrap(),
-                  node.occurs_in.clone().unwrap()))
+                  node.occurs_in.clone().unwrap(),
+                  input, output))
         };
 
         let mut models_by_id = HashMap::new();
@@ -286,7 +301,7 @@ impl GoCamModel {
             models_by_id.insert(model.id().to_owned(), model);
 
             for (node_idx, node) in model.node_iterator() {
-                let Some(key) = make_key(node)
+                let Some(key) = make_key(node, "input")
                 else {
                     continue;
                 };
@@ -295,12 +310,24 @@ impl GoCamModel {
                     .entry(key)
                     .or_insert_with(HashMap::new)
                     .entry(model.id())
-                    .or_insert_with(Vec::new)
-                    .push((node_idx, node));
-            }
+                    .or_insert_with(HashSet::new)
+                    .insert((node_idx, node));
+
+                let Some(key) = make_key(node, "output")
+                else {
+                    continue;
+                };
+
+                activities
+                    .entry(key)
+                    .or_insert_with(HashMap::new)
+                    .entry(model.id())
+                    .or_insert_with(HashSet::new)
+                    .insert((node_idx, node));
+                }
         }
 
-        let possible_overlapping_activities: HashMap<_, _> = 
+        let possible_overlapping_activities: HashMap<_, _> =
             activities
             .into_iter()
             .filter_map(|(key, node_details)| {
@@ -312,7 +339,8 @@ impl GoCamModel {
 
                     for (model_id, nodes) in node_details.into_iter() {
                         if nodes.len() == 1 {
-                            models_and_nodes.insert(model_id.to_owned(), nodes[0].clone());
+                            models_and_nodes.insert(model_id.to_owned(),
+                                                    nodes.iter().next().unwrap().clone());
                         } else {
                             // for now ignore cases where an activity is duplicated in a model
                             return None;
@@ -339,13 +367,12 @@ impl GoCamModel {
 
         for (key, models_and_individual) in possible_overlapping_activities.into_iter() {
             let (node_id, node_label, enabled_by,
-                 part_of_process, occurs_in) = key;
+                 part_of_process, occurs_in, _, _) = key;
 
             let mut overlapping_individual_ids = BTreeSet::new();
             let mut found_complete_process = false;
 
             for (model_id, node_details) in models_and_individual.clone() {
-
                 let model = models_by_id.get(&model_id).unwrap();
 
                 let (node_idx, node) = node_details;
@@ -425,9 +452,7 @@ impl GoCamModel {
             }
         };
 
-     //   eprintln!("sub_graph.node_count(): {}", sub_graph.node_count());
         for node in sub_graph.node_weights() {
-         //   eprintln!("node: {} {} {}", node.individual_gocam_id, node.node_id, node.enabler_label());
             if node.is_activity() && !id_overlaps.contains(&node.individual_gocam_id) {
                 return false;
             }
@@ -460,8 +485,8 @@ impl GoCamModel {
                 node_id: overlap.node_id,
                 label: overlap.node_label,
                 node_type: GoCamNodeType::Activity(overlap.enabled_by),
-                has_input: vec![],
-                has_output: vec![],
+                has_input: BTreeSet::new(),
+                has_output: BTreeSet::new(),
                 occurs_in: Some(overlap.occurs_in),
                 part_of_process: Some(overlap.part_of_process),
                 located_in: None,
@@ -561,7 +586,7 @@ impl<'a> Iterator for NodeIterator<'a> {
 macro_rules! from_individual_type {
     ($type_name:ident, $doc:expr) => {
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[doc=$doc]
 pub struct $type_name {
     pub id: String,
@@ -836,8 +861,8 @@ pub struct GoCamNode {
     pub node_id: String,
     pub label: String,
     pub node_type: GoCamNodeType,
-    pub has_input: Vec<GoCamInput>,
-    pub has_output: Vec<GoCamOutput>,
+    pub has_input: BTreeSet<GoCamInput>,
+    pub has_output: BTreeSet<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
@@ -1045,8 +1070,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
                 label: individual_type.label.clone().unwrap_or_else(|| "NO_LABEL".to_owned()),
                 node_type: detail,
-                has_input: vec![],
-                has_output: vec![],
+                has_input: BTreeSet::new(),
+                has_output: BTreeSet::new(),
                 located_in: None,
                 occurs_in: None,
                 part_of_process: None,
@@ -1133,10 +1158,10 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 }
             },
             "has input" => {
-                subject_node.has_input.push(object_type.into());
+                subject_node.has_input.insert(object_type.into());
             },
             "has output" => {
-                subject_node.has_output.push(object_type.into());
+                subject_node.has_output.insert(object_type.into());
             },
             "located in" => {
                 if subject_node.located_in.is_some() {
@@ -1260,31 +1285,28 @@ mod tests {
 
     #[test]
     fn overlap_test() {
-        let mut source1 = File::open("tests/data/gomodel_662af8fa00000408.json").unwrap();
+        let mut source1 = File::open("tests/data/gomodel_665912ed00000192.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
-        assert_eq!(model1.id(), "gomodel:662af8fa00000408");
-        assert_eq!(model1.node_iterator().count(), 32);
+        assert_eq!(model1.id(), "gomodel:665912ed00000192");
+        assert_eq!(model1.node_iterator().count(), 34);
 
-        let mut source2 = File::open("tests/data/gomodel_662af8fa00000499.json").unwrap();
+        let mut source2 = File::open("tests/data/gomodel_663d668500002178.json").unwrap();
         let model2 = parse_gocam_model(&mut source2).unwrap();
-        assert_eq!(model2.id(), "gomodel:662af8fa00000499");
-        assert_eq!(model2.node_iterator().count(), 21);
+        assert_eq!(model2.id(), "gomodel:663d668500002178");
+        assert_eq!(model2.node_iterator().count(), 14);
 
         let overlaps = GoCamModel::find_overlapping_activities(&[model1, model2]);
 
-        assert_eq!(overlaps.len(), 3);
+        assert_eq!(overlaps.len(), 1);
 
         let mut expected_node_ids = HashSet::new();
-        expected_node_ids.insert("GO:0097269".to_owned());
-        expected_node_ids.insert("GO:0005215".to_owned());
+        expected_node_ids.insert("GO:0003881".to_owned());
 
         let activity_node_ids: HashSet<_> = overlaps.iter().map(|o| o.node_id.clone()).collect();
         assert_eq!(activity_node_ids, expected_node_ids);
 
         let mut expected_enabled_by_ids = HashSet::new();
-        expected_enabled_by_ids.insert("CHEBI:36080".to_owned());
-        expected_enabled_by_ids.insert("PomBase:SPBPJ4664.01".to_owned());
-        expected_enabled_by_ids.insert("PomBase:SPAC19G12.12".to_owned());
+        expected_enabled_by_ids.insert("PomBase:SPAC1D4.08".to_owned());
 
         let activity_enabled_by_ids: HashSet<_> =
             overlaps.iter().map(|o| o.enabled_by.id().to_owned()).collect();
@@ -1293,16 +1315,16 @@ mod tests {
 
     #[test]
     fn merge_test() {
-        let mut source1 = File::open("tests/data/gomodel_662af8fa00000408.json").unwrap();
+        let mut source1 = File::open("tests/data/gomodel_663d668500002178.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
 
-        let mut source2 = File::open("tests/data/gomodel_662af8fa00000499.json").unwrap();
+        let mut source2 = File::open("tests/data/gomodel_665912ed00000192.json").unwrap();
         let model2 = parse_gocam_model(&mut source2).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2]).unwrap();
 
-        assert_eq!(merged.node_iterator().count(), 50);
+        assert_eq!(merged.node_iterator().count(), 47);
 
         let merged_activity_db_ids: HashSet<_> =
             merged.node_iterator().filter_map(|(_, node)| if node.models.len() >= 2 {
@@ -1314,11 +1336,8 @@ mod tests {
 
         let mut expected_activity_db_ids = HashSet::new();
 
-        expected_activity_db_ids.insert(("all-trans-decaprenyl-diphosphate synthase activity".to_owned(),
-                                         "PomBase:SPBPJ4664.01".to_owned()));
-        expected_activity_db_ids.insert(("all-trans-decaprenyl-diphosphate synthase activity".to_owned(),
-                                         "PomBase:SPAC19G12.12".to_owned()));
-        expected_activity_db_ids.insert(("transporter activity".to_owned(), "CHEBI:36080".to_owned()));
+        expected_activity_db_ids.insert(("CDP-diacylglycerol-inositol 3-phosphatidyltransferase activity".to_owned(),
+                                         "PomBase:SPAC1D4.08".to_owned()));
 
         assert_eq!(merged_activity_db_ids, expected_activity_db_ids);
     }
