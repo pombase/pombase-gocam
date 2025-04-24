@@ -63,7 +63,7 @@ use phf::phf_map;
 
 use anyhow::{Result, anyhow};
 
-use petgraph::{graph::{NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Graph};
+use petgraph::{graph::{NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Direction, Graph};
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -373,18 +373,35 @@ impl GoCamModel {
 
             let mut model_ids_and_titles = BTreeSet::new();
 
+            let mut possible_chemical_overlaps = HashMap::new();
+
             for (model_id, node_idx, node) in models_and_individual.clone() {
-                let model = models_by_id.get(&model_id).unwrap();
+                let &model = models_by_id.get(&model_id).unwrap();
 
                 model_ids_and_titles.insert((model_id.clone(), model.title().to_owned()));
 
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
+                for chemical_neighbour in Self::chemical_neighbours_of(model, node_idx) {
+                    let (ref chemical_neighbour_edge, ref chemical_neighbour_node) = chemical_neighbour;
+                    let key = (chemical_neighbour_edge.id.clone(),
+                               chemical_neighbour_node.node_id.clone(),
+                               chemical_neighbour_node.label.clone(),
+                               chemical_neighbour_node.located_in.clone());
+
+                    let val = (model_id.clone(), model.title().to_owned(),
+                               chemical_neighbour_node.clone());
+
+                    possible_chemical_overlaps.entry(key)
+                        .or_insert_with(Vec::new)
+                        .push(val);
+                }
+
                 let this_model_overlaps_ids =
                     overlapping_nodes_by_model.get(&model_id).unwrap()
                     .iter().map(|n| n.individual_gocam_id.to_owned()).collect();
 
-                if Self::is_process_sub_graph(*model, node_idx, &this_model_overlaps_ids) {
+                if Self::is_process_sub_graph(model, node_idx, &this_model_overlaps_ids) {
                     found_complete_process = true;
                 }
             }
@@ -407,12 +424,76 @@ impl GoCamModel {
             };
 
             ret.push(node_overlap);
+
+            for (chemical_key, chemical_details) in possible_chemical_overlaps {
+                if chemical_details.len() == 1 {
+                    // no overlap
+                    continue;
+                }
+                let (_, node_id, node_label, located_in) = chemical_key;
+                let mut overlapping_individual_ids = BTreeSet::new();
+                let mut model_ids_and_titles = BTreeSet::new();
+                for (model_id, model_title, chemical_node) in chemical_details {
+                    overlapping_individual_ids.insert(chemical_node.individual_gocam_id);
+                    model_ids_and_titles.insert((model_id, model_title));
+                }
+
+                let node_overlap = GoCamNodeOverlap {
+                        node_id,
+                        node_label,
+                        node_type: GoCamNodeType::Chemical,
+                        has_input: vec![],
+                        has_output: vec![],
+                        part_of_process: None,
+                        occurs_in: None,
+                        located_in: located_in,
+                        overlapping_individual_ids,
+                        models: model_ids_and_titles,
+                    };
+
+                    ret.push(node_overlap);
+            }
         }
 
         ret.sort_by(|a, b| {
             a.models.cmp(&b.models)
                 .then(a.node_label.cmp(&b.node_label))
         });
+
+        ret
+    }
+
+    fn chemical_neighbours_of(model: &GoCamModel, activity_index: NodeIndex)
+       -> Vec<(GoCamEdge, GoCamNode)>
+    {
+        let mut ret = vec![];
+
+        let graph = model.graph();
+
+        let outgoing_iter = graph.edges_directed(activity_index, Direction::Outgoing);
+
+        for edge_ref in outgoing_iter {
+            let target_node = graph.node_weight(edge_ref.target()).unwrap();
+
+            if target_node.node_type != GoCamNodeType::Chemical {
+                continue;
+            }
+
+            ret.push((edge_ref.weight().to_owned(), target_node.to_owned()))
+        }
+
+
+        let incoming_iter = model.graph().edges_directed(activity_index, Direction::Incoming);
+
+        for edge_ref in incoming_iter {
+            let subject_node = graph.node_weight(edge_ref.target()).unwrap();
+
+            if subject_node.node_type != GoCamNodeType::Chemical {
+                continue;
+            }
+
+            ret.push((edge_ref.weight().to_owned(), subject_node.to_owned()))
+        }
 
         ret
     }
@@ -1290,9 +1371,10 @@ mod tests {
 
         let overlaps = GoCamModel::find_overlaps(&[model1, model2]);
 
-        assert_eq!(overlaps.len(), 1);
+        assert_eq!(overlaps.len(), 2);
 
         let mut expected_node_ids = HashSet::new();
+        expected_node_ids.insert("CHEBI:16749".to_owned());
         expected_node_ids.insert("GO:0003881".to_owned());
 
         let activity_node_ids: HashSet<_> = overlaps.iter().map(|o| o.node_id.clone()).collect();
@@ -1300,17 +1382,26 @@ mod tests {
 
         let mut expected_enabled_by_ids = HashSet::new();
         expected_enabled_by_ids.insert("PomBase:SPAC1D4.08".to_owned());
+        let mut expected_chemical_ids = HashSet::new();
+        expected_chemical_ids.insert("CHEBI:16749".to_owned());
 
-        let activity_enabled_by_ids: HashSet<_> =
-            overlaps.iter().map(|o| {
-                let GoCamNodeType::Activity(ref enabled_by) = o.node_type
-                else {
-                    panic!("expected an activity, got {:?}", o.node_type);
-                };
-                enabled_by.id().to_owned()
+        let mut activity_enabled_by_ids = HashSet::new();
+        let mut chemical_ids = HashSet::new();
+
+        for overlap in overlaps {
+            match overlap.node_type {
+                GoCamNodeType::Activity(ref enabled_by) => {
+                    activity_enabled_by_ids.insert(enabled_by.id().to_owned());
+                },
+                GoCamNodeType::Chemical => {
+                    chemical_ids.insert(overlap.node_id);
+                },
+                _ => panic!(),
             }
-        ).collect();
+        }
+
         assert_eq!(activity_enabled_by_ids, expected_enabled_by_ids);
+        assert_eq!(chemical_ids, expected_chemical_ids);
     }
 
     #[test]
@@ -1324,9 +1415,9 @@ mod tests {
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2]).unwrap();
 
-        assert_eq!(merged.node_iterator().count(), 47);
+        assert_eq!(merged.node_iterator().count(), 46);
 
-        let merged_activity_db_ids: HashSet<_> =
+        let merged_ids: HashSet<_> =
             merged.node_iterator().filter_map(|(_, node)| if node.models.len() >= 2 {
                 Some((node.label.clone(), node.db_id().to_owned()))
             } else {
@@ -1334,12 +1425,13 @@ mod tests {
             })
             .collect();
 
-        let mut expected_activity_db_ids = HashSet::new();
-
-        expected_activity_db_ids.insert(("CDP-diacylglycerol-inositol 3-phosphatidyltransferase activity".to_owned(),
+        let mut expected_ids = HashSet::new();
+        expected_ids.insert(("1-phosphatidyl-1D-myo-inositol".to_owned(),
+                             "CHEBI:16749".to_owned()));
+        expected_ids.insert(("CDP-diacylglycerol-inositol 3-phosphatidyltransferase activity".to_owned(),
                                          "PomBase:SPAC1D4.08".to_owned()));
 
-        assert_eq!(merged_activity_db_ids, expected_activity_db_ids);
+        assert_eq!(merged_ids, expected_ids);
     }
 
     #[test]
@@ -1364,21 +1456,24 @@ mod tests {
 
         let overlaps = GoCamModel::find_overlaps(&[model1, model2, model3]);
 
-        assert_eq!(overlaps.len(), 1);
+        assert_eq!(overlaps.len(), 2);
 
-        let overlap = &overlaps[0];
+        let overlap_chemical = &overlaps[0];
+        assert_eq!(overlap_chemical.node_label, "O-acetyl-L-homoserine");
 
-        assert_eq!(overlap.node_label, "homoserine O-acetyltransferase activity");
-        assert_eq!(overlap.models.len(), 2);
+        let overlap_activity = &overlaps[1];
 
-        assert_eq!(overlap.part_of_process.as_ref().unwrap().id, "GO:0071266");
-        assert_eq!(overlap.part_of_process.as_ref().unwrap().label,
+        assert_eq!(overlap_activity.node_label, "homoserine O-acetyltransferase activity");
+        assert_eq!(overlap_activity.models.len(), 2);
+
+        assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().id, "GO:0071266");
+        assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().label,
                    "'de novo' L-methionine biosynthetic process");
-        assert_eq!(overlap.occurs_in.as_ref().unwrap().id(), "GO:0005829");
-        assert_eq!(overlap.occurs_in.as_ref().unwrap().label(), "cytosol");
+        assert_eq!(overlap_activity.occurs_in.as_ref().unwrap().id(), "GO:0005829");
+        assert_eq!(overlap_activity.occurs_in.as_ref().unwrap().label(), "cytosol");
 
         let first_overlapping_individual =
-            overlap.overlapping_individual_ids.iter().next().unwrap();
+            overlap_activity.overlapping_individual_ids.iter().next().unwrap();
         assert_eq!(first_overlapping_individual,
                    "gomodel:66a3e0bb00001342/678073a900003752");
     }
