@@ -256,7 +256,7 @@ impl GoCamModel {
     /// enabled by the same entity (gene, complex, modified protein or
     /// chemical), have the same process and same the component
     /// ("occurs in").  The process and component must be non-None.
-    pub fn find_overlapping_activities(models: &[GoCamModel])
+    pub fn find_overlaps(models: &[GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
         let make_key = |node: &GoCamNode, input_output: &str| {
@@ -396,11 +396,12 @@ impl GoCamModel {
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
                 node_label,
-                enabled_by,
+                node_type: GoCamNodeType::Activity(enabled_by),
                 has_input: vec![],
                 has_output: vec![],
-                part_of_process,
-                occurs_in,
+                part_of_process: Some(part_of_process),
+                occurs_in: Some(occurs_in),
+                located_in: None,
                 overlapping_individual_ids,
                 models: model_ids_and_titles,
             };
@@ -454,14 +455,14 @@ impl GoCamModel {
     /// [GoCamModel] with the `new_id` as the ID and `new_title` as
     /// the title.
     ///
-    /// We use the result of calling [Self::find_overlapping_activities()] to find
+    /// We use the result of calling [Self::find_overlaps()] to find
     /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel])
         -> Result<GoCamModel>
     {
         let mut merged_graph = GoCamGraph::new();
 
-        let overlaps = Self::find_overlapping_activities(models);
+        let overlaps = Self::find_overlaps(models);
 
         let mut overlap_map = HashMap::new();
 
@@ -472,12 +473,12 @@ impl GoCamModel {
                 individual_gocam_id: overlap_id,
                 node_id: overlap.node_id,
                 label: overlap.node_label,
-                node_type: GoCamNodeType::Activity(overlap.enabled_by),
+                node_type: overlap.node_type,
                 has_input: BTreeSet::new(),
                 has_output: BTreeSet::new(),
-                occurs_in: Some(overlap.occurs_in),
-                part_of_process: Some(overlap.part_of_process),
-                located_in: None,
+                occurs_in: overlap.occurs_in,
+                part_of_process: overlap.part_of_process,
+                located_in: overlap.located_in,
                 source_ids: overlap.overlapping_individual_ids.clone(),
                 models: overlap.models.clone(),
             };
@@ -541,11 +542,15 @@ impl GoCamModel {
 pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
-    pub enabled_by: GoCamEnabledBy,
+    pub node_type: GoCamNodeType,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
-    pub occurs_in: GoCamComponent,
-    pub part_of_process: GoCamProcess,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub located_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub occurs_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
     pub models: BTreeSet<(ModelId, String)>,
 }
@@ -1283,7 +1288,7 @@ mod tests {
         assert_eq!(model2.id(), "gomodel:663d668500002178");
         assert_eq!(model2.node_iterator().count(), 14);
 
-        let overlaps = GoCamModel::find_overlapping_activities(&[model1, model2]);
+        let overlaps = GoCamModel::find_overlaps(&[model1, model2]);
 
         assert_eq!(overlaps.len(), 1);
 
@@ -1297,7 +1302,14 @@ mod tests {
         expected_enabled_by_ids.insert("PomBase:SPAC1D4.08".to_owned());
 
         let activity_enabled_by_ids: HashSet<_> =
-            overlaps.iter().map(|o| o.enabled_by.id().to_owned()).collect();
+            overlaps.iter().map(|o| {
+                let GoCamNodeType::Activity(ref enabled_by) = o.node_type
+                else {
+                    panic!("expected an activity, got {:?}", o.node_type);
+                };
+                enabled_by.id().to_owned()
+            }
+        ).collect();
         assert_eq!(activity_enabled_by_ids, expected_enabled_by_ids);
     }
 
@@ -1350,7 +1362,7 @@ mod tests {
 
         assert_eq!(model3.node_iterator().count(), 13);
 
-        let overlaps = GoCamModel::find_overlapping_activities(&[model1, model2, model3]);
+        let overlaps = GoCamModel::find_overlaps(&[model1, model2, model3]);
 
         assert_eq!(overlaps.len(), 1);
 
@@ -1359,11 +1371,11 @@ mod tests {
         assert_eq!(overlap.node_label, "homoserine O-acetyltransferase activity");
         assert_eq!(overlap.models.len(), 2);
 
-        assert_eq!(overlap.part_of_process.id, "GO:0071266");
-        assert_eq!(overlap.part_of_process.label,
+        assert_eq!(overlap.part_of_process.as_ref().unwrap().id, "GO:0071266");
+        assert_eq!(overlap.part_of_process.as_ref().unwrap().label,
                    "'de novo' L-methionine biosynthetic process");
-        assert_eq!(overlap.occurs_in.id(), "GO:0005829");
-        assert_eq!(overlap.occurs_in.label(), "cytosol");
+        assert_eq!(overlap.occurs_in.as_ref().unwrap().id(), "GO:0005829");
+        assert_eq!(overlap.occurs_in.as_ref().unwrap().label(), "cytosol");
 
         let first_overlapping_individual =
             overlap.overlapping_individual_ids.iter().next().unwrap();
