@@ -46,8 +46,7 @@
 //! }
 //!```
 
-use std::{cmp::Ordering,
-          collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
           fmt::{self, Display},
           io::Read};
 
@@ -335,12 +334,12 @@ impl GoCamModel {
                     // there is no overlap
                     None
                 } else {
-                    let mut models_and_nodes = HashMap::new();
+                    let mut models_and_nodes = vec![];
 
                     for (model_id, nodes) in node_details.into_iter() {
                         if nodes.len() == 1 {
-                            models_and_nodes.insert(model_id.to_owned(),
-                                                    nodes.iter().next().unwrap().clone());
+                            let (node_idx, node) = nodes.iter().next().unwrap().clone();
+                            models_and_nodes.push((model_id.to_owned(), node_idx, node));
                         } else {
                             // for now ignore cases where an activity is duplicated in a model
                             return None;
@@ -354,11 +353,11 @@ impl GoCamModel {
 
         let mut ret = vec![];
 
-        let mut possible_overlap_model_and_nodes = HashMap::new();
+        let mut overlapping_nodes_by_model = HashMap::new();
 
-        for (_, models_and_individual) in possible_overlapping_activities.iter() {
-            for (model_id, (_, node)) in models_and_individual.iter() {
-                possible_overlap_model_and_nodes
+        for models_and_individual in possible_overlapping_activities.values() {
+            for (model_id, _, node) in models_and_individual.iter() {
+                overlapping_nodes_by_model
                     .entry(model_id.clone())
                     .or_insert_with(HashSet::new)
                     .insert(*node);
@@ -372,33 +371,27 @@ impl GoCamModel {
             let mut overlapping_individual_ids = BTreeSet::new();
             let mut found_complete_process = false;
 
-            for (model_id, node_details) in models_and_individual.clone() {
+            let mut model_ids_and_titles = BTreeSet::new();
+
+            for (model_id, node_idx, node) in models_and_individual.clone() {
                 let model = models_by_id.get(&model_id).unwrap();
 
-                let (node_idx, node) = node_details;
+                model_ids_and_titles.insert((model_id.clone(), model.title().to_owned()));
 
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
                 let this_model_overlaps_ids =
-                    possible_overlap_model_and_nodes.get(&model_id).unwrap()
+                    overlapping_nodes_by_model.get(&model_id).unwrap()
                     .iter().map(|n| n.individual_gocam_id.to_owned()).collect();
 
                 if Self::is_process_sub_graph(*model, node_idx, &this_model_overlaps_ids) {
                     found_complete_process = true;
                 }
-
             }
 
             if !found_complete_process {
                 continue;
             }
-
-            let model_ids_and_titles =
-                models_and_individual.keys()
-                    .map(|model_id| {
-                        ((*model_id).to_owned(), models_by_id.get(model_id).unwrap().title().to_owned())
-                    })
-                    .collect();
 
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
@@ -416,13 +409,8 @@ impl GoCamModel {
         }
 
         ret.sort_by(|a, b| {
-            let ord = a.models.cmp(&b.models);
-
-            if ord == Ordering::Equal {
-                a.node_label.cmp(&b.node_label)
-            } else {
-                ord
-            }
+            a.models.cmp(&b.models)
+                .then(a.node_label.cmp(&b.node_label))
         });
 
         ret
