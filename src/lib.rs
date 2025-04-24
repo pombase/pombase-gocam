@@ -663,10 +663,17 @@ impl GoCamModel {
                 };
 
                 for target_idx in &targets {
+                    let existing_edges = new_model.graph.edges_connecting(*source_idx, *target_idx);
+
+                    if existing_edges.into_iter().count() > 0 {
+                        continue;
+                    }
+
                     let target_node = new_model.graph.node_weight(*target_idx).unwrap();
 
                     let fact_gocam_id = format!("RO:0002413-{}-{}", source_individual_gocam_id,
                                                 target_node.individual_gocam_id);
+
                     let edge_value = GoCamEdge {
                         fact_gocam_id,
                         id: "RO:0002413".to_owned(),
