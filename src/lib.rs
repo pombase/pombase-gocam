@@ -224,6 +224,11 @@ impl GoCamModel {
         }
     }
 
+    /// Number of nodes in the graph
+    pub fn node_count(&self) -> usize {
+        self.graph().node_count()
+    }
+
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -614,6 +619,70 @@ impl GoCamModel {
             contributors,
             graph: merged_graph,
         })
+    }
+
+    /// Remove a copy of the model with chemicals removed.  Where a
+    /// chemical is between two activities, replace the chemical with
+    /// a "provides input for" edge.
+    pub fn remove_chemicals(&self) -> GoCamModel {
+        let mut chemical_nodes = vec![];
+        let mut new_model = self.clone();
+
+        for (node_idx, node) in new_model.graph().node_references() {
+            if node.node_type == GoCamNodeType::Chemical {
+                chemical_nodes.push(node_idx);
+            }
+        }
+
+        for chemical_node_idx in &chemical_nodes {
+            let edges: Vec<_> = new_model.graph()
+                .edges_directed(*chemical_node_idx, Direction::Incoming)
+                .collect();
+
+            let mut sources = vec![];
+            let mut targets = vec![];
+
+            for edge_ref in edges {
+                let edge = edge_ref.weight();
+
+                let edge_source_idx = edge_ref.source();
+
+                if edge.id == "RO:0002234" {
+                    // has output
+                    sources.push(edge_source_idx);
+                } else {
+                    // has input
+                    targets.push(edge_source_idx);
+                }
+            }
+
+
+            for source_idx in &sources {
+                let source_individual_gocam_id = {
+                    new_model.graph.node_weight(*source_idx).unwrap().individual_gocam_id.clone()
+                };
+
+                for target_idx in &targets {
+                    let target_node = new_model.graph.node_weight(*target_idx).unwrap();
+
+                    let fact_gocam_id = format!("RO:0002413-{}-{}", source_individual_gocam_id,
+                                                target_node.individual_gocam_id);
+                    let edge_value = GoCamEdge {
+                        fact_gocam_id,
+                        id: "RO:0002413".to_owned(),
+                        label: "provides input for".to_owned(),
+                    };
+
+                    new_model.graph.add_edge(*source_idx, *target_idx, edge_value);
+                }
+            }
+        }
+
+        new_model.graph.retain_nodes(|g, idx| {
+            g.node_weight(idx).unwrap().node_type != GoCamNodeType::Chemical
+        });
+
+        new_model
     }
 }
 
@@ -1476,5 +1545,15 @@ mod tests {
             overlap_activity.overlapping_individual_ids.iter().next().unwrap();
         assert_eq!(first_overlapping_individual,
                    "gomodel:66a3e0bb00001342/678073a900003752");
+    }
+
+    #[test]
+    fn remove_chemicals_test() {
+        let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
+        let model = parse_gocam_model(&mut source1).unwrap();
+
+        let new_model = model.remove_chemicals();
+
+        assert_eq!(new_model.node_count(), 18);
     }
 }
