@@ -49,6 +49,7 @@
 use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
           fmt::{self, Display},
           io::Read};
+use std::hash::{Hash, Hasher};
 
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
@@ -800,11 +801,11 @@ from_individual_type!{GoCamOtherComponent, "The GO component for the OtherCompon
 
 /// A complex can have a GO complex ID (from the CC GO aspect) or a
 /// Complex Portal ID
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamComplex {
     pub id: String,
     pub label: String,
-    pub has_part_genes: Vec<GoCamGeneIdentifier>,
+    pub has_part_genes: BTreeSet<GoCamGeneIdentifier>,
 }
 
 impl GoCamComplex {
@@ -822,12 +823,23 @@ impl From<&IndividualType> for GoCamComplex {
         GoCamComplex {
             id: individual_complex.id().to_owned(),
             label: individual_complex.label().to_owned(),
-            has_part_genes: vec![],
+            has_part_genes: BTreeSet::new(),
         }
     }
 }
 
+impl PartialEq for GoCamComplex {
+    fn eq(&self, other: &GoCamComplex) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for GoCamComplex { }
 
+impl Hash for GoCamComplex {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
 
 /// A GO biological process
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -1263,8 +1275,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             };
 
             let complex_gene = complex_part_type.id().to_owned();
-            //            eprintln!("{}", complex_gene);
-            complex.has_part_genes.push(complex_gene);
+            complex.has_part_genes.insert(complex_gene);
         }
     }
 
