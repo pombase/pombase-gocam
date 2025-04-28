@@ -622,7 +622,7 @@ impl GoCamModel {
         })
     }
 
-    /// Remove a copy of the model with chemicals removed.  Where a
+    /// Return a copy of the model with chemicals removed.  Where a
     /// chemical is between two activities, replace the chemical with
     /// a "provides input for" edge.
     pub fn remove_chemicals(&self) -> GoCamModel {

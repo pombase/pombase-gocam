@@ -8,11 +8,16 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use anyhow::{Result, anyhow};
 
+/// A predicate function to pass to [subgraph_by].  The arguments are an initial node and the
+/// current node while traversing the graph.
 pub type SubGraphPred<N> =
-    fn(node1: &N, node1: &N) -> bool;
+    fn(start_node: &N, test_node: &N) -> bool;
 
+/// Return a sub-graph of `graph` that includes the node given by `start_idx` and all connected
+/// nodes and edges where `match_pred` returns true.  `match_pred` is passed the start node and
+/// the current node while traversing the graph.
 pub fn subgraph_by<N: Clone, E: Clone>(graph: &Graph<N, E>,
-                                       old_start_idx: NodeIndex,
+                                       start_idx: NodeIndex,
                                        match_pred: &SubGraphPred<N>)
     -> Result<Graph<N, E>>
 {
@@ -21,13 +26,13 @@ pub fn subgraph_by<N: Clone, E: Clone>(graph: &Graph<N, E>,
 
     let mut ret_graph = Graph::<N, E>::new();
 
-    let old_start_node = graph.node_weight(old_start_idx)
-        .ok_or(anyhow!("node not found: {:?}", old_start_idx))?;
+    let old_start_node = graph.node_weight(start_idx)
+        .ok_or(anyhow!("node not found: {:?}", start_idx))?;
 
     let new_start_idx = ret_graph.add_node(old_start_node.to_owned());
 
-    stack.push((old_start_idx, new_start_idx));
-    seen_nodes.insert(old_start_idx);
+    stack.push((start_idx, new_start_idx));
+    seen_nodes.insert(start_idx);
 
     loop {
         let Some((old_current_idx, new_current_idx)) = stack.pop()
