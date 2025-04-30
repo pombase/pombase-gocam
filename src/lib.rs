@@ -1522,6 +1522,34 @@ mod tests {
     }
 
     #[test]
+    fn merge_test_mss51() {
+        let mut source1 = File::open("tests/data/gomodel_67086be200000519.json").unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
+
+        let mut source2 = File::open("tests/data/gomodel_67e5e74400003073.json").unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
+
+        let merged = GoCamModel::merge_models("new_id", "new_title",
+                                              &[model1, model2]).unwrap();
+
+        assert_eq!(merged.node_iterator().count(), 91);
+
+        // find IDs in merged nodes
+        let merged_ids: HashSet<_> =
+            merged.node_iterator().filter_map(|(_, node)| if node.models.len() >= 2 {
+                Some((node.label.clone(), node.db_id().to_owned()))
+            } else {
+                None
+            })
+            .collect();
+
+        let mut expected_ids = HashSet::new();
+        expected_ids.insert(("gene product or complex activity".to_owned(), "PomBase:SPAC25B8.04c".to_owned()));
+
+        assert_eq!(merged_ids, expected_ids);
+    }
+
+    #[test]
     fn find_overlaps_test() {
         let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
