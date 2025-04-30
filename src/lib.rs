@@ -379,7 +379,7 @@ impl GoCamModel {
 
             let mut model_ids_and_titles = BTreeSet::new();
 
-            let mut possible_chemical_overlaps = HashMap::new();
+            let mut possible_input_output_overlaps = HashMap::new();
 
             for (model_id, node_idx, node) in models_and_individual.clone() {
                 let &model = models_by_id.get(&model_id).unwrap();
@@ -388,17 +388,17 @@ impl GoCamModel {
 
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
-                for chemical_neighbour in Self::chemical_neighbours_of(model, node_idx) {
-                    let (ref chemical_neighbour_edge, ref chemical_neighbour_node) = chemical_neighbour;
-                    let key = (chemical_neighbour_edge.id.clone(),
-                               chemical_neighbour_node.node_id.clone(),
-                               chemical_neighbour_node.label.clone(),
-                               chemical_neighbour_node.located_in.clone());
+                for input_output in Self::inputs_outputs_of(model, node_idx) {
+                    let (ref input_output_edge, ref input_output_node) = input_output;
+                    let key = (input_output_edge.id.clone(),
+                               input_output_node.node_id.clone(),
+                               input_output_node.label.clone(),
+                               input_output_node.located_in.clone());
 
                     let val = (model_id.clone(), model.title().to_owned(),
-                               chemical_neighbour_node.clone());
+                               input_output_node.clone());
 
-                    possible_chemical_overlaps.entry(key)
+                    possible_input_output_overlaps.entry(key)
                         .or_insert_with(Vec::new)
                         .push(val);
                 }
@@ -431,23 +431,26 @@ impl GoCamModel {
 
             ret.push(node_overlap);
 
-            for (chemical_key, chemical_details) in possible_chemical_overlaps {
-                if chemical_details.len() == 1 {
+            for (input_output_key, input_output_details) in possible_input_output_overlaps {
+                if input_output_details.len() == 1 {
                     // no overlap
                     continue;
                 }
-                let (_, node_id, node_label, located_in) = chemical_key;
+                let (_, node_id, node_label, located_in) = input_output_key;
                 let mut overlapping_individual_ids = BTreeSet::new();
                 let mut model_ids_and_titles = BTreeSet::new();
-                for (model_id, model_title, chemical_node) in chemical_details {
-                    overlapping_individual_ids.insert(chemical_node.individual_gocam_id);
+
+                let (_, _, first_node) = input_output_details.get(0).unwrap().to_owned();
+
+                for (model_id, model_title, node) in input_output_details {
+                    overlapping_individual_ids.insert(node.individual_gocam_id);
                     model_ids_and_titles.insert((model_id, model_title));
                 }
 
                 let node_overlap = GoCamNodeOverlap {
                         node_id,
                         node_label,
-                        node_type: GoCamNodeType::Chemical,
+                        node_type: first_node.node_type,
                         has_input: vec![],
                         has_output: vec![],
                         part_of_process: None,
@@ -469,7 +472,7 @@ impl GoCamModel {
         ret
     }
 
-    fn chemical_neighbours_of(model: &GoCamModel, activity_index: NodeIndex)
+    fn inputs_outputs_of(model: &GoCamModel, activity_index: NodeIndex)
        -> Vec<(GoCamEdge, GoCamNode)>
     {
         let mut ret = vec![];
@@ -481,11 +484,13 @@ impl GoCamModel {
         for edge_ref in outgoing_iter {
             let target_node = graph.node_weight(edge_ref.target()).unwrap();
 
-            if target_node.node_type != GoCamNodeType::Chemical {
+            let edge = edge_ref.weight();
+
+            if edge.id != "RO:0002234" && edge.id != "RO:0002233" {
                 continue;
             }
 
-            ret.push((edge_ref.weight().to_owned(), target_node.to_owned()))
+            ret.push((edge.to_owned(), target_node.to_owned()))
         }
 
 
@@ -494,11 +499,13 @@ impl GoCamModel {
         for edge_ref in incoming_iter {
             let subject_node = graph.node_weight(edge_ref.target()).unwrap();
 
-            if subject_node.node_type != GoCamNodeType::Chemical {
+            let edge = edge_ref.weight();
+
+            if edge.id != "RO:0002234" && edge.id != "RO:0002233" {
                 continue;
             }
 
-            ret.push((edge_ref.weight().to_owned(), subject_node.to_owned()))
+            ret.push((edge.to_owned(), subject_node.to_owned()))
         }
 
         ret
@@ -1545,6 +1552,7 @@ mod tests {
 
         let mut expected_ids = HashSet::new();
         expected_ids.insert(("gene product or complex activity".to_owned(), "PomBase:SPAC25B8.04c".to_owned()));
+        expected_ids.insert(("cox1 Spom".to_owned(), "PomBase:SPMIT.01".to_owned()));
 
         assert_eq!(merged_ids, expected_ids);
     }
@@ -1601,5 +1609,36 @@ mod tests {
         let new_model = model.remove_chemicals();
 
         assert_eq!(new_model.node_count(), 18);
+    }
+
+      #[test]
+    fn merge_test_mss51_remove_chemicals() {
+        let mut source1 = File::open("tests/data/gomodel_67086be200000519.json").unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
+
+        let mut source2 = File::open("tests/data/gomodel_67e5e74400003073.json").unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
+
+        let merged = GoCamModel::merge_models("new_id", "new_title",
+                                              &[model1, model2]).unwrap();
+
+        let new_model = merged.remove_chemicals();
+
+        assert_eq!(new_model.node_iterator().count(), 85);
+
+        // find IDs in merged nodes
+        let merged_ids: HashSet<_> =
+            new_model.node_iterator().filter_map(|(_, node)| if node.models.len() >= 2 {
+                Some((node.label.clone(), node.db_id().to_owned()))
+            } else {
+                None
+            })
+            .collect();
+
+        let mut expected_ids = HashSet::new();
+        expected_ids.insert(("gene product or complex activity".to_owned(), "PomBase:SPAC25B8.04c".to_owned()));
+        expected_ids.insert(("cox1 Spom".to_owned(), "PomBase:SPMIT.01".to_owned()));
+
+        assert_eq!(merged_ids, expected_ids);
     }
 }
