@@ -64,7 +64,7 @@ use phf::phf_map;
 
 use anyhow::{Result, anyhow};
 
-use petgraph::{graph::{NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Direction, Graph};
+use petgraph::{graph::{EdgeReference, NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Direction, Graph};
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -384,7 +384,9 @@ impl GoCamModel {
             for (model_id, node_idx, node) in models_and_individual.clone() {
                 let &model = models_by_id.get(&model_id).unwrap();
 
-                model_ids_and_titles.insert((model_id.clone(), model.title().to_owned()));
+                let direction = model.node_rel_direction(node_idx);
+
+                model_ids_and_titles.insert((model_id.clone(), model.title().to_owned(), direction));
 
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
@@ -444,7 +446,7 @@ impl GoCamModel {
 
                 for (model_id, model_title, node) in input_output_details {
                     overlapping_individual_ids.insert(node.individual_gocam_id);
-                    model_ids_and_titles.insert((model_id, model_title));
+                    model_ids_and_titles.insert((model_id, model_title, GoCamDirection::None));
                 }
 
                 let node_overlap = GoCamNodeOverlap {
@@ -563,6 +565,10 @@ impl GoCamModel {
         for overlap in overlaps.into_iter() {
             let overlap_id = overlap.id();
 
+            let models = overlap.models.iter()
+                .map(|(model_id, model_title, _)| (model_id.to_owned(), model_title.to_owned()))
+                .collect();
+
             let overlap_node = GoCamNode {
                 individual_gocam_id: overlap_id,
                 node_id: overlap.node_id,
@@ -574,7 +580,7 @@ impl GoCamModel {
                 part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
                 source_ids: overlap.overlapping_individual_ids.clone(),
-                models: overlap.models.clone(),
+                models,
             };
 
             let overlap_node_idx = merged_graph.add_node(overlap_node);
@@ -699,6 +705,60 @@ impl GoCamModel {
 
         new_model
     }
+
+    // If the activity at `activity_idx` has only incoming relations (excluding inputs/outputs),
+    // return Incoming.  If the activity has only outgoing relations return Outgoing.
+    // Otherwise return None.
+    fn node_rel_direction(&self, activity_idx: NodeIndex) -> GoCamDirection {
+        let is_causal_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
+            let edge = edge_ref.weight();
+            edge.id != "RO:0002234" && edge.id != "RO:0002233"
+        };
+
+        let graph = self.graph();
+
+        let mut has_incoming = graph.edges_directed(activity_idx, Direction::Incoming)
+            .into_iter()
+            .any(is_causal_edge);
+
+        let mut has_outgoing = graph.edges_directed(activity_idx, Direction::Outgoing)
+            .into_iter()
+            .any(is_causal_edge);
+
+        if !has_incoming || !has_outgoing {
+ 
+            for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
+                let is_input_edge =
+                    if edge.weight().id == "RO:0002233" {
+                        true
+                    } else {
+                        if edge.weight().id == "RO:0002234" {
+                            false
+                        } else {
+                            continue;
+                        }
+                    };
+                let target_idx = edge.target();
+                for incoming_edge in graph.edges_directed(target_idx, Direction::Incoming) {
+                    if is_input_edge && incoming_edge.weight().id == "RO:0002234" {
+                        has_incoming = true;
+                        break;
+                    }
+                    if !is_input_edge && incoming_edge.weight().id == "RO:0002233" {
+                        has_outgoing = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        match (has_incoming, has_outgoing) {
+            (true, true) => GoCamDirection::None,
+            (false, false) => GoCamDirection::None,
+            (true, false) => GoCamDirection::Incoming,
+            (false, true) => GoCamDirection::Outgoing,
+        }
+    }
 }
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
@@ -717,7 +777,10 @@ pub struct GoCamNodeOverlap {
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
-    pub models: BTreeSet<(ModelId, String)>,
+
+    // a set of the model details for this overlap, with the direction of relations
+    // into/out of the node in the given model
+    pub models: BTreeSet<(ModelId, ModelTitle, GoCamDirection)>,
 }
 
 impl GoCamNodeOverlap {
@@ -726,6 +789,13 @@ impl GoCamNodeOverlap {
     pub fn id(&self) -> String {
         self.overlapping_individual_ids.iter().cloned().collect::<Vec<_>>().join("-")
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum GoCamDirection {
+    Incoming,
+    Outgoing,
+    None,
 }
 
 /// An iterator over [GoCamNode], returned by [GoCamModel::node_iterator()]
@@ -1581,10 +1651,7 @@ mod tests {
 
         assert_eq!(overlaps.len(), 2);
 
-        let overlap_chemical = &overlaps[0];
-        assert_eq!(overlap_chemical.node_label, "O-acetyl-L-homoserine");
-
-        let overlap_activity = &overlaps[1];
+        let overlap_activity = &overlaps[0];
 
         assert_eq!(overlap_activity.node_label, "homoserine O-acetyltransferase activity");
         assert_eq!(overlap_activity.models.len(), 2);
@@ -1599,6 +1666,9 @@ mod tests {
             overlap_activity.overlapping_individual_ids.iter().next().unwrap();
         assert_eq!(first_overlapping_individual,
                    "gomodel:66a3e0bb00001342/678073a900003752");
+
+        let overlap_chemical = &overlaps[1];
+        assert_eq!(overlap_chemical.node_label, "O-acetyl-L-homoserine");
     }
 
     #[test]
