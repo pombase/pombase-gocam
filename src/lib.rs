@@ -268,8 +268,8 @@ impl GoCamModel {
         let make_key = |node: &GoCamNode, input_output: &str| {
             if node.occurs_in.is_none() ||
                 node.part_of_process.is_none() {
-                return None;
-            }
+                    return None;
+                }
 
             let GoCamNodeType::Activity(ref enabled_by) = node.node_type
             else {
@@ -329,7 +329,7 @@ impl GoCamModel {
                     .entry(model.id())
                     .or_insert_with(HashSet::new)
                     .insert((node_idx, node));
-                }
+            }
         }
 
         let possible_overlapping_activities: HashMap<_, _> =
@@ -448,19 +448,19 @@ impl GoCamModel {
                 }
 
                 let node_overlap = GoCamNodeOverlap {
-                        node_id,
-                        node_label,
-                        node_type: first_node.node_type,
-                        has_input: vec![],
-                        has_output: vec![],
-                        part_of_process: None,
-                        occurs_in: None,
-                        located_in: located_in,
-                        overlapping_individual_ids,
-                        models: model_ids_and_titles,
-                    };
+                    node_id,
+                    node_label,
+                    node_type: first_node.node_type,
+                    has_input: vec![],
+                    has_output: vec![],
+                    part_of_process: None,
+                    occurs_in: None,
+                    located_in,
+                    overlapping_individual_ids,
+                    models: model_ids_and_titles,
+                };
 
-                    ret.push(node_overlap);
+                ret.push(node_overlap);
             }
         }
 
@@ -1611,7 +1611,7 @@ mod tests {
         assert_eq!(new_model.node_count(), 18);
     }
 
-      #[test]
+    #[test]
     fn merge_test_mss51_remove_chemicals() {
         let mut source1 = File::open("tests/data/gomodel_67086be200000519.json").unwrap();
         let model1 = parse_gocam_model(&mut source1).unwrap();
