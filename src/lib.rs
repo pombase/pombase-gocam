@@ -266,7 +266,7 @@ impl GoCamModel {
         -> Vec<GoCamNodeOverlap>
     {
         let make_key = |node: &GoCamNode, input_output: &str| {
-            if node.occurs_in.is_none() ||
+            if node.occurs_in.is_empty() ||
                 node.part_of_process.is_none() {
                     return None;
                 }
@@ -294,7 +294,7 @@ impl GoCamModel {
                   node.label.clone(),
                   enabled_by.clone(),
                   node.part_of_process.clone().unwrap(),
-                  node.occurs_in.clone().unwrap(),
+                  node.occurs_in.clone(),
                   input, output))
         };
 
@@ -425,7 +425,7 @@ impl GoCamModel {
                 has_input: vec![],
                 has_output: vec![],
                 part_of_process: Some(part_of_process),
-                occurs_in: Some(occurs_in),
+                occurs_in,
                 located_in: None,
                 overlapping_individual_ids,
                 models: model_ids_and_titles,
@@ -456,7 +456,7 @@ impl GoCamModel {
                     has_input: vec![],
                     has_output: vec![],
                     part_of_process: None,
-                    occurs_in: None,
+                    occurs_in: vec![],
                     located_in,
                     overlapping_individual_ids,
                     models: model_ids_and_titles,
@@ -772,8 +772,8 @@ pub struct GoCamNodeOverlap {
     pub has_output: Vec<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub occurs_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Vec::is_empty")]
+    pub occurs_in: Vec<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
@@ -929,7 +929,8 @@ pub struct GoCamProcess {
 
 fn is_gene_id(identifier: &str) -> bool {
     ["PomBase:", "FB:", "UniProtKB:", "MGI:", "WB:", "RGD:", "RefSeq:",
-     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:", "AGI_LocusCode:"]
+     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:", "AGI_LocusCode:",
+     "EcoCyc:"]
         .iter().any(|s| identifier.starts_with(*s))
 }
 
@@ -1104,8 +1105,8 @@ pub struct GoCamNode {
     pub has_output: BTreeSet<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub occurs_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="Vec::is_empty")]
+    pub occurs_in: Vec<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
@@ -1189,7 +1190,7 @@ impl Display for GoCamNode {
         if let Some(ref located_in) = self.located_in {
             write!(f, " [located in] {}", located_in)?;
         }
-        if let Some(ref occurs_in) = self.occurs_in {
+        for occurs_in in &self.occurs_in {
             write!(f, " [occurs in] {}", occurs_in)?;
         }
         if let Some(ref part_of_process) = self.part_of_process {
@@ -1312,7 +1313,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 has_input: BTreeSet::new(),
                 has_output: BTreeSet::new(),
                 located_in: None,
-                occurs_in: None,
+                occurs_in: vec![],
                 part_of_process: None,
                 source_ids,
                 models,
@@ -1391,7 +1392,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                         subject_node.node_type = GoCamNodeType::Activity(modified_protein_enabler);
                     }
                     else  {
-                        eprintln!("can't handle enabled by object: {} - {}", object_type_id, object_individual.id);
+                        eprintln!("{}: can't handle enabled by object: {} - {}",
+                                  model.id(), object_type_id, object_individual.id);
                     }
                 }
             },
@@ -1415,17 +1417,14 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 subject_node.located_in = Some(located_in);
             },
             "occurs in" => {
-                if subject_node.occurs_in.is_some() {
-                    eprintln!("{}: {} occurs in multiple components", model.id(),
-                              subject_node.description());
-                }
+
                 let occurs_in =
                     if object_individual.individual_is_complex() {
                         GoCamComponent::ComplexComponent(object_type.into())
                     } else {
                         GoCamComponent::OtherComponent(object_type.into())
                     };
-                subject_node.occurs_in = Some(occurs_in);
+                subject_node.occurs_in.push(occurs_in);
             },
             "part of" => {
                 let process = process_from_individual(object_individual, model);
@@ -1659,8 +1658,8 @@ mod tests {
         assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().id, "GO:0071266");
         assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().label,
                    "'de novo' L-methionine biosynthetic process");
-        assert_eq!(overlap_activity.occurs_in.as_ref().unwrap().id(), "GO:0005829");
-        assert_eq!(overlap_activity.occurs_in.as_ref().unwrap().label(), "cytosol");
+        assert_eq!(overlap_activity.occurs_in[0].id(), "GO:0005829");
+        assert_eq!(overlap_activity.occurs_in[0].label(), "cytosol");
 
         let first_overlapping_individual =
             overlap_activity.overlapping_individual_ids.iter().next().unwrap();
