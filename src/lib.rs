@@ -772,7 +772,7 @@ pub struct GoCamNodeOverlap {
     pub has_output: Vec<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub occurs_in: Vec<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
@@ -1105,7 +1105,7 @@ pub struct GoCamNode {
     pub has_output: BTreeSet<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(skip_serializing_if="Vec::is_empty", default)]
     pub occurs_in: Vec<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
