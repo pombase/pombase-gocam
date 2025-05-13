@@ -56,6 +56,7 @@ extern crate serde_json;
 
 pub mod raw;
 pub mod graph;
+pub mod gocam_py;
 
 use graph::SubGraphPred;
 use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
