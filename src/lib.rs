@@ -437,8 +437,8 @@ impl GoCamModel {
                 node_id: node_id.to_owned(),
                 node_label,
                 node_type: GoCamNodeType::Activity(enabled_by),
-                has_input: vec![],
-                has_output: vec![],
+                has_input: BTreeSet::new(),
+                has_output: BTreeSet::new(),
                 part_of_process: Some(part_of_process),
                 occurs_in,
                 located_in: None,
@@ -468,10 +468,10 @@ impl GoCamModel {
                     node_id,
                     node_label,
                     node_type: first_node.node_type,
-                    has_input: vec![],
-                    has_output: vec![],
+                    has_input: BTreeSet::new(),
+                    has_output: BTreeSet::new(),
                     part_of_process: None,
-                    occurs_in: vec![],
+                    occurs_in: BTreeSet::new(),
                     located_in,
                     overlapping_individual_ids,
                     models: model_ids_and_titles,
@@ -783,12 +783,12 @@ pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
     pub node_type: GoCamNodeType,
-    pub has_input: Vec<GoCamInput>,
-    pub has_output: Vec<GoCamOutput>,
+    pub has_input: BTreeSet<GoCamInput>,
+    pub has_output: BTreeSet<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Vec::is_empty", default)]
-    pub occurs_in: Vec<GoCamComponent>,
+    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
+    pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
@@ -1120,8 +1120,8 @@ pub struct GoCamNode {
     pub has_output: BTreeSet<GoCamOutput>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="Vec::is_empty", default)]
-    pub occurs_in: Vec<GoCamComponent>,
+    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
+    pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
@@ -1328,7 +1328,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 has_input: BTreeSet::new(),
                 has_output: BTreeSet::new(),
                 located_in: None,
-                occurs_in: vec![],
+                occurs_in: BTreeSet::new(),
                 part_of_process: None,
                 source_ids,
                 models,
@@ -1439,7 +1439,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     } else {
                         GoCamComponent::OtherComponent(object_type.into())
                     };
-                subject_node.occurs_in.push(occurs_in);
+                subject_node.occurs_in.insert(occurs_in);
             },
             "part of" => {
                 let process = process_from_individual(object_individual, model);
@@ -1673,8 +1673,9 @@ mod tests {
         assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().id, "GO:0071266");
         assert_eq!(overlap_activity.part_of_process.as_ref().unwrap().label,
                    "'de novo' L-methionine biosynthetic process");
-        assert_eq!(overlap_activity.occurs_in[0].id(), "GO:0005829");
-        assert_eq!(overlap_activity.occurs_in[0].label(), "cytosol");
+        let first_occurs_in = overlap_activity.occurs_in.iter().next().unwrap();
+        assert_eq!(first_occurs_in.id(), "GO:0005829");
+        assert_eq!(first_occurs_in.label(), "cytosol");
 
         let first_overlapping_individual =
             overlap_activity.overlapping_individual_ids.iter().next().unwrap();
