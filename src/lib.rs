@@ -934,7 +934,7 @@ impl Hash for GoCamComplex {
 }
 
 /// A GO biological process
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GoCamProcess {
     pub id: String,
     pub label: String,
@@ -977,7 +977,7 @@ impl Display for GoCamProcess {
 }
 
 /// A GO cellular component
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum GoCamComponent {
     ComplexComponent(GoCamComplexComponent),
