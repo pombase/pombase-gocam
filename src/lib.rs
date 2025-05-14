@@ -419,6 +419,20 @@ impl GoCamModel {
                 continue;
             }
 
+            let has_incoming = model_ids_and_titles.iter()
+                .any(|(_, _, direction)| *direction == GoCamDirection::Incoming);
+            let has_outgoing = model_ids_and_titles.iter()
+                .any(|(_, _, direction)| *direction == GoCamDirection::Outgoing);
+            let has_none = model_ids_and_titles.iter()
+                .any(|(_, _, direction)| *direction == GoCamDirection::None);
+
+            if !has_incoming && !has_outgoing ||
+               has_incoming && !(has_outgoing || has_none) ||
+               has_outgoing && !(has_incoming || has_none) {
+                // remove cases where there is no clear direction between models
+                continue;
+            }
+
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
                 node_label,
