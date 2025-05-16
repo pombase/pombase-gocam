@@ -333,28 +333,54 @@ impl GoCamModel {
             }
         }
 
+        // activities without an input or output where there is an identical activity
+        // with inputs or outputs - we'll remove these later
+        let possible_activities_to_remove =
+            activities.iter()
+            .filter_map(|((node_id, node_label, enabled_by,
+                           part_of_process, occurs_in, inputs, outputs), node_details)| {
+                    if node_details.len() < 2 {
+                        return None;
+                    }
+
+                    if inputs.len() > 0 || outputs.len() > 0 {
+                        Some((node_id.to_owned(), node_label.to_owned(),
+                              enabled_by.to_owned(),
+                              part_of_process.to_owned(), occurs_in.to_owned(),
+                              BTreeSet::<GoCamInput>::new(),
+                              BTreeSet::<GoCamOutput>::new()))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<HashSet<_>>();
+
         let possible_overlapping_activities: HashMap<_, _> =
             activities
-            .into_iter()
+            .iter()
             .filter_map(|(key, node_details)| {
                 if node_details.len() < 2 {
                     // there is no overlap
-                    None
-                } else {
-                    let mut models_and_nodes = vec![];
-
-                    for (model_id, nodes) in node_details.into_iter() {
-                        if nodes.len() == 1 {
-                            let (node_idx, node) = nodes.iter().next().unwrap().clone();
-                            models_and_nodes.push((model_id.to_owned(), node_idx, node));
-                        } else {
-                            // for now ignore cases where an activity is duplicated in a model
-                            return None;
-                        }
-                    }
-
-                    Some((key, models_and_nodes))
+                    return None;
                 }
+
+                if possible_activities_to_remove.contains(&key) {
+                    return None;
+                }
+
+                let mut models_and_nodes = vec![];
+
+                for (model_id, nodes) in node_details.into_iter() {
+                    if nodes.len() == 1 {
+                        let (node_idx, node) = nodes.iter().next().unwrap().clone();
+                        models_and_nodes.push((model_id.to_owned(), node_idx, node));
+                    } else {
+                        // for now ignore cases where an activity is duplicated in a model
+                        return None;
+                    }
+                }
+
+                Some((key, models_and_nodes))
             })
             .collect();
 
@@ -365,13 +391,13 @@ impl GoCamModel {
         for models_and_individual in possible_overlapping_activities.values() {
             for (model_id, _, node) in models_and_individual.iter() {
                 overlapping_nodes_by_model
-                    .entry(model_id.clone())
+                    .entry(model_id)
                     .or_insert_with(HashSet::new)
                     .insert(*node);
             }
         }
 
-        for (key, models_and_individual) in possible_overlapping_activities.into_iter() {
+        for (key, models_and_individual) in possible_overlapping_activities.iter() {
             let (node_id, node_label, enabled_by,
                  part_of_process, occurs_in, _, _) = key;
 
@@ -383,11 +409,12 @@ impl GoCamModel {
             let mut possible_input_output_overlaps = HashMap::new();
 
             for (model_id, node_idx, node) in models_and_individual.clone() {
-                let &model = models_by_id.get(&model_id).unwrap();
+                let &model = models_by_id.get(model_id).unwrap();
 
                 let direction = model.node_rel_direction(node_idx);
 
-                model_ids_and_titles.insert((model_id.clone(), model.title().to_owned(), direction));
+                model_ids_and_titles.insert((model_id.to_owned(), model.title().to_owned(),
+                                             direction));
 
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
@@ -398,7 +425,7 @@ impl GoCamModel {
                                input_output_node.label.clone(),
                                input_output_node.located_in.clone());
 
-                    let val = (model_id.clone(), model.title().to_owned(),
+                    let val = (model_id, model.title().to_owned(),
                                input_output_node.clone());
 
                     possible_input_output_overlaps.entry(key)
@@ -435,12 +462,12 @@ impl GoCamModel {
 
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
-                node_label,
-                node_type: GoCamNodeType::Activity(enabled_by),
+                node_label: node_label.to_owned(),
+                node_type: GoCamNodeType::Activity(enabled_by.to_owned()),
                 has_input: BTreeSet::new(),
                 has_output: BTreeSet::new(),
-                part_of_process: Some(part_of_process),
-                occurs_in,
+                part_of_process: Some(part_of_process.to_owned()),
+                occurs_in: occurs_in.to_owned(),
                 located_in: None,
                 overlapping_individual_ids,
                 models: model_ids_and_titles,
@@ -461,7 +488,7 @@ impl GoCamModel {
 
                 for (model_id, model_title, node) in input_output_details {
                     overlapping_individual_ids.insert(node.individual_gocam_id);
-                    model_ids_and_titles.insert((model_id, model_title, GoCamDirection::None));
+                    model_ids_and_titles.insert((model_id.to_owned(), model_title, GoCamDirection::None));
                 }
 
                 let node_overlap = GoCamNodeOverlap {
@@ -741,7 +768,7 @@ impl GoCamModel {
             .any(is_causal_edge);
 
         if !has_incoming || !has_outgoing {
- 
+
             for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
                 let is_input_edge =
                     if edge.weight().id == "RO:0002233" {
@@ -1623,7 +1650,7 @@ mod tests {
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2]).unwrap();
 
-        assert_eq!(merged.node_iterator().count(), 91);
+        assert_eq!(merged.node_iterator().count(), 89);
 
         // find IDs in merged nodes
         let merged_ids: HashSet<_> =
@@ -1709,7 +1736,7 @@ mod tests {
 
         let new_model = merged.remove_chemicals();
 
-        assert_eq!(new_model.node_iterator().count(), 85);
+        assert_eq!(new_model.node_iterator().count(), 83);
 
         // find IDs in merged nodes
         let merged_ids: HashSet<_> =
@@ -1725,5 +1752,28 @@ mod tests {
         expected_ids.insert(("cox1 Spom".to_owned(), "PomBase:SPMIT.01".to_owned()));
 
         assert_eq!(merged_ids, expected_ids);
+    }
+
+    #[test]
+    fn merge_test_three_models() {
+        let mut source1 = File::open("tests/data/gomodel_665912ed00000459.json").unwrap();
+        let model1 = parse_gocam_model(&mut source1).unwrap();
+
+        let mut source2 = File::open("tests/data/gomodel_671ae02600003596.json").unwrap();
+        let model2 = parse_gocam_model(&mut source2).unwrap();
+
+        let mut source3 = File::open("tests/data/gomodel_665912ed00000192.json").unwrap();
+        let model3 = parse_gocam_model(&mut source3).unwrap();
+
+        let merged = GoCamModel::merge_models("new_id", "new_title",
+                                              &[model1, model2, model3]).unwrap();
+
+        use petgraph::visit::NodeRef;
+
+        for node in merged.node_iterator() {
+            if node.weight().node_id == "GO:0004582" {
+                assert_eq!(node.weight().models.iter().count(), 3);
+            }
+        }
     }
 }
