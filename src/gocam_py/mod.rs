@@ -86,6 +86,7 @@ pub struct Activity {
 pub struct EvidenceItem {
     pub term: EvidenceTermObject,
     pub reference: PublicationObject,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub with_objects: Vec<Object>,
     pub provenances: Vec<ProvenanceInfo>
 }
