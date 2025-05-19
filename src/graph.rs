@@ -129,4 +129,3 @@ mod tests {
         assert_eq!(subnone.node_count(), 8);
     }
 }
-
