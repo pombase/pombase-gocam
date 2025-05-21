@@ -266,7 +266,7 @@ impl GoCamModel {
     pub fn find_overlaps(models: &[GoCamModel])
         -> Vec<GoCamNodeOverlap>
     {
-        let make_key = |node: &GoCamNode, input_output: &str| {
+        let make_key = |node: &GoCamNode| {
             if node.occurs_in.is_empty() ||
                 node.part_of_process.is_none() {
                     return None;
@@ -277,26 +277,11 @@ impl GoCamModel {
                 return None;
             };
 
-            let input =
-                if input_output == "input" {
-                    node.has_input.clone()
-                } else {
-                    BTreeSet::new()
-                };
-
-            let output =
-                if input_output == "output" {
-                    node.has_output.clone()
-                } else {
-                    BTreeSet::new()
-                };
-
             Some((node.node_id.clone(),
                   node.label.clone(),
                   enabled_by.clone(),
                   node.part_of_process.clone().unwrap(),
-                  node.occurs_in.clone(),
-                  input, output))
+                  node.occurs_in.clone()))
         };
 
         let mut models_by_id = HashMap::new();
@@ -307,19 +292,7 @@ impl GoCamModel {
             models_by_id.insert(model.id().to_owned(), model);
 
             for (node_idx, node) in model.node_iterator() {
-                let Some(key) = make_key(node, "input")
-                else {
-                    continue;
-                };
-
-                activities
-                    .entry(key)
-                    .or_insert_with(HashMap::new)
-                    .entry(model.id())
-                    .or_insert_with(HashSet::new)
-                    .insert((node_idx, node));
-
-                let Some(key) = make_key(node, "output")
+                let Some(key) = make_key(node)
                 else {
                     continue;
                 };
@@ -333,38 +306,12 @@ impl GoCamModel {
             }
         }
 
-        // activities without an input or output where there is an identical activity
-        // with inputs or outputs - we'll remove these later
-        let possible_activities_to_remove =
-            activities.iter()
-            .filter_map(|((node_id, node_label, enabled_by,
-                           part_of_process, occurs_in, inputs, outputs), node_details)| {
-                    if node_details.len() < 2 {
-                        return None;
-                    }
-
-                    if inputs.len() > 0 || outputs.len() > 0 {
-                        Some((node_id.to_owned(), node_label.to_owned(),
-                              enabled_by.to_owned(),
-                              part_of_process.to_owned(), occurs_in.to_owned(),
-                              BTreeSet::<GoCamInput>::new(),
-                              BTreeSet::<GoCamOutput>::new()))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<HashSet<_>>();
-
         let possible_overlapping_activities: HashMap<_, _> =
             activities
             .iter()
             .filter_map(|(key, node_details)| {
                 if node_details.len() < 2 {
                     // there is no overlap
-                    return None;
-                }
-
-                if possible_activities_to_remove.contains(&key) {
                     return None;
                 }
 
@@ -397,9 +344,26 @@ impl GoCamModel {
             }
         }
 
-        for (key, models_and_individual) in possible_overlapping_activities.iter() {
-            let (node_id, node_label, enabled_by,
-                 part_of_process, occurs_in, _, _) = key;
+        for (key, models_and_individuals) in possible_overlapping_activities.iter() {
+            let (node_id, node_label, enabled_by, part_of_process, occurs_in) = key;
+
+            let first_inputs = models_and_individuals.first()
+                .map(|(_, _, node)| node.has_input.clone()).unwrap();
+            let first_outputs = models_and_individuals.first()
+                .map(|(_, _, node)| node.has_output.clone()).unwrap();
+
+            let has_matching_inputs_or_outputs =
+               models_and_individuals.iter()
+                .all(|(_, _, node)| node.has_input == first_inputs)
+                ||
+                models_and_individuals.iter()
+                .all(|(_, _, node)| node.has_output == first_outputs);
+
+            if !has_matching_inputs_or_outputs {
+                // nodes don't have all the same inputs and the nodes don't have all the same
+                // outputs
+                continue;
+            }
 
             let mut overlapping_individual_ids = BTreeSet::new();
             let mut found_complete_process = false;
@@ -408,7 +372,7 @@ impl GoCamModel {
 
             let mut possible_input_output_overlaps = HashMap::new();
 
-            for (model_id, node_idx, node) in models_and_individual.clone() {
+            for (model_id, node_idx, node) in models_and_individuals.clone() {
                 let &model = models_by_id.get(model_id).unwrap();
 
                 let direction = model.node_rel_direction(node_idx);
