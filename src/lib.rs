@@ -189,6 +189,12 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
     Ok(first_model.taxon().to_owned())
 }
 
+#[derive(PartialEq, Eq)]
+pub enum RemoveType {
+    Chemicals,
+    InputsOutputs,
+}
+
 impl GoCamModel {
     /// Create a [GoCamModel] from a [GoCamRawModel]
     ///
@@ -641,22 +647,31 @@ impl GoCamModel {
         })
     }
 
-    /// Return a copy of the model with chemicals removed.  Where a
+    /// Return a copy of the model with chemicals and/or  removed.  Where a
     /// chemical is between two activities, replace the chemical with
     /// a "provides input for" edge.
-    pub fn remove_chemicals(&self) -> GoCamModel {
-        let mut chemical_nodes = vec![];
+    pub fn remove_nodes(&self, remove_type: RemoveType) -> GoCamModel {
+        let mut nodes_to_remove = vec![];
         let mut new_model = self.clone();
 
         for (node_idx, node) in new_model.graph().node_references() {
-            if node.node_type == GoCamNodeType::Chemical {
-                chemical_nodes.push(node_idx);
+            match remove_type {
+                RemoveType::Chemicals => {
+                    if node.node_type == GoCamNodeType::Chemical {
+                        nodes_to_remove.push(node_idx);
+                    }
+                },
+                RemoveType::InputsOutputs => {
+                    if !node.is_activity() {
+                        nodes_to_remove.push(node_idx);
+                    }
+                }
             }
         }
 
-        for chemical_node_idx in &chemical_nodes {
+        for remove_node_idx in &nodes_to_remove {
             let edges: Vec<_> = new_model.graph()
-                .edges_directed(*chemical_node_idx, Direction::Incoming)
+                .edges_directed(*remove_node_idx, Direction::Incoming)
                 .collect();
 
             let mut sources = vec![];
@@ -706,7 +721,15 @@ impl GoCamModel {
         }
 
         new_model.graph.retain_nodes(|g, idx| {
-            g.node_weight(idx).unwrap().node_type != GoCamNodeType::Chemical
+            let current_node_type = &g.node_weight(idx).unwrap().node_type;
+            match remove_type {
+                RemoveType::Chemicals => {
+                    *current_node_type != GoCamNodeType::Chemical
+                },
+                RemoveType::InputsOutputs => {
+                    current_node_type.is_activity()
+                }
+            }
         });
 
         new_model
@@ -1682,7 +1705,7 @@ mod tests {
         let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
         let model = parse_gocam_model(&mut source1).unwrap();
 
-        let new_model = model.remove_chemicals();
+        let new_model = model.remove_nodes(RemoveType::Chemicals);
 
         assert_eq!(new_model.node_count(), 18);
     }
@@ -1698,7 +1721,19 @@ mod tests {
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2]).unwrap();
 
-        let new_model = merged.remove_chemicals();
+        let chemical_nodes_iter = merged.node_iterator();
+        let chemical_count = chemical_nodes_iter
+            .filter(|(_, n)| n.node_type == GoCamNodeType::Chemical)
+            .count();
+        assert_eq!(chemical_count, 6);
+
+        let new_model = merged.remove_nodes(RemoveType::Chemicals);
+
+        let chemical_nodes_iter = new_model.node_iterator();
+        let chemical_count = chemical_nodes_iter
+            .filter(|(_, n)| n.node_type == GoCamNodeType::Chemical)
+            .count();
+        assert_eq!(chemical_count, 0);
 
         assert_eq!(new_model.node_iterator().count(), 83);
 
@@ -1716,6 +1751,14 @@ mod tests {
         expected_ids.insert(("cox1 Spom".to_owned(), "PomBase:SPMIT.01".to_owned()));
 
         assert_eq!(merged_ids, expected_ids);
+
+        let no_inputs_model = merged.remove_nodes(RemoveType::InputsOutputs);
+
+        let input_nodes_iter = no_inputs_model.node_iterator();
+        let inputs_count = input_nodes_iter
+            .filter(|(_, n)| !n.is_activity())
+            .count();
+        assert_eq!(inputs_count, 0);
     }
 
     #[test]
