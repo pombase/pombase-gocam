@@ -302,3 +302,20 @@ pub struct QueryIndex {
     pub taxon_closure: Vec<TermObject>,
     pub annoton_terms: Vec<TermObject>
 }
+
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use super::*;
+
+    #[test]
+    fn parse_test() {
+        let mut source = File::open("tests/data/6690711d00000331.yaml").unwrap();
+        let model = gocam_py_parse(&mut source).unwrap();
+
+        assert_eq!(model.id, "gomodel:6690711d00000331");
+        assert_eq!(model.activities.len(), 19);
+    }
+}
