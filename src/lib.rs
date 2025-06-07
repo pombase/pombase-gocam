@@ -52,6 +52,7 @@ use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
 use std::hash::{Hash, Hasher};
 
 extern crate serde_json;
+extern crate serde_yaml;
 #[macro_use] extern crate serde_derive;
 
 pub mod raw;

@@ -18,3 +18,4 @@ serde = "1.0"
 anyhow = "1.0"
 petgraph = { version = "0.7", features = ["serde-1"] }
 phf = { version = "0.11.3", features = ["macros"] }
+serde_yaml = "0.9.34"

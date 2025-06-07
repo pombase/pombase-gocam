@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{BufReader, Read}};
+use std::io::{BufReader, Read};
 
 use anyhow::Result;
 use serde::{Deserialize, Deserializer};
@@ -6,7 +6,7 @@ use serde::{Deserialize, Deserializer};
 pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel> {
     let reader = BufReader::new(source);
 
-    let raw_model: GoCamPyModel = serde_json::from_reader(reader)?;
+    let raw_model: GoCamPyModel = serde_yaml::from_reader(reader)?;
 
     Ok(raw_model)
 }
@@ -56,14 +56,14 @@ pub enum CausalPredicateEnum {
 pub struct GoCamPyModel {
     pub id: UriOrCurie,
     pub title: String,
-    pub taxon: TaxonTermObject,
+    pub taxon: String,
     pub status: String,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub comments: Vec<String>,
     pub activities: Vec<Activity>,
     pub objects: Vec<Object>,
     pub provenances: Vec<ProvenanceInfo>,
-    pub query_index: QueryIndex
+    pub query_index: Option<QueryIndex>
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -71,13 +71,17 @@ pub struct Activity {
     pub id: UriOrCurie,
     pub enabled_by: EnabledByAssociation,
     pub molecular_function: MolecularFunctionAssociation,
-    pub occurs_in: CellularAnatomicalEntityAssociation,
-    pub part_of: BiologicalProcessAssociation,
+    pub occurs_in: Option<CellularAnatomicalEntityAssociation>,
+    pub part_of: Option<BiologicalProcessAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub has_input: Vec<MoleculeAssociation>,
-    pub has_primary_input: MoleculeAssociation,
+    pub has_primary_input: Option<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub has_output: Vec<MoleculeAssociation>,
-    pub has_primary_output: MoleculeAssociation,
+    pub has_primary_output: Option<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub causal_associations: Vec<CausalAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -85,9 +89,9 @@ pub struct Activity {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EvidenceItem {
     pub term: EvidenceTermObject,
-    pub reference: PublicationObject,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub with_objects: Vec<Object>,
+    pub reference: Option<PublicationObject>,
+#[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub with_objects: Vec<String>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -96,14 +100,14 @@ pub struct EvidenceItem {
 pub struct Association {
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByAssociation {
-    pub term: InformationBiomacromoleculeTermObject,
+    pub term: String,
 #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
@@ -113,21 +117,21 @@ pub struct EnabledByAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByGeneProductAssociation {
-    pub term: GeneProductTermObject,
+    pub term: String,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByProteinComplexAssociation {
-    pub members: Vec<GeneProductTermObject>,
+    pub members: Vec<String>,
     pub term: ProteinComplexTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -135,10 +139,10 @@ pub struct EnabledByProteinComplexAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CausalAssociation {
     pub predicate: PredicateTermObject,
-    pub downstream_activity: Box<Activity>,
+    pub downstream_activity: String,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -148,40 +152,43 @@ pub struct TermAssociation {
     pub term: TermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MolecularFunctionAssociation {
-    pub term: MolecularFunctionTermObject,
+    pub term: String,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BiologicalProcessAssociation {
-    pub happens_during: PhaseTermObject,
-    pub part_of: BiologicalProcessTermObject,
+    pub happens_during: Option<PhaseTermObject>,
+    pub part_of: Option<BiologicalProcessTermObject>,
     pub term: BiologicalProcessTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CellularAnatomicalEntityAssociation {
-    pub part_of: CellTypeAssociation,
+    pub part_of: Option<CellTypeAssociation>,
     pub term: CellularAnatomicalEntityTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -192,7 +199,7 @@ pub struct CellTypeAssociation {
     pub term: CellTypeTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -203,7 +210,7 @@ pub struct GrossAnatomyAssociation {
     pub term: GrossAnatomicalStructureTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -213,161 +220,64 @@ pub struct MoleculeAssociation {
     pub term: MoleculeTermObject,
 #[serde(rename = "type")]
     pub type_: String,
-    pub evidence: HashMap<String, EvidenceItem>,
+    pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Object {
     pub id: UriOrCurie,
-    pub label: String,
+    pub label: Option<String>,
+#[serde(rename = "type")]
     pub type_: UriOrCurie,
+    #[serde(default)]
     pub obsolete: bool
 }
 
+pub type TermObject = String;
+pub type PublicationObject = String;
+pub type EvidenceTermObject = String;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct TermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type MolecularFunctionTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct PublicationObject {
-    pub abstract_text: String,
-    pub full_text: String,
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type BiologicalProcessTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct EvidenceTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type CellularAnatomicalEntityTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MolecularFunctionTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type MoleculeTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct BiologicalProcessTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type CellTypeTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CellularAnatomicalEntityTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type GrossAnatomicalStructureTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MoleculeTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type PhaseTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CellTypeTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type InformationBiomacromoleculeTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct GrossAnatomicalStructureTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type GeneProductTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct PhaseTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type ProteinComplexTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InformationBiomacromoleculeTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type TaxonTermObject = String;
 
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct GeneProductTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ProteinComplexTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct TaxonTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct PredicateTermObject {
-    pub id: UriOrCurie,
-    pub label: String,
-    pub type_: UriOrCurie,
-    pub obsolete: bool
-}
+pub type PredicateTermObject = String;
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProvenanceInfo {
     pub contributor: Vec<String>,
-    pub created: String,
+    pub created: Option<String>,
     pub date: String,
     pub provided_by: Vec<String>
 }
