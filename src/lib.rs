@@ -238,6 +238,44 @@ impl GoCamModel {
         self.graph().node_count()
     }
 
+    /// Return the IDs of all the genes in the model, including input and output genes, genes
+    /// of mRNAs and genes in complexes
+    pub fn genes_in_model(&self) -> BTreeSet<GoCamGeneIdentifier> {
+        let mut ret_genes = BTreeSet::new();
+
+        for (_, node) in self.node_iterator() {
+            match &node.node_type {
+                GoCamNodeType::Gene(gene) => {
+                    ret_genes.insert(gene.id().to_owned());
+                },
+                GoCamNodeType::MRNA(mrna) => {
+                    // temporary hack
+                    if let Some((prefix, suffix)) = mrna.id().rsplit_once('.') {
+                        if suffix.len() == 1 && suffix.chars().next().unwrap().is_numeric() {
+                            ret_genes.insert(prefix.to_owned());
+                        }
+                    }
+                },
+                GoCamNodeType::Activity(enabled_by) => {
+                    match enabled_by {
+                        GoCamEnabledBy::Gene(gene) => {
+                            ret_genes.insert(gene.id().to_owned());
+                        },
+                        GoCamEnabledBy::Complex(complex) => {
+                            for gene in &complex.has_part_genes {
+                                ret_genes.insert(gene.to_owned());
+                            }
+                        },
+                        _ => (),
+                    }
+                },
+                _ => (),
+            }
+        }
+
+        ret_genes
+    }
+
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -1548,6 +1586,32 @@ mod tests {
         assert_eq!(first_node.to_string(),
                    "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] component: kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
 
+    }
+
+    #[test]
+    fn overlap_genes_in_model() {
+        let mut source = File::open("tests/data/gomodel_67f85f2b00001360.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:67f85f2b00001360");
+
+        let expected_ids = vec![
+        "PomBase:SPAC13C5.01c", "PomBase:SPAC1420.03", "PomBase:SPAC22F8.06",
+        "PomBase:SPAC23D3.07", "PomBase:SPAC23G3.11", "PomBase:SPAC2H10.02c",
+        "PomBase:SPAC31A2.04c", "PomBase:SPAC31G5.13", "PomBase:SPAC323.02c",
+        "PomBase:SPAC3A11.12c", "PomBase:SPAC3G6.02", "PomBase:SPAC4A8.13c", "PomBase:SPAC607.05",
+        "PomBase:SPAC637.10c", "PomBase:SPAC6C3.08", "PomBase:SPAC6G10.04c",
+        "PomBase:SPAPB8E5.02c", "PomBase:SPBC106.16", "PomBase:SPBC119.01", "PomBase:SPBC16C6.07c",
+        "PomBase:SPBC16E9.19", "PomBase:SPBC16G5.01", "PomBase:SPBC17D11.07c",
+        "PomBase:SPBC23G7.12c", "PomBase:SPBC342.04", "PomBase:SPBC4.07c", "PomBase:SPBC4C3.10c",
+        "PomBase:SPBC577.10", "PomBase:SPBC582.07c", "PomBase:SPBC646.16", "PomBase:SPBP19A11.03c",
+        "PomBase:SPCC1442.06.1", "PomBase:SPCC14G10.03c", "PomBase:SPCC1682.10",
+        "PomBase:SPCC1682.16", "PomBase:SPCC16A11.16c", "PomBase:SPCC1795.04c",
+        "PomBase:SPCC18.17c", "PomBase:SPCC24B10.16c", "PomBase:SPCC576.10c", "PomBase:SPCC63.12c"];
+
+        let expected_genes_in_model: BTreeSet<String> =
+            expected_ids.into_iter().map(String::from).collect();
+
+        assert_eq!(expected_genes_in_model, model.genes_in_model());
     }
 
     #[test]
