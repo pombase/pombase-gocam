@@ -239,8 +239,12 @@ impl GoCamModel {
     }
 
     /// Return the IDs of all the genes in the model, including input and output genes, genes
-    /// of mRNAs and genes in complexes
-    pub fn genes_in_model(&self) -> BTreeSet<GoCamGeneIdentifier> {
+    /// of mRNAs and genes in complexes.
+    /// The pro_term_to_gene_map is a map of protein ontology term IDs to gene IDs that
+    /// allows counting modified genes.
+    pub fn genes_in_model(&self, pro_term_to_gene_map: &HashMap<String, String>)
+         -> BTreeSet<GoCamGeneIdentifier>
+    {
         let mut ret_genes = BTreeSet::new();
 
         for (_, node) in self.node_iterator() {
@@ -256,6 +260,12 @@ impl GoCamModel {
                         }
                     }
                 },
+                GoCamNodeType::ModifiedProtein(modified_protein) => {
+                    let pro_id = modified_protein.id();
+                    if let Some(gene) = pro_term_to_gene_map.get(pro_id) {
+                        ret_genes.insert(gene.to_owned());
+                    }
+                },
                 GoCamNodeType::Activity(enabled_by) => {
                     match enabled_by {
                         GoCamEnabledBy::Gene(gene) => {
@@ -263,6 +273,12 @@ impl GoCamModel {
                         },
                         GoCamEnabledBy::Complex(complex) => {
                             for gene in &complex.has_part_genes {
+                                ret_genes.insert(gene.to_owned());
+                            }
+                        },
+                        GoCamEnabledBy::ModifiedProtein(modified_protein) => {
+                            let pro_id = modified_protein.id();
+                            if let Some(gene) = pro_term_to_gene_map.get(pro_id) {
                                 ret_genes.insert(gene.to_owned());
                             }
                         },
@@ -276,8 +292,12 @@ impl GoCamModel {
         ret_genes
     }
 
-    /// Return the IDs of the genes that enable an activity, including genes in complexes
-    pub fn genes_enabling_activities(&self) -> BTreeSet<GoCamGeneIdentifier> {
+    /// Return the IDs of the genes that enable an activity, including genes in complexes.
+    /// The pro_term_to_gene_map is a map of protein ontology term IDs to gene IDs that
+    /// allows counting modified genes.
+    pub fn genes_enabling_activities(&self, pro_term_to_gene_map: &HashMap<String, String>)
+          -> BTreeSet<GoCamGeneIdentifier>
+    {
         let mut ret_genes = BTreeSet::new();
 
         for (_, node) in self.node_iterator() {
@@ -285,11 +305,16 @@ impl GoCamModel {
                 GoCamNodeType::Activity(enabled_by) => {
                     match enabled_by {
                         GoCamEnabledBy::Gene(gene) => {
-
                             ret_genes.insert(gene.id().to_owned());
                         },
                         GoCamEnabledBy::Complex(complex) => {
                             for gene in &complex.has_part_genes {
+                                ret_genes.insert(gene.to_owned());
+                            }
+                        },
+                        GoCamEnabledBy::ModifiedProtein(modified_protein) => {
+                            let pro_id = modified_protein.id();
+                            if let Some(gene) = pro_term_to_gene_map.get(pro_id) {
                                 ret_genes.insert(gene.to_owned());
                             }
                         },
@@ -1628,7 +1653,42 @@ mod tests {
         let expected_genes_in_model: BTreeSet<String> =
             expected_ids.into_iter().map(String::from).collect();
 
-        assert_eq!(expected_genes_in_model, model.genes_in_model());
+        assert_eq!(expected_genes_in_model, model.genes_in_model(&HashMap::new()));
+    }
+
+    #[test]
+    fn test_modified_genes_in_model() {
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:66187e4700001744");
+
+        let expected_ids = vec![
+            "PomBase:SPAC15E1.07c", "PomBase:SPAC23C11.16",
+            "PomBase:SPAC664.01c", "PomBase:SPBC106.01",
+            "PomBase:SPBC16H5.07c", "PomBase:SPBP35G2.03c",
+            "PomBase:SPCC1322.12c", "PomBase:SPCC1020.02",
+            "PomBase:SPCC622.08c", "PomBase:SPAC19G12.06c",
+            "PomBase:SPBC29A10.14"
+        ];
+
+        let expected_genes_in_model: BTreeSet<String> =
+            expected_ids.into_iter().map(String::from).collect();
+
+        let mut pro_term_to_gene_map = HashMap::new();
+
+        pro_term_to_gene_map.insert("PR:000059631".to_owned(),
+                                    "PomBase:SPCC1020.02".to_owned());
+        pro_term_to_gene_map.insert("PR:000027566".to_owned(),
+                                    "PomBase:SPCC622.08c".to_owned());
+        pro_term_to_gene_map.insert("PR:000027557".to_owned(),
+                                    "PomBase:SPAC19G12.06c".to_owned());
+        pro_term_to_gene_map.insert("PR:000050512".to_owned(),
+                                    "PomBase:SPBC29A10.14".to_owned());
+
+        let actual_genes =
+            model.genes_in_model(&pro_term_to_gene_map);
+
+        assert_eq!(expected_genes_in_model, actual_genes);
     }
 
     #[test]
@@ -1644,7 +1704,8 @@ mod tests {
         let expected_genes_in_model: BTreeSet<String> =
             expected_ids.into_iter().map(String::from).collect();
 
-        assert_eq!(expected_genes_in_model, model.genes_enabling_activities());
+        assert_eq!(expected_genes_in_model,
+                   model.genes_enabling_activities(&HashMap::new()));
     }
 
     #[test]
