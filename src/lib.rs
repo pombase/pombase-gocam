@@ -301,10 +301,6 @@ impl GoCamModel {
             }
         }
 
-        if ret_genes.contains("PomBase:SPBC119.01") {
-            panic!();
-        }
-
         ret_genes
     }
 
