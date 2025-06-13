@@ -290,7 +290,6 @@ impl GoCamModel {
                         },
                         GoCamEnabledBy::Complex(complex) => {
                             for gene in &complex.has_part_genes {
-                                eprintln!("{}", gene);
                                 ret_genes.insert(gene.to_owned());
                             }
                         },
@@ -1527,9 +1526,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 
                 subject_node.part_of_process = Some(process);
             },
-            &_ => {
-                // eprintln!("ignoring rel from fact: {} {}", fact.property_label, fact.id());
-            }
+            &_ => (),
         }
     }
 
@@ -1622,8 +1619,6 @@ mod tests {
         let model = parse_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:67f85f2b00003383");
 
-        eprintln!("model.genes_in_model(): {}", model.genes_in_model().len());
-
         let expected_ids = vec![
             "PomBase:SPAC12B10.06c", "PomBase:SPAC140.01",
             "PomBase:SPAC1556.02c", "PomBase:SPAC664.12c",
@@ -1642,7 +1637,6 @@ mod tests {
         let model = parse_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:67f85f2b00003383");
 
-        eprintln!("model.genes_enabling_activities(): {}", model.genes_enabling_activities().len());
         let expected_ids = vec![
             "PomBase:SPAC12B10.06c", "PomBase:SPAC664.12c",
             "PomBase:SPBC26H8.16", "PomBase:SPBP23A10.03c"
