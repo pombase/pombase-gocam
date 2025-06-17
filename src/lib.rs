@@ -378,6 +378,7 @@ impl GoCamModel {
                   node.label.clone(),
                   enabled_by.clone(),
                   node.part_of_process.clone().unwrap(),
+                  node.happens_during.clone(),
                   node.occurs_in.clone()))
         };
 
@@ -442,7 +443,7 @@ impl GoCamModel {
         }
 
         for (key, models_and_individuals) in possible_overlapping_activities.iter() {
-            let (node_id, node_label, enabled_by, part_of_process, occurs_in) = key;
+            let (node_id, node_label, enabled_by, part_of_process, happens_during, occurs_in) = key;
 
             let first_inputs = models_and_individuals.first()
                 .map(|(_, _, node)| node.has_input.clone()).unwrap();
@@ -530,6 +531,7 @@ impl GoCamModel {
                 part_of_process: Some(part_of_process.to_owned()),
                 occurs_in: occurs_in.to_owned(),
                 located_in: None,
+                happens_during: happens_during.to_owned(),
                 overlapping_individual_ids,
                 models: model_ids_and_titles,
             };
@@ -560,6 +562,7 @@ impl GoCamModel {
                     has_output: BTreeSet::new(),
                     part_of_process: None,
                     occurs_in: BTreeSet::new(),
+                    happens_during: None,
                     located_in,
                     overlapping_individual_ids,
                     models: model_ids_and_titles,
@@ -682,6 +685,7 @@ impl GoCamModel {
                 occurs_in: overlap.occurs_in,
                 part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
+                happens_during: overlap.happens_during,
                 source_ids: overlap.overlapping_individual_ids.clone(),
                 models,
             };
@@ -896,6 +900,8 @@ pub struct GoCamNodeOverlap {
     pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub happens_during: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
 
     // a set of the model details for this overlap, with the direction of relations
@@ -1229,6 +1235,8 @@ pub struct GoCamNode {
     pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of_process: Option<GoCamProcess>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub happens_during: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
     pub models: BTreeSet<(ModelId, ModelTitle)>,
 }
@@ -1315,6 +1323,9 @@ impl Display for GoCamNode {
         }
         if let Some(ref part_of_process) = self.part_of_process {
             write!(f, " [part of] {}", part_of_process)?;
+        }
+        if let Some(ref happens_during) = self.happens_during {
+            write!(f, " [happens during] {}", happens_during)?;
         }
 
         Ok(())
@@ -1435,6 +1446,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 located_in: None,
                 occurs_in: BTreeSet::new(),
                 part_of_process: None,
+                happens_during: None,
                 source_ids,
                 models,
             };
@@ -1537,7 +1549,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 subject_node.located_in = Some(located_in);
             },
             "occurs in" => {
-
                 let occurs_in =
                     if object_individual.individual_is_complex() {
                         GoCamComponent::ComplexComponent(object_type.into())
@@ -1550,6 +1561,10 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 let process = process_from_individual(object_individual, model);
 
                 subject_node.part_of_process = Some(process);
+            },
+            "happens during" => {
+                let during = process_from_individual(object_individual, model);
+                subject_node.happens_during = Some(during);
             },
             &_ => (),
         }
