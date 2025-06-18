@@ -510,14 +510,18 @@ impl GoCamModel {
 
             let has_incoming = model_ids_and_titles.iter()
                 .any(|(_, _, direction)| *direction == GoCamDirection::Incoming);
+            let has_incoming_constitutively_upstream = model_ids_and_titles.iter()
+                .any(|(_, _, direction)| *direction == GoCamDirection::IncomingConstitutivelyUpstream);
             let has_outgoing = model_ids_and_titles.iter()
                 .any(|(_, _, direction)| *direction == GoCamDirection::Outgoing);
             let has_none = model_ids_and_titles.iter()
                 .any(|(_, _, direction)| *direction == GoCamDirection::None);
 
-            if !has_incoming && !has_outgoing ||
-               has_incoming && !(has_outgoing || has_none) ||
-               has_outgoing && !(has_incoming || has_none) {
+            // See: https://github.com/pombase/pombase-gocam/issues/36#issuecomment-2982741903
+            if !has_incoming_constitutively_upstream && // special case for complex assembly
+               (!has_incoming && !has_outgoing ||
+                has_incoming && !(has_outgoing || has_none) ||
+                has_outgoing && !(has_incoming || has_none)) {
                 // remove cases where there is no clear direction between models
                 continue;
             }
@@ -831,12 +835,19 @@ impl GoCamModel {
     }
 
     // If the activity at `activity_idx` has only incoming relations (excluding inputs/outputs),
-    // return Incoming.  If the activity has only outgoing relations return Outgoing.
+    // return Incoming, unless all the incoming relations are "constitutively upstream" in which
+    // case return IncomingConstitutivelyUpstream.
+    // If the activity has only outgoing relations return Outgoing.
     // Otherwise return None.
     fn node_rel_direction(&self, activity_idx: NodeIndex) -> GoCamDirection {
         let is_causal_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
             let edge = edge_ref.weight();
             edge.id != "RO:0002234" && edge.id != "RO:0002233"
+        };
+
+        let is_constitutively_upstream_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
+            let edge = edge_ref.weight();
+            edge.id == "RO:0012009"
         };
 
         let graph = self.graph();
@@ -845,9 +856,27 @@ impl GoCamModel {
             .into_iter()
             .any(is_causal_edge);
 
+
+        let all_incoming_edge_constitutively_upstream = {
+            // true if there are some incoming edges and the are all
+            // "constitutively upstream" rels
+            graph.edges_directed(activity_idx, Direction::Incoming).next().is_some() &&
+                graph.edges_directed(activity_idx, Direction::Incoming).into_iter()
+                    .all(is_constitutively_upstream_edge)
+        };
+
         let mut has_outgoing = graph.edges_directed(activity_idx, Direction::Outgoing)
             .into_iter()
             .any(is_causal_edge);
+
+        if all_incoming_edge_constitutively_upstream && !has_outgoing {
+            let node = self.graph().node_weight(activity_idx).unwrap();
+            if node.type_string() == "enabled_by_complex" {
+               // special case for activities enable by a complex that
+               // only has "constitutively upstream" incoming relations
+               return GoCamDirection::IncomingConstitutivelyUpstream;
+            }
+        }
 
         if !has_incoming || !has_outgoing {
 
@@ -920,6 +949,7 @@ impl GoCamNodeOverlap {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum GoCamDirection {
     Incoming,
+    IncomingConstitutivelyUpstream,
     Outgoing,
     None,
 }
@@ -1721,6 +1751,36 @@ mod tests {
 
         assert_eq!(expected_genes_in_model,
                    model.genes_enabling_activities(&HashMap::new()));
+    }
+
+    #[test]
+    fn test_node_rel_direction() {
+        let mut source = File::open("tests/data/gomodel_67f85f2b00002766.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:67f85f2b00002766");
+
+        let Some ((test_out_node_idx, _)) = model.node_iterator()
+            .find(|(_, node)| {
+                node.enabler_id() == "GO:0061671"
+            })
+        else {
+            panic!()
+        };
+
+        // this a complex at the bottom of an assembly model
+        let Some ((test_in_node_idx, _)) = model.node_iterator()
+            .find(|(_, node)| {
+                node.enabler_id() == "GO:0045275"
+            })
+        else {
+            panic!()
+        };
+
+        let test_out_direction = model.node_rel_direction(test_out_node_idx);
+        assert_eq!(test_out_direction, GoCamDirection::Outgoing);
+
+        let test_in_direction = model.node_rel_direction(test_in_node_idx);
+        assert_eq!(test_in_direction, GoCamDirection::IncomingConstitutivelyUpstream);
     }
 
     #[test]
