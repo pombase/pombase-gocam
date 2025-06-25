@@ -386,6 +386,7 @@ impl GoCamModel {
 
         let mut activities = HashMap::new();
 
+        // put all activities in a HashMap
         for model in models {
             models_by_id.insert(model.id().to_owned(), model);
 
@@ -404,6 +405,8 @@ impl GoCamModel {
             }
         }
 
+        // From the HashMap of activities, find those that are in more than one model.  We ignore
+        // activities that occur more than once in a model as we can't handle that
         let possible_overlapping_activities: HashMap<_, _> =
             activities
             .iter()
@@ -442,6 +445,7 @@ impl GoCamModel {
             }
         }
 
+        // check that inputs or outputs match
         for (key, models_and_individuals) in possible_overlapping_activities.iter() {
             let (node_id, node_label, enabled_by, part_of_process, happens_during, occurs_in) = key;
 
