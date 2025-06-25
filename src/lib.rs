@@ -227,7 +227,7 @@ impl GoCamModel {
     }
 
     /// Return an iterator over the nodes ([GoCamNode]) of the model
-    pub fn node_iterator(&self) -> NodeIterator {
+    pub fn node_iterator(&self) -> NodeIterator<'_> {
         NodeIterator {
             node_refs: self.graph().node_references(),
         }
