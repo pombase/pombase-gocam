@@ -468,11 +468,13 @@ impl GoCamModel {
             }
 
             let mut overlapping_individual_ids = BTreeSet::new();
-            let mut found_complete_process = false;
+            let mut models_with_complete_processes: Vec<(ModelId, GoCamNode)> = vec![];
 
             let mut model_ids_and_titles = BTreeSet::new();
 
             let mut possible_input_output_overlaps = HashMap::new();
+
+            let mut original_model_id = None;
 
             for (model_id, node_idx, node) in models_and_individuals.clone() {
                 let &model = models_by_id.get(model_id).unwrap();
@@ -503,12 +505,14 @@ impl GoCamModel {
                     overlapping_nodes_by_model.get(&model_id).unwrap()
                     .iter().map(|n| n.individual_gocam_id.to_owned()).collect();
 
-                if Self::is_process_sub_graph(model, node_idx, &this_model_overlaps_ids) {
-                    found_complete_process = true;
+                if Self::process_subgraph_in_overlap(model, node_idx, &this_model_overlaps_ids) {
+                    models_with_complete_processes.push((model.id().to_owned(), node.clone()));
+                } else {
+                    original_model_id = Some(model.id().to_owned());
                 }
             }
 
-            if !found_complete_process {
+            if models_with_complete_processes.is_empty() {
                 continue;
             }
 
@@ -541,6 +545,7 @@ impl GoCamModel {
                 located_in: None,
                 happens_during: happens_during.to_owned(),
                 overlapping_individual_ids,
+                original_model_id,
                 models: model_ids_and_titles,
             };
 
@@ -573,6 +578,7 @@ impl GoCamModel {
                     happens_during: None,
                     located_in,
                     overlapping_individual_ids,
+                    original_model_id: None,
                     models: model_ids_and_titles,
                 };
 
@@ -627,24 +633,30 @@ impl GoCamModel {
         ret
     }
 
-    fn is_process_sub_graph(model: &GoCamModel, start_idx: NodeIndex, id_overlaps: &HashSet<IndividualId>)
+    fn subgraph_by_process(graph: &GoCamGraph, start_idx: NodeIndex)
+       -> Result<GoCamGraph>
+    {
+        let same_process: SubGraphPred<GoCamNode> =
+        |a: &GoCamNode, b: &GoCamNode| -> bool {
+            let Some(ref a_process) = a.part_of_process
+            else {
+                return true;
+            };
+            let Some(ref b_process) = b.part_of_process
+            else {
+                return true;
+            };
+            a_process == b_process
+        };
+
+        graph::subgraph_by(graph, start_idx, &same_process)
+    }
+
+    fn process_subgraph_in_overlap(model: &GoCamModel, start_idx: NodeIndex,
+                                   id_overlaps: &HashSet<IndividualId>)
        -> bool
     {
-
-        let same_process: SubGraphPred<GoCamNode> =
-            |a: &GoCamNode, b: &GoCamNode| -> bool {
-                let Some(ref a_process) = a.part_of_process
-                else {
-                    return true;
-                };
-                let Some(ref b_process) = b.part_of_process
-                else {
-                    return true;
-                };
-                a_process == b_process
-            };
-
-        let sub_graph = match graph::subgraph_by(&model.graph, start_idx, &same_process) {
+        let sub_graph = match Self::subgraph_by_process(&model.graph, start_idx) {
             Ok(sub_graph) => sub_graph,
             Err(_) => {
                 return false;
@@ -695,6 +707,7 @@ impl GoCamModel {
                 located_in: overlap.located_in,
                 happens_during: overlap.happens_during,
                 source_ids: overlap.overlapping_individual_ids.clone(),
+                original_model_id: overlap.original_model_id,
                 models,
             };
 
@@ -937,6 +950,10 @@ pub struct GoCamNodeOverlap {
     pub happens_during: Option<GoCamProcess>,
     pub overlapping_individual_ids: BTreeSet<IndividualId>,
 
+    // the "home" model that this activity comes from
+    // it will be added to other models to help with joining
+    pub original_model_id: Option<ModelId>,
+
     // a set of the model details for this overlap, with the direction of relations
     // into/out of the node in the given model
     pub models: BTreeSet<(ModelId, ModelTitle, GoCamDirection)>,
@@ -979,6 +996,7 @@ macro_rules! from_individual_type {
 pub struct $type_name {
     pub id: String,
     pub label: String,
+
 }
 
 impl $type_name {
@@ -1272,6 +1290,7 @@ pub struct GoCamNode {
     #[serde(skip_serializing_if="Option::is_none")]
     pub happens_during: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
+    pub original_model_id: Option<ModelId>,
     pub models: BTreeSet<(ModelId, ModelTitle)>,
 }
 
@@ -1482,6 +1501,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 part_of_process: None,
                 happens_during: None,
                 source_ids,
+                original_model_id: None,
                 models,
             };
 
