@@ -487,14 +487,14 @@ impl GoCamModel {
                 overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
 
                 for input_output in Self::inputs_outputs_of(model, node_idx) {
-                    let (ref input_output_edge, ref input_output_node) = input_output;
+                    let (ref input_output_edge, ref input_output_node, node_idx) = input_output;
                     let key = (input_output_edge.id.clone(),
                                input_output_node.node_id.clone(),
                                input_output_node.label.clone(),
                                input_output_node.located_in.clone());
 
                     let val = (model_id, model.title().to_owned(),
-                               input_output_node.clone());
+                               input_output_node.clone(), node_idx);
 
                     possible_input_output_overlaps.entry(key)
                         .or_insert_with(Vec::new)
@@ -556,18 +556,48 @@ impl GoCamModel {
                     // no overlap
                     continue;
                 }
+
                 let (_, node_id, node_label, located_in) = input_output_key;
                 let mut overlapping_individual_ids = BTreeSet::new();
                 let mut model_ids_and_titles = BTreeSet::new();
 
-                let (_, _, first_node) = input_output_details.get(0).unwrap().to_owned();
+                let (_, _, first_node, _) = input_output_details.get(0).unwrap().to_owned();
 
-                for (model_id, model_title, node) in input_output_details {
+                let mut original_model_ids: BTreeSet<_> = BTreeSet::new();
+
+                for (model_id, model_title, node, node_idx) in input_output_details {
                     overlapping_individual_ids.insert(node.individual_gocam_id);
                     model_ids_and_titles.insert((model_id.to_owned(), model_title, GoCamDirection::None));
+
+                    // Try to choose an original/home model ID for this chemical by using the
+                    // original_model_id the model where the chemical has an upstream and a
+                    // downstream activity.
+                    let model = models_by_id.get(model_id).unwrap();
+
+                    // in this case these are activities:
+                    let inputs_outputs = Self::inputs_outputs_of(*model, node_idx);
+
+                    let has_upstream_activity = inputs_outputs
+                        .iter()
+                        .any(|(edge, _, _)| edge.id == "RO:0002234");
+
+                    let has_downstream_activity = inputs_outputs
+                        .iter()
+                        .any(|(edge, _, _)| edge.id == "RO:0002233");
+
+                    if has_upstream_activity && has_downstream_activity {
+                        original_model_ids.insert(model_id.to_owned());
+                    }
                 }
 
-                let node_overlap = GoCamNodeOverlap {
+                let original_model_id =
+                    if original_model_ids.len() == 1 {
+                        original_model_ids.first().map(String::to_owned)
+                    } else {
+                        None
+                    };
+
+                let input_output_node_overlap = GoCamNodeOverlap {
                     node_id,
                     node_label,
                     node_type: first_node.node_type,
@@ -578,11 +608,11 @@ impl GoCamModel {
                     happens_during: None,
                     located_in,
                     overlapping_individual_ids,
-                    original_model_id: None,
+                    original_model_id,
                     models: model_ids_and_titles,
                 };
 
-                ret.push(node_overlap);
+                ret.push(input_output_node_overlap);
             }
         }
 
@@ -595,7 +625,7 @@ impl GoCamModel {
     }
 
     fn inputs_outputs_of(model: &GoCamModel, activity_index: NodeIndex)
-       -> Vec<(GoCamEdge, GoCamNode)>
+       -> Vec<(GoCamEdge, GoCamNode, NodeIndex)>
     {
         let mut ret = vec![];
 
@@ -604,7 +634,8 @@ impl GoCamModel {
         let outgoing_iter = graph.edges_directed(activity_index, Direction::Outgoing);
 
         for edge_ref in outgoing_iter {
-            let target_node = graph.node_weight(edge_ref.target()).unwrap();
+            let target_idx = edge_ref.target();
+            let target_node = graph.node_weight(target_idx).unwrap();
 
             let edge = edge_ref.weight();
 
@@ -612,14 +643,14 @@ impl GoCamModel {
                 continue;
             }
 
-            ret.push((edge.to_owned(), target_node.to_owned()))
+            ret.push((edge.to_owned(), target_node.to_owned(), target_idx))
         }
-
 
         let incoming_iter = model.graph().edges_directed(activity_index, Direction::Incoming);
 
         for edge_ref in incoming_iter {
-            let subject_node = graph.node_weight(edge_ref.target()).unwrap();
+            let subject_idx = edge_ref.target();
+            let subject_node = graph.node_weight(subject_idx).unwrap();
 
             let edge = edge_ref.weight();
 
@@ -627,7 +658,7 @@ impl GoCamModel {
                 continue;
             }
 
-            ret.push((edge.to_owned(), subject_node.to_owned()))
+            ret.push((edge.to_owned(), subject_node.to_owned(), subject_idx))
         }
 
         ret
@@ -1488,7 +1519,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             let mut source_ids = BTreeSet::new();
             source_ids.insert(individual.id.clone());
             let mut models = BTreeSet::new();
-            models.insert((model_id, model_title));
+            models.insert((model_id.clone(), model_title));
             let gocam_node = GoCamNode {
                 individual_gocam_id: individual.id.clone(),
                 node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
@@ -1501,7 +1532,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 part_of_process: None,
                 happens_during: None,
                 source_ids,
-                original_model_id: None,
+                original_model_id: Some(model_id),
                 models,
             };
 
