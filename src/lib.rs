@@ -794,27 +794,44 @@ impl GoCamModel {
         })
     }
 
-    /// Return a copy of the model with chemicals and/or  removed.  Where a
-    /// chemical is between two activities, replace the chemical with
+    /// Return a copy of the model with chemicals or all inputs and outputs removed.
+    /// Where a chemical is between two activities, replace the chemical with
     /// a "provides input for" edge.
     pub fn remove_nodes(&self, remove_type: RemoveType) -> GoCamModel {
-        let mut nodes_to_remove = vec![];
+        let mut nodes_to_remove = BTreeSet::new();
         let mut new_model = self.clone();
 
         for (node_idx, node) in new_model.graph().node_references() {
             match remove_type {
                 RemoveType::Chemicals => {
                     if node.node_type == GoCamNodeType::Chemical {
-                        nodes_to_remove.push(node_idx);
+                        nodes_to_remove.insert(node_idx);
                     }
                 },
                 RemoveType::InputsOutputs => {
                     if !node.is_activity() {
-                        nodes_to_remove.push(node_idx);
+                        nodes_to_remove.insert(node_idx);
                     }
                 }
             }
         }
+
+        let nodes_to_remove: BTreeSet<_> = nodes_to_remove.into_iter()
+            .filter(|node_idx| {
+                let in_iter = new_model.graph().edges_directed(*node_idx, Direction::Incoming);
+                let out_iter = new_model.graph().edges_directed(*node_idx, Direction::Outgoing);
+                let edge_iter = in_iter.chain(out_iter);
+
+                for in_edge_ref in edge_iter {
+                    let in_edge = in_edge_ref.weight();
+                    if in_edge.id != "RO:0002233" && in_edge.id != "RO:0002234" {
+                        return false;
+                    }
+                }
+
+                true
+            })
+            .collect();
 
         for remove_node_idx in &nodes_to_remove {
             let edges: Vec<_> = new_model.graph()
@@ -867,16 +884,8 @@ impl GoCamModel {
             }
         }
 
-        new_model.graph.retain_nodes(|g, idx| {
-            let current_node_type = &g.node_weight(idx).unwrap().node_type;
-            match remove_type {
-                RemoveType::Chemicals => {
-                    *current_node_type != GoCamNodeType::Chemical
-                },
-                RemoveType::InputsOutputs => {
-                    current_node_type.is_activity()
-                }
-            }
+        new_model.graph.retain_nodes(|_, idx| {
+            !nodes_to_remove.contains(&idx)
         });
 
         new_model
@@ -1997,6 +2006,24 @@ mod tests {
         let new_model = model.remove_nodes(RemoveType::Chemicals);
 
         assert_eq!(new_model.node_count(), 18);
+    }
+
+    #[test]
+    fn remove_chemicals_inputs_outputs_only_test() {
+        // test removing chemicals but remove those that have
+        // relations that aren't input or outputs
+        let mut source1 = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
+        let model = parse_gocam_model(&mut source1).unwrap();
+
+        assert_eq!(model.node_count(), 20);
+
+        let new_model = model.remove_nodes(RemoveType::Chemicals);
+
+        assert_eq!(new_model.node_count(), 18);
+
+        let new_model2 = model.remove_nodes(RemoveType::InputsOutputs);
+
+        assert_eq!(new_model2.node_count(), 18);
     }
 
     #[test]
