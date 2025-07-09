@@ -70,6 +70,14 @@ impl Fact {
         format!("{}-{}-{}", self.subject, self.property, self.object)
     }
 }
+/// An ID and a label.  Used in the `filler` field.`
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FillerType {
+    pub id: Option<String>,
+    pub label: Option<String>,
+    #[serde(rename = "type")]
+    pub type_string: String,
+}
 
 /// An ID and a label.  Used in the `type` and `root-type` fields.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -78,6 +86,8 @@ pub struct IndividualType {
     pub label: Option<String>,
     #[serde(rename = "type")]
     pub type_string: String,
+
+    pub filler: Option<FillerType>
 }
 
 const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
@@ -411,7 +421,17 @@ impl GoCamRawModel {
 fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
     let reader = BufReader::new(source);
 
-    let raw_model: SerdeModel = serde_json::from_reader(reader)?;
+    let mut raw_model: SerdeModel = serde_json::from_reader(reader)?;
+
+    for individual in &mut raw_model.individuals {
+        for type_item in &mut individual.types {
+            if let Some(ref mut filler) = type_item.filler.take() {
+                type_item.id = filler.id.clone();
+                type_item.label = filler.label.clone();
+                type_item.type_string = "class".into();
+            }
+        }
+    }
 
     Ok(raw_model)
 }
@@ -514,4 +534,31 @@ mod tests {
                    "GO:0008150");
     }
 
+    #[test]
+    fn parse_raw_test_with_complement() {
+        // parse file containing:
+        //   "type": "complement"
+        let mut source = File::open("tests/data/gomodel_67369e7600002505.json").unwrap();
+        let model = gocam_parse_raw(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:67369e7600002505");
+        assert_eq!(model.individuals().count(), 198);
+
+        let mut test_individual = None;
+
+        for individual in model.individuals() {
+            if individual.id == "gomodel:67369e7600002505/67369e7600002681" {
+                test_individual = Some(individual);
+            }
+        }
+
+        let Some(test_individual) = test_individual
+        else {
+            panic!();
+        };
+
+        let individual_type = test_individual.get_individual_type().unwrap();
+
+        assert_eq!(individual_type.id(), "GO:0004674");
+        assert_eq!(individual_type.label(), "protein serine/threonine kinase activity");
+    }
 }
