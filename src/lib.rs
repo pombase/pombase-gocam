@@ -66,7 +66,9 @@ use phf::phf_map;
 
 use anyhow::{Result, anyhow};
 
-use petgraph::{graph::{EdgeReference, NodeIndex, NodeReferences}, visit::{EdgeRef, IntoNodeReferences}, Direction, Graph};
+use petgraph::{graph::{EdgeReference, NodeIndex, NodeReferences},
+               visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
+               Direction, Graph};
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -969,6 +971,61 @@ impl GoCamModel {
             (false, true) => GoCamDirection::Outgoing,
         }
     }
+
+    // Return a new GoCamModel after removing all but the largest subgraph
+    pub fn retain_largest_subgraph(&self) -> GoCamModel {
+        let mut subgraphs: BTreeMap<NodeIndex, BTreeSet<NodeIndex>> = BTreeMap::new();
+
+        let graph = UndirectedAdaptor(&self.graph());
+
+        for (node_idx, _) in self.node_iterator() {
+            for subgraph_node_indexes in subgraphs.values() {
+                if subgraph_node_indexes.contains(&node_idx) {
+                    continue;
+                }
+            }
+
+            let mut subgraph_nodes = BTreeSet::new();
+
+            let mut bfs = Bfs::new(graph, node_idx);
+
+            while let Some(nx) = bfs.next(&graph) {
+                subgraph_nodes.insert(nx);
+            }
+
+            subgraphs.insert(node_idx, subgraph_nodes);
+        }
+
+        let (mut current_max_len, mut current_max_node_idx) = {
+            let first_entry = subgraphs.first_entry().unwrap();
+            (first_entry.get().len(), first_entry.key().to_owned())
+        };
+
+        for (node_idx, subgraph_nodes) in subgraphs.iter() {
+            if subgraph_nodes.len() > current_max_len {
+                current_max_len = subgraph_nodes.len();
+                current_max_node_idx = *node_idx;
+            }
+        }
+
+        let max_subgraph_nodes = subgraphs.get(&current_max_node_idx).unwrap();
+
+        let mut graph = self.graph.clone();
+
+        graph.retain_nodes(|_, node_idx| {
+            max_subgraph_nodes.contains(&node_idx)
+        });
+
+        GoCamModel {
+            id: self.id.clone(),
+            title: self.title.clone(),
+            taxon: self.taxon.clone(),
+            contributors: self.contributors.clone(),
+            date: self.date.clone(),
+            graph,
+        }
+    }
+
 }
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
@@ -2098,5 +2155,30 @@ mod tests {
                 assert_eq!(node.weight().models.iter().count(), 3);
             }
         }
+    }
+
+    #[test]
+    fn retain_largest_subgraph_test() {
+        let mut source = File::open("tests/data/gomodel_671ae02600003596.json").unwrap();
+        let mut model = parse_gocam_model(&mut source).unwrap();
+
+        let chemical_node_indexes: BTreeSet<_> = model.node_iterator()
+            .filter(|(_, node)| {
+                !node.is_activity()
+            })
+            .map(|(node_idx, _)| node_idx)
+            .collect();
+
+        assert_eq!(model.graph.node_count(), 9);
+
+        model.graph.retain_nodes(|_, node_idx| {
+            !chemical_node_indexes.contains(&node_idx)
+        });
+
+        assert_eq!(model.graph.node_count(), 6);
+
+        let largest_subgraph_model = model.retain_largest_subgraph();
+
+        assert_eq!(largest_subgraph_model.graph.node_count(), 3);
     }
 }
