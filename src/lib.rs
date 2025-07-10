@@ -976,7 +976,7 @@ impl GoCamModel {
     pub fn retain_largest_subgraph(&self) -> GoCamModel {
         let mut subgraphs: BTreeMap<NodeIndex, BTreeSet<NodeIndex>> = BTreeMap::new();
 
-        let graph = UndirectedAdaptor(&self.graph());
+        let graph = UndirectedAdaptor(self.graph());
 
         for (node_idx, _) in self.node_iterator() {
             for subgraph_node_indexes in subgraphs.values() {
