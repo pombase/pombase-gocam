@@ -1081,6 +1081,33 @@ impl GoCamModel {
             graph,
         }
     }
+
+    // Return true iff any of the genes in the set enable an activity in this model,
+    // or are part of a complex that enables an activity in the model
+    pub fn model_activity_enabled_by(&self, genes: &BTreeSet<GoCamGeneIdentifier>)
+        -> bool
+    {
+        for (_, node) in self.node_iterator() {
+            if let GoCamNodeType::Activity(ref activity) = node.node_type {
+                if let GoCamEnabledBy::Gene(gene) = activity {
+                    let split = gene.id().split(":").last().unwrap();
+                    if genes.contains(split) {
+                       return true;
+                   }
+                }
+                if let GoCamEnabledBy::Complex(complex) = activity {
+                    for gene in &complex.has_part_genes {
+                        let split = gene.split(":").last().unwrap();
+                        if genes.contains(split) {
+                           return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        false
+    }
 }
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
@@ -2252,5 +2279,25 @@ mod tests {
         let model = model.retain_enabling_genes(&remove_list);
 
         assert_eq!(model.graph.node_count(), 3);
+    }
+
+    #[test]
+    fn model_activity_enabled_by_test() {
+        let mut source = File::open("tests/data/gomodel_671ae02600003596.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+
+        assert_eq!(model.graph.node_count(), 9);
+
+        let mut test_genes = BTreeSet::new();
+        test_genes.insert("SPAC11D3.09".to_owned());
+        test_genes.insert("SPBC1677.02".to_owned());
+        test_genes.insert("SPAC31G5.16c".to_owned());
+
+        assert!(model.model_activity_enabled_by(&test_genes));
+
+        test_genes.clear();
+        test_genes.insert("SPBC18H10.20c".to_owned());
+
+        assert!(!model.model_activity_enabled_by(&test_genes));
     }
 }
