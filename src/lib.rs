@@ -536,10 +536,28 @@ impl GoCamModel {
                 continue;
             }
 
+            let enabled_by =
+                if let GoCamEnabledBy::Complex(complex) = enabled_by {
+                    let mut complex = complex.to_owned();
+                    // the complex used in the key may not have all the has_part_genes
+                    for (_, _, node) in models_and_individuals {
+                        if let GoCamNodeType::Activity(GoCamEnabledBy::Complex(ref this_complex)) =
+                            node.node_type {
+                                for this_gene in &this_complex.has_part_genes {
+                                    complex.has_part_genes.insert(this_gene.to_owned());
+                                }
+                            }
+                    }
+                    GoCamEnabledBy::Complex(complex)
+
+                } else {
+                    enabled_by.to_owned()
+                };
+
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
                 node_label: node_label.to_owned(),
-                node_type: GoCamNodeType::Activity(enabled_by.to_owned()),
+                node_type: GoCamNodeType::Activity(enabled_by),
                 has_input: BTreeSet::new(),
                 has_output: BTreeSet::new(),
                 part_of_process: Some(part_of_process.to_owned()),
@@ -1026,6 +1044,43 @@ impl GoCamModel {
         }
     }
 
+    // Given a model with the inputs/outputs removed (using remove_nodes()), return a clone
+    // containing only those activities enabled by a gene in the `retain_genes` set.
+    pub fn retain_enabling_genes(&self, retain_genes: &BTreeSet<GoCamGeneIdentifier>)
+       -> GoCamModel
+    {
+        let mut graph = self.graph.clone();
+
+        graph.retain_nodes(|_, node_idx| {
+            let node = self.graph.node_weight(node_idx).unwrap();
+            if let GoCamNodeType::Activity(ref activity) = node.node_type {
+                if let GoCamEnabledBy::Gene(gene) = activity {
+                    let split = gene.id().split(":").last().unwrap();
+                    if retain_genes.contains(split) {
+                       return true;
+                   }
+                }
+                if let GoCamEnabledBy::Complex(complex) = activity {
+                    for gene in &complex.has_part_genes {
+                        let split = gene.split(":").last().unwrap();
+                        if retain_genes.contains(split) {
+                           return true;
+                        }
+                    }
+                }
+            }
+            false
+        });
+
+        GoCamModel {
+            id: self.id.clone(),
+            title: self.title.clone(),
+            taxon: self.taxon.clone(),
+            contributors: self.contributors.clone(),
+            date: self.date.clone(),
+            graph,
+        }
+    }
 }
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
@@ -2180,5 +2235,22 @@ mod tests {
         let largest_subgraph_model = model.retain_largest_subgraph();
 
         assert_eq!(largest_subgraph_model.graph.node_count(), 3);
+    }
+
+    #[test]
+    fn retain_enabling_genes_test() {
+        let mut source = File::open("tests/data/gomodel_671ae02600003596.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+
+        assert_eq!(model.graph.node_count(), 9);
+
+        let mut remove_list = BTreeSet::new();
+        remove_list.insert("SPBC21B10.11".to_owned());
+        remove_list.insert("SPBC1677.02".to_owned());
+        remove_list.insert("SPAC31G5.16c".to_owned());
+
+        let model = model.retain_enabling_genes(&remove_list);
+
+        assert_eq!(model.graph.node_count(), 3);
     }
 }
