@@ -2269,6 +2269,13 @@ mod tests {
         let mut source = File::open("tests/data/gomodel_671ae02600003596.json").unwrap();
         let model = parse_gocam_model(&mut source).unwrap();
 
+        let chemical_node_count = model.node_iterator()
+            .filter(|(_, node)| {
+                node.type_string() == "chemical"
+            })
+            .count();
+        assert_eq!(chemical_node_count, 3);
+
         assert_eq!(model.graph.node_count(), 9);
 
         let mut remove_list = BTreeSet::new();
@@ -2279,6 +2286,13 @@ mod tests {
         let model = model.retain_enabling_genes(&remove_list);
 
         assert_eq!(model.graph.node_count(), 3);
+
+        let chemical_node_count = model.node_iterator()
+            .filter(|(_, node)| {
+                node.type_string() == "chemical"
+            })
+            .count();
+        assert_eq!(chemical_node_count, 0);
     }
 
     #[test]
