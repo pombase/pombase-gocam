@@ -192,10 +192,10 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
     Ok(first_model.taxon().to_owned())
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Hash)]
 pub enum RemoveType {
     Chemicals,
-    InputsOutputs,
+    Targets,
 }
 
 impl GoCamModel {
@@ -817,22 +817,19 @@ impl GoCamModel {
     /// Return a copy of the model with chemicals or all inputs and outputs removed.
     /// Where a chemical is between two activities, replace the chemical with
     /// a "provides input for" edge.
-    pub fn remove_nodes(&self, remove_type: RemoveType) -> GoCamModel {
+    pub fn remove_nodes(&self, remove_types: HashSet<RemoveType>) -> GoCamModel {
         let mut nodes_to_remove = BTreeSet::new();
         let mut new_model = self.clone();
 
         for (node_idx, node) in new_model.graph().node_references() {
-            match remove_type {
-                RemoveType::Chemicals => {
-                    if node.node_type == GoCamNodeType::Chemical {
-                        nodes_to_remove.insert(node_idx);
-                    }
-                },
-                RemoveType::InputsOutputs => {
-                    if !node.is_activity() {
-                        nodes_to_remove.insert(node_idx);
-                    }
-                }
+            if remove_types.contains(&RemoveType::Chemicals) &&
+                node.node_type == GoCamNodeType::Chemical {
+                    nodes_to_remove.insert(node_idx);
+
+            }
+            if remove_types.contains(&RemoveType::Targets) &&
+                !node.is_activity() && node.node_type != GoCamNodeType::Chemical {
+                nodes_to_remove.insert(node_idx);
             }
         }
 
@@ -2142,7 +2139,9 @@ mod tests {
         let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
         let model = parse_gocam_model(&mut source1).unwrap();
 
-        let new_model = model.remove_nodes(RemoveType::Chemicals);
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Chemicals);
+        let new_model = model.remove_nodes(remove_types);
 
         assert_eq!(new_model.node_count(), 18);
     }
@@ -2156,13 +2155,22 @@ mod tests {
 
         assert_eq!(model.node_count(), 20);
 
-        let new_model = model.remove_nodes(RemoveType::Chemicals);
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Chemicals);
+        let new_model = model.remove_nodes(remove_types);
 
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Targets);
         assert_eq!(new_model.node_count(), 18);
 
-        let new_model2 = model.remove_nodes(RemoveType::InputsOutputs);
+        let new_model2 = model.remove_nodes(remove_types);
+        assert_eq!(new_model2.node_count(), 20);
 
-        assert_eq!(new_model2.node_count(), 18);
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Chemicals);
+        remove_types.insert(RemoveType::Targets);
+        let new_model3 = model.remove_nodes(remove_types);
+        assert_eq!(new_model3.node_count(), 18);
     }
 
     #[test]
@@ -2182,7 +2190,9 @@ mod tests {
             .count();
         assert_eq!(chemical_count, 6);
 
-        let new_model = merged.remove_nodes(RemoveType::Chemicals);
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Chemicals);
+        let new_model = merged.remove_nodes(remove_types);
 
         let chemical_nodes_iter = new_model.node_iterator();
         let chemical_count = chemical_nodes_iter
@@ -2207,7 +2217,20 @@ mod tests {
 
         assert_eq!(merged_ids, expected_ids);
 
-        let no_inputs_model = merged.remove_nodes(RemoveType::InputsOutputs);
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Targets);
+        let no_inputs_model = merged.remove_nodes(remove_types);
+
+        let input_nodes_iter = no_inputs_model.node_iterator();
+        let inputs_count = input_nodes_iter
+            .filter(|(_, n)| !n.is_activity())
+            .count();
+        assert_eq!(inputs_count, 6);
+
+        let mut remove_types = HashSet::new();
+        remove_types.insert(RemoveType::Chemicals);
+        remove_types.insert(RemoveType::Targets);
+        let no_inputs_model = merged.remove_nodes(remove_types);
 
         let input_nodes_iter = no_inputs_model.node_iterator();
         let inputs_count = input_nodes_iter
