@@ -46,9 +46,7 @@
 //! }
 //!```
 
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-          fmt::{self, Display},
-          io::Read};
+use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::Read};
 use std::hash::{Hash, Hasher};
 
 extern crate serde_json;
@@ -684,6 +682,8 @@ impl GoCamModel {
         ret
     }
 
+    // return the sub-graph of `graph` that includes `start_idx` and has the
+    // same process as `start_idx`
     fn subgraph_by_process(graph: &GoCamGraph, start_idx: NodeIndex)
        -> Result<GoCamGraph>
     {
@@ -1164,6 +1164,50 @@ impl<'a> Iterator for NodeIterator<'a> {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[doc="A gene in a [GoCamNode], possibly enabling an activity"]
+pub struct GoCamGene {
+    pub id: String,
+    pub label: String,
+    pub part_of_complex: Option<GoCamComplex>,
+}
+
+impl GoCamGene {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn label_or_id(&self) -> &str {
+        if self.label().len() > 0 {
+            self.label()
+        } else {
+            self.id()
+        }
+    }
+}
+
+impl From<&IndividualType> for GoCamGene {
+    fn from(individual_gene: &IndividualType) -> GoCamGene {
+        GoCamGene {
+            id: individual_gene.id().to_owned(),
+            label: individual_gene.label().to_owned(),
+            part_of_complex: None,
+        }
+    }
+}
+
+impl Display for GoCamGene {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.label, self.id)?;
+        Ok(())
+    }
+}
+
+
 macro_rules! from_individual_type {
     ($type_name:ident, $doc:expr) => {
 
@@ -1211,8 +1255,6 @@ impl Display for $type_name {
 
     };
 }
-
-from_individual_type!{GoCamGene, "A gene in a [GoCamNode], possibly enabling an activity"}
 
 from_individual_type!{GoCamMRNA, "An mRNA - either an input/output or the enabler of an activity"}
 
@@ -1265,6 +1307,18 @@ impl PartialEq for GoCamComplex {
     }
 }
 impl Eq for GoCamComplex { }
+
+impl Ord for GoCamComplex {
+    fn cmp(&self, other: &GoCamComplex) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+impl PartialOrd for GoCamComplex {
+    fn partial_cmp(&self, other: &GoCamComplex) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 
 impl Hash for GoCamComplex {
     fn hash<H: Hasher>(&self, state: &mut H) {
