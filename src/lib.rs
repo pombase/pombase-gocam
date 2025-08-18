@@ -1177,25 +1177,29 @@ impl GoCamGene {
         &self.id
     }
 
-    pub fn label(&self) -> &str {
-        &self.label
+    pub fn label(&self) -> String {
+        if let Some(ref complex) = self.part_of_complex {
+            format!("{} part of complex {}", self.label, complex.label())
+        } else {
+            self.label.to_owned()
+        }
     }
 
-    pub fn label_or_id(&self) -> &str {
+    pub fn label_or_id(&self) -> String {
         if self.label().len() > 0 {
             self.label()
         } else {
-            self.id()
+            self.id().to_owned()
         }
     }
 }
 
-impl From<&IndividualType> for GoCamGene {
-    fn from(individual_gene: &IndividualType) -> GoCamGene {
+impl GoCamGene {
+    fn new(individual_gene: &IndividualType, part_of_complex: &Option<GoCamComplex>) -> GoCamGene {
         GoCamGene {
             id: individual_gene.id().to_owned(),
             label: individual_gene.label().to_owned(),
-            part_of_complex: None,
+            part_of_complex: part_of_complex.to_owned(),
         }
     }
 }
@@ -1707,7 +1711,8 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                                 if individual.individual_is_mrna() {
                                     GoCamNodeType::MRNA(individual_type.into())
                                 } else {
-                                    GoCamNodeType::Gene(individual_type.into())
+                                    let gene = GoCamGene::new(individual_type, &None);
+                                    GoCamNodeType::Gene(gene)
                                 }
                             }
                         }
@@ -1789,7 +1794,16 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             "enabled by" => {
                 if let Some(ref object_type_id) = object_type.id {
                     if is_gene_id(object_type_id) {
-                        let gene_enabler = GoCamEnabledBy::Gene(object_type.into());
+                        let facts = model.facts_of_subject(&object_individual.id);
+                        let complex = facts.iter()
+                            .find(|f| f.property_label == "part of")
+                            .map(|f| complex_map.get(&f.object))
+                            .flatten()
+                            .cloned();
+
+                        let gene = GoCamGene::new(object_type, &complex);
+                        let gene_enabler = GoCamEnabledBy::Gene(gene);
+
                         subject_node.node_type = GoCamNodeType::Activity(gene_enabler);
                     }
                     else if object_type_id.starts_with("CHEBI:") {
