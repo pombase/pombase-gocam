@@ -282,9 +282,7 @@ impl GoCamModel {
 
     /// Return the IDs of all the genes in the model, including input and output genes, genes
     /// of mRNAs and genes in complexes.
-    /// The pro_term_to_gene_map is a map of protein ontology term IDs to gene IDs that
-    /// allows counting modified genes.
-    pub fn genes_in_model(&self, pro_term_to_gene_map: &HashMap<String, String>)
+    pub fn genes_in_model(&self)
          -> BTreeSet<GoCamGeneIdentifier>
     {
         let mut ret_genes = BTreeSet::new();
@@ -304,7 +302,7 @@ impl GoCamModel {
                 },
                 GoCamNodeType::ModifiedProtein(modified_protein) => {
                     let pro_id = modified_protein.id();
-                    if let Some(gene) = pro_term_to_gene_map.get(pro_id) {
+                    if let Some(gene) = self.pro_term_to_gene_map.get(pro_id) {
                         ret_genes.insert(gene.to_owned());
                     }
                 },
@@ -320,7 +318,7 @@ impl GoCamModel {
                         },
                         GoCamEnabledBy::ModifiedProtein(modified_protein) => {
                             let pro_id = modified_protein.id();
-                            if let Some(gene) = pro_term_to_gene_map.get(pro_id) {
+                            if let Some(gene) = self.pro_term_to_gene_map.get(pro_id) {
                                 ret_genes.insert(gene.to_owned());
                             }
                         },
@@ -2036,13 +2034,13 @@ mod tests {
         let expected_genes_in_model: BTreeSet<String> =
             expected_ids.into_iter().map(String::from).collect();
 
-        assert_eq!(expected_genes_in_model, model.genes_in_model(&HashMap::new()));
+        assert_eq!(expected_genes_in_model, model.genes_in_model());
     }
 
     #[test]
     fn test_modified_genes_in_model() {
         let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
+        let mut model = parse_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
 
         let expected_ids = vec![
@@ -2068,8 +2066,9 @@ mod tests {
         pro_term_to_gene_map.insert("PR:000050512".to_owned(),
                                     "PomBase:SPBC29A10.14".to_owned());
 
-        let actual_genes =
-            model.genes_in_model(&pro_term_to_gene_map);
+        model.add_pro_term_to_gene_map(&pro_term_to_gene_map);
+
+        let actual_genes = model.genes_in_model();
 
         assert_eq!(expected_genes_in_model, actual_genes);
     }
