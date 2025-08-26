@@ -1051,7 +1051,7 @@ impl GoCamModel {
         }
     }
 
-    // Return a new GoCamModel after removing all but the largest subgraph
+    /// Return a new GoCamModel after removing all but the largest connected subgraph
     pub fn retain_largest_subgraph(&self) -> GoCamModel {
         let mut subgraphs: BTreeMap<NodeIndex, BTreeSet<NodeIndex>> = BTreeMap::new();
 
@@ -1107,8 +1107,8 @@ impl GoCamModel {
         }
     }
 
-    // Given a model with the inputs/outputs removed (using remove_nodes()), return a clone
-    // containing only those activities enabled by a gene in the `retain_genes` set.
+    /// Given a model with the inputs/outputs removed (using remove_nodes()), return a clone
+    /// containing only those activities enabled by a gene in the `retain_genes` set.
     pub fn retain_enabling_genes(&self, retain_genes: &BTreeSet<GoCamGeneIdentifier>)
        -> GoCamModel
     {
@@ -1147,8 +1147,8 @@ impl GoCamModel {
         }
     }
 
-    // Return true iff any of the genes in the set enable an activity in this model,
-    // or are part of a complex that enables an activity in the model
+    /// Return true iff any of the genes in the set enable an activity in this model,
+    /// or are part of a complex that enables an activity in the model
     pub fn model_activity_enabled_by(&self, genes: &BTreeSet<GoCamGeneIdentifier>)
         -> bool
     {
