@@ -3,6 +3,7 @@ use std::io::{BufReader, Read};
 use anyhow::Result;
 use serde::{Deserialize, Deserializer};
 
+/// Parse a model in gocam-py YAML format.
 pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel> {
     let reader = BufReader::new(source);
 
@@ -11,7 +12,8 @@ pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel> {
     Ok(raw_model)
 }
 
-
+/// A deserialiser for null values that treats them the same as
+/// missing values.
 fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     T: Default + Deserialize<'de>,
