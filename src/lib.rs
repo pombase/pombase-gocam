@@ -585,12 +585,18 @@ impl GoCamModel {
                     else {
                         continue;
                     };
-
                     let Some(ref model) = models_by_id.get(model_id)
                     else {
                         continue;
                     };
                     if model.title_process_term_ids.contains(&process.id) {
+                        found_original_model_ids.insert(model_id.to_owned());
+                    }
+                    let Some(ref part_of_parent) = process.part_of_parent
+                    else {
+                        continue;
+                    };
+                    if model.title_process_term_ids.contains(&part_of_parent.id) {
                         found_original_model_ids.insert(model_id.to_owned());
                     }
                 }
