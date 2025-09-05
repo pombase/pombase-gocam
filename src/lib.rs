@@ -521,7 +521,7 @@ impl GoCamModel {
                 continue;
             }
 
-            let mut overlapping_individual_ids = BTreeSet::new();
+            let mut overlapping_activity_nodes = HashSet::new();
             let mut models_with_complete_processes: Vec<(ModelId, GoCamNode)> = vec![];
 
             let mut model_ids_and_titles = BTreeSet::new();
@@ -538,7 +538,7 @@ impl GoCamModel {
                 model_ids_and_titles.insert((model_id.to_owned(), model.title().to_owned(),
                                              direction));
 
-                overlapping_individual_ids.insert(node.individual_gocam_id.to_owned());
+                overlapping_activity_nodes.insert(node);
 
                 for input_output in Self::inputs_outputs_of(model, node_idx) {
                     let (ref input_output_edge, ref input_output_node, node_idx) = input_output;
@@ -606,12 +606,23 @@ impl GoCamModel {
                     enabled_by.to_owned()
                 };
 
+
+            let overlapping_individual_ids = overlapping_activity_nodes.iter()
+                .map(|n| n.individual_gocam_id.to_owned())
+                .collect();
+            let has_input = overlapping_activity_nodes.iter()
+                .flat_map(|n| n.has_input.to_owned())
+                .collect();
+            let has_output = overlapping_activity_nodes.iter()
+                .flat_map(|n| n.has_output.to_owned())
+                .collect();
+
             let node_overlap = GoCamNodeOverlap {
                 node_id: node_id.to_owned(),
                 node_label: node_label.to_owned(),
                 node_type: GoCamNodeType::Activity(enabled_by),
-                has_input: BTreeSet::new(),
-                has_output: BTreeSet::new(),
+                has_input,
+                has_output,
                 part_of_process: Some(part_of_process.to_owned()),
                 occurs_in: occurs_in.to_owned(),
                 located_in: None,
@@ -805,8 +816,8 @@ impl GoCamModel {
                 node_id: overlap.node_id,
                 label: overlap.node_label,
                 node_type: overlap.node_type,
-                has_input: BTreeSet::new(),
-                has_output: BTreeSet::new(),
+                has_input: overlap.has_input,
+                has_output: overlap.has_output,
                 occurs_in: overlap.occurs_in,
                 part_of_process: overlap.part_of_process,
                 located_in: overlap.located_in,
