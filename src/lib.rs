@@ -46,7 +46,7 @@
 //! }
 //!```
 
-use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::Read};
+use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::Read, sync::LazyLock};
 use std::hash::{Hash, Hasher};
 
 extern crate serde_json;
@@ -67,6 +67,7 @@ use anyhow::{Result, anyhow};
 use petgraph::{graph::{EdgeReference, NodeIndex, NodeReferences},
                visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
                Direction, Graph};
+use regex::Regex;
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -158,6 +159,9 @@ pub type GoCamGeneName = String;
 
 type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
+static TITLE_GO_TERM_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\((\s*GO:\d+\s*)\)").unwrap());
+
 /// A high level representation of the model with nodes for
 /// activities, chemicals, complexes etc. and edges for causal
 /// dependencies between nodes/activities.
@@ -165,6 +169,7 @@ type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 pub struct GoCamModel {
     id: String,
     title: String,
+    title_process_term_ids: HashSet<String>,
     taxon: String,
     date: String,
     contributors: BTreeSet<String>,
@@ -201,6 +206,10 @@ pub enum RemoveType {
     Targets,
 }
 
+fn process_term_ids_from_title(title: &str) -> HashSet<String> {
+    TITLE_GO_TERM_RE.captures_iter(title).map(|c| c[1].to_owned()).collect()
+}
+
 impl GoCamModel {
     /// Create a [GoCamModel] from a [GoCamRawModel]
     /// `gene_name_map` is a map from gene indentifiers to gene names (used
@@ -220,9 +229,12 @@ impl GoCamModel {
     pub fn new(raw_model: GoCamRawModel) -> GoCamModel {
         let graph = make_graph(&raw_model);
 
+        let title_process_term_ids = process_term_ids_from_title(&raw_model.title());
+
         let model = GoCamModel {
             id: raw_model.id().to_owned(),
             title: raw_model.title().to_owned(),
+            title_process_term_ids,
             taxon: raw_model.taxon().to_owned(),
             date: raw_model.date().to_owned(),
             contributors: raw_model.contributors(),
@@ -566,6 +578,27 @@ impl GoCamModel {
                 }
             }
 
+            if original_model_id.is_none() {
+                let mut found_original_model_ids = HashSet::new();
+                for (model_id, _, node) in models_and_individuals.clone() {
+                    let Some(ref process) = node.part_of_process
+                    else {
+                        continue;
+                    };
+
+                    let Some(ref model) = models_by_id.get(model_id)
+                    else {
+                        continue;
+                    };
+                    if model.title_process_term_ids.contains(&process.id) {
+                        found_original_model_ids.insert(model_id.to_owned());
+                    }
+                }
+                if found_original_model_ids.len() == 1 {
+                    original_model_id = found_original_model_ids.iter().cloned().next();
+                }
+            }
+
             if models_with_complete_processes.is_empty() {
                 continue;
             }
@@ -880,6 +913,7 @@ impl GoCamModel {
         Ok(GoCamModel {
             id: new_id.to_owned(),
             title: new_title.to_owned(),
+            title_process_term_ids: HashSet::new(),
             taxon,
             date: "now".to_owned(),
             contributors,
@@ -1106,9 +1140,12 @@ impl GoCamModel {
             max_subgraph_nodes.contains(&node_idx)
         });
 
+        let title_process_term_ids = process_term_ids_from_title(&self.title);
+
         GoCamModel {
             id: self.id.clone(),
             title: self.title.clone(),
+            title_process_term_ids,
             taxon: self.taxon.clone(),
             contributors: self.contributors.clone(),
             date: self.date.clone(),
@@ -1149,6 +1186,7 @@ impl GoCamModel {
         GoCamModel {
             id: self.id.clone(),
             title: self.title.clone(),
+            title_process_term_ids: self.title_process_term_ids.clone(),
             taxon: self.taxon.clone(),
             contributors: self.contributors.clone(),
             date: self.date.clone(),
