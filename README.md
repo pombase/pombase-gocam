@@ -32,20 +32,21 @@ curl -L https://live-go-cam.geneontology.io/product/json/low-level/665912ed00002
 
 ```rust
 use std::fs::File;
-use pombase_gocam::gocam_parse_raw;
+use pombase_gocam::raw::gocam_parse_raw;
 
 fn main() {
     let mut source = File::open("gomodel_665912ed00002626.json").unwrap();
 
     // Low level representation:
     let raw_model = gocam_parse_raw(&mut source).unwrap();
+    assert_eq!(raw_model.id(), "gomodel:665912ed00002626");
 
     for fact in raw_model.facts() {
         let subject_id = &fact.subject;
         println!("subject_id: {}", subject_id);
         let subject_individual = raw_model.get_individual(subject_id);
-        let individual_type = &subject_individual.types[0];
-        if let Some(ref label) = individual_type.label {
+        let first_type = &subject_individual.types[0];
+        if let Some(ref label) = first_type.label {
             println!("type label: {}", label);
         }
     }
@@ -54,14 +55,17 @@ fn main() {
     use pombase_gocam::{GoCamModel, GoCamNodeType};
     let model = GoCamModel::new(raw_model);
 
-    for node in model.node_iterator() {
+    for (_, node) in model.node_iterator() {
         println!("node: {}", node);
-
         if let GoCamNodeType::Activity(ref enabler) = node.node_type {
             println!("enabler ID: {}", enabler.id());
         }
     }
 }
+```
+
+```
+cargo run
 ```
 
 # Authors
