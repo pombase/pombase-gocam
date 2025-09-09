@@ -1,5 +1,5 @@
 //! Code for parsing gocam-py YAML models
-//! See: https://github.com/geneontology/gocam-py
+//! See: <https://github.com/geneontology/gocam-py>
 
 use std::io::{BufReader, Read};
 
