@@ -1343,7 +1343,6 @@ macro_rules! from_individual_type {
 pub struct $type_name {
     pub id: String,
     pub label: String,
-
 }
 
 impl $type_name {
@@ -1393,9 +1392,9 @@ from_individual_type!{GoCamInput, "The `has_input` of an activity"}
 
 from_individual_type!{GoCamOutput, "The `has_output` of an activity"}
 
-from_individual_type!{GoCamComplexComponent, "The GO component for the ComplexComponent variant of GoCamComponent"}
+from_individual_type!{GoCamComplexComponent, "The component for the ComplexComponent variant of GoCamComponent"}
 
-from_individual_type!{GoCamOtherComponent, "The GO component for the OtherComponent variant of GoCamComponent"}
+from_individual_type!{GoCamOtherComponent, "The component for the OtherComponent variant of GoCamComponent"}
 
 
 
@@ -1496,11 +1495,13 @@ impl Display for GoCamProcess {
     }
 }
 
-/// A GO cellular component
+/// A complex or a GO cellular component
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum GoCamComponent {
+    /// A complex from Complex Portal
     ComplexComponent(GoCamComplexComponent),
+    /// a GO component
     OtherComponent(GoCamOtherComponent),
 }
 
