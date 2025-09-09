@@ -1334,6 +1334,112 @@ impl Display for GoCamGene {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[doc = "The `has_input` of an activity"]
+pub struct GoCamInput {
+    pub id: String,
+    pub label: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub located_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
+    pub occurs_in: BTreeSet<GoCamComponent>,
+}
+impl GoCamInput {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+    pub fn label_or_id(&self) -> &str {
+        if self.label().len() > 0 {
+            self.label()
+        } else {
+            self.id()
+        }
+    }
+}
+impl From<&IndividualType> for GoCamInput {
+    fn from(individual_gene: &IndividualType) -> GoCamInput {
+        GoCamInput {
+            id: individual_gene.id().to_owned(),
+            label: individual_gene.label().to_owned(),
+            located_in: None,
+            occurs_in: BTreeSet::new(),
+        }
+    }
+}
+impl Display for GoCamInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.label, self.id)?;
+        if let Some(ref located_in) = self.located_in {
+            write!(f, " located in {}", located_in)?;
+        }
+        if !self.occurs_in.is_empty() {
+            let occurs_in = self.occurs_in.iter()
+                .map(|o| o.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            write!(f, " occurs in {}", occurs_in)?;
+        }
+        Ok(())
+    }
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[doc = "The `has_output` of an activity"]
+pub struct GoCamOutput {
+    pub id: String,
+    pub label: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub located_in: Option<GoCamComponent>,
+    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
+    pub occurs_in: BTreeSet<GoCamComponent>,
+}
+
+impl GoCamOutput {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+    pub fn label_or_id(&self) -> &str {
+        if self.label().len() > 0 {
+            self.label()
+        } else {
+            self.id()
+        }
+    }
+}
+impl From<&IndividualType> for GoCamOutput {
+    fn from(individual_gene: &IndividualType) -> GoCamOutput {
+        GoCamOutput {
+            id: individual_gene.id().to_owned(),
+            label: individual_gene.label().to_owned(),
+            located_in: None,
+            occurs_in: BTreeSet::new(),
+        }
+    }
+}
+impl Display for GoCamOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.label, self.id)?;
+        if let Some(ref located_in) = self.located_in {
+            write!(f, " located in {}", located_in)?;
+        }
+        if !self.occurs_in.is_empty() {
+            let occurs_in = self.occurs_in.iter()
+                .map(|o| o.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            write!(f, " occurs in {}", occurs_in)?;
+        }
+        Ok(())
+    }
+}
+
 
 macro_rules! from_individual_type {
     ($type_name:ident, $doc:expr) => {
@@ -1387,10 +1493,6 @@ from_individual_type!{GoCamMRNA, "An mRNA - either an input/output or the enable
 from_individual_type!{GoCamChemical, "A chemical in a node, possibly enabling an activity"}
 
 from_individual_type!{GoCamModifiedProtein, "A PRO modified protein in a node, possibly enabling an activity"}
-
-from_individual_type!{GoCamInput, "The `has_input` of an activity"}
-
-from_individual_type!{GoCamOutput, "The `has_output` of an activity"}
 
 from_individual_type!{GoCamComplexComponent, "The component for the ComplexComponent variant of GoCamComponent"}
 
@@ -1536,7 +1638,7 @@ impl GoCamComponent {
 
 impl Display for GoCamComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "component: {} ({})", self.label(), self.id())?;
+        write!(f, "{} ({})", self.label(), self.id())?;
         Ok(())
     }
 }
@@ -1951,12 +2053,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     }
                 }
             },
-            "has input" => {
-                subject_node.has_input.insert(object_type.into());
-            },
-            "has output" => {
-                subject_node.has_output.insert(object_type.into());
-            },
             "located in" => {
                 if subject_node.located_in.is_some() {
                     panic!("{}: {} is located in multiple components", model.id(),
@@ -1987,6 +2083,52 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             "happens during" => {
                 let during = process_from_individual(object_individual, model);
                 subject_node.happens_during = Some(during);
+            },
+            &_ => (),
+        }
+    }
+
+    for fact in model.facts() {
+        let object_individual = model.fact_object(fact);
+
+        let Some(object_type) = object_individual.get_individual_type()
+        else {
+            continue;
+        };
+
+        let object_node_located_in = {
+            if let Some(ref object_node) = node_map.get(&object_individual.id) {
+                object_node.located_in.clone()
+            } else {
+                continue;
+            }
+        };
+
+        let object_node_occurs_in = {
+            if let Some(ref object_node) = node_map.get(&object_individual.id) {
+                object_node.occurs_in.clone()
+            } else {
+                continue;
+            }
+        };
+
+        let Some(subject_node) = node_map.get_mut(&fact.subject)
+        else {
+            continue;
+        };
+
+        match fact.property_label.as_str() {
+            "has input" => {
+                let mut input: GoCamInput = object_type.into();
+                input.occurs_in = object_node_occurs_in;
+                input.located_in = object_node_located_in;
+                subject_node.has_input.insert(input);
+            },
+            "has output" => {
+                let mut output: GoCamOutput = object_type.into();
+                output.occurs_in = object_node_occurs_in;
+                output.located_in = object_node_located_in;
+                subject_node.has_output.insert(output);
             },
             &_ => (),
         }
@@ -2023,8 +2165,8 @@ fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
     }
 
     for fact in model.facts() {
-        let subject_id = &fact.subject;
-        let object_id = &fact.object;
+        let subject_id = fact.subject.as_str();
+        let object_id = fact.object.as_str();
 
         if let (Some(__), Some(_)) =
             (node_map.get(subject_id), node_map.get(object_id))
@@ -2071,7 +2213,7 @@ mod tests {
         assert_eq!(model.node_iterator().count(), 12);
 
         assert_eq!(first_node.to_string(),
-                   "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] component: kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
+                   "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
 
     }
 
@@ -2538,5 +2680,23 @@ mod tests {
         test_genes.insert("SPBC18H10.20c".to_owned());
 
         assert!(!model.model_activity_enabled_by(&test_genes));
+    }
+
+    #[test]
+    fn location_of_chemical() {
+        let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+
+        let (_, cgs2_activity) =
+            model.node_iterator().filter(|(_, node)| {
+                node.node_id == "GO:0004016"
+            }).next().unwrap();
+        assert!(cgs2_activity.is_activity());
+
+        let inputs = &cgs2_activity.has_input;
+        assert_eq!(inputs.len(), 1);
+
+        let input = inputs.iter().next().unwrap();
+        assert_eq!(input.located_in.clone().unwrap().to_string(), "cytosol (GO:0005829)");
     }
 }
