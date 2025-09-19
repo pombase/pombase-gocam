@@ -28,7 +28,7 @@ use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Displ
 
 use anyhow::Result;
 
-use crate::{ModelId, REL_NAMES};
+use crate::{GoCamModelId, REL_NAMES};
 
 pub type FactId = String;
 pub type IndividualId = String;
@@ -277,7 +277,7 @@ pub(crate) fn is_mrna_id(id: &str) -> bool {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct SerdeModel {
     annotations: Vec<Annotation>,
-    id: ModelId,
+    id: GoCamModelId,
     facts: Vec<Fact>,
     individuals: Vec<Individual>,
 }
@@ -307,7 +307,7 @@ struct SerdeModel {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GoCamRawModel {
     _annotations: Vec<Annotation>,
-    _id: ModelId,
+    _id: GoCamModelId,
     _facts: BTreeMap<FactId, Fact>,
     _individuals: BTreeMap<IndividualId, Individual>,
 
@@ -325,7 +325,7 @@ fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>, ke
 }
 
 impl GoCamRawModel {
-    pub fn id(&self) -> &ModelId {
+    pub fn id(&self) -> &GoCamModelId {
         &self._id
     }
 

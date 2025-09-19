@@ -145,8 +145,8 @@ pub static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "RO:0012010" => "removes input for",
 };
 
-pub type ModelId = String;
-pub type ModelTitle = String;
+pub type GoCamModelId = String;
+pub type GoCamModelTitle = String;
 
 /// The Graph representation of a GO-CAM model.  See: [GoCamModel::graph()]
 pub type GoCamGraph = Graph::<GoCamNode, GoCamEdge>;
@@ -534,7 +534,7 @@ impl GoCamModel {
             }
 
             let mut overlapping_activity_nodes = HashSet::new();
-            let mut models_with_complete_processes: Vec<(ModelId, GoCamNode)> = vec![];
+            let mut models_with_complete_processes: Vec<(GoCamModelId, GoCamNode)> = vec![];
 
             let mut model_ids_and_titles = BTreeSet::new();
 
@@ -1251,11 +1251,11 @@ pub struct GoCamNodeOverlap {
 
     // the "home" model that this activity comes from
     // it will be added to other models to help with joining
-    pub original_model_id: Option<ModelId>,
+    pub original_model_id: Option<GoCamModelId>,
 
     // a set of the model details for this overlap, with the direction of relations
     // into/out of the node in the given model
-    pub models: BTreeSet<(ModelId, ModelTitle, GoCamDirection)>,
+    pub models: BTreeSet<(GoCamModelId, GoCamModelTitle, GoCamDirection)>,
 }
 
 impl GoCamNodeOverlap {
@@ -1750,8 +1750,8 @@ pub struct GoCamNode {
     #[serde(skip_serializing_if="Option::is_none")]
     pub happens_during: Option<GoCamProcess>,
     pub source_ids: BTreeSet<IndividualId>,
-    pub original_model_id: Option<ModelId>,
-    pub models: BTreeSet<(ModelId, ModelTitle)>,
+    pub original_model_id: Option<GoCamModelId>,
+    pub models: BTreeSet<(GoCamModelId, GoCamModelTitle)>,
 }
 
 impl GoCamNode {
