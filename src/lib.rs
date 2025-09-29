@@ -1230,6 +1230,8 @@ impl GoCamModel {
     }
 }
 
+pub type GoCamModelIdTitle = (GoCamModelId, GoCamModelTitle, GoCamDirection);
+
 /// An overlap returned by [GoCamModel::find_overlaps()]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -1255,7 +1257,7 @@ pub struct GoCamNodeOverlap {
 
     // a set of the model details for this overlap, with the direction of relations
     // into/out of the node in the given model
-    pub models: BTreeSet<(GoCamModelId, GoCamModelTitle, GoCamDirection)>,
+    pub models: BTreeSet<GoCamModelIdTitle>,
 }
 
 impl GoCamNodeOverlap {
