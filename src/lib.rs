@@ -569,9 +569,7 @@ impl GoCamModel {
                 for input_output in Self::inputs_outputs_of(model, node_idx) {
                     let (ref input_output_edge, ref input_output_node, node_idx) = input_output;
                     let key = (input_output_edge.id.clone(),
-                               input_output_node.node_id.clone(),
-                               input_output_node.label.clone(),
-                               input_output_node.located_in.clone());
+                               input_output_node.node_type.clone());
 
                     let val = (model_id, model.title().to_owned(),
                                input_output_node.clone(), node_idx);
@@ -690,7 +688,6 @@ impl GoCamModel {
                 node_type: GoCamNodeType::Activity { enabler: enabled_by, inputs, outputs, },
                 part_of_process: Some(part_of_process.to_owned()),
                 occurs_in: occurs_in.to_owned(),
-                located_in: None,
                 happens_during: happens_during.to_owned(),
                 overlapping_individual_ids,
                 original_model_id,
@@ -705,7 +702,7 @@ impl GoCamModel {
                     continue;
                 }
 
-                let (_, node_id, node_label, located_in) = input_output_key;
+                let (_, node_type) = input_output_key;
                 let mut overlapping_individual_ids = BTreeSet::new();
                 let mut model_ids_and_titles = BTreeSet::new();
 
@@ -746,13 +743,12 @@ impl GoCamModel {
                     };
 
                 let input_output_node_overlap = GoCamNodeOverlap {
-                    node_id,
-                    node_label,
+                    node_id: node_type.id().to_owned(),
+                    node_label: node_type.label().to_owned(),
                     node_type: first_node.node_type,
                     part_of_process: None,
                     occurs_in: BTreeSet::new(),
                     happens_during: None,
-                    located_in,
                     overlapping_individual_ids,
                     original_model_id,
                     models: model_ids_and_titles,
@@ -881,7 +877,6 @@ impl GoCamModel {
                 node_type: overlap.node_type,
                 occurs_in: overlap.occurs_in,
                 part_of_process: overlap.part_of_process,
-                located_in: overlap.located_in,
                 happens_during: overlap.happens_during,
                 source_ids: overlap.overlapping_individual_ids.clone(),
                 original_model_id: overlap.original_model_id,
@@ -960,12 +955,11 @@ impl GoCamModel {
 
         for (node_idx, node) in new_model.graph().node_references() {
             if remove_types.contains(&RemoveType::Chemicals) &&
-                node.node_type == GoCamNodeType::Chemical {
+                node.node_type.is_chemical() {
                     nodes_to_remove.insert(node_idx);
-
             }
             if remove_types.contains(&RemoveType::Targets) &&
-                !node.is_activity() && node.node_type != GoCamNodeType::Chemical {
+                !node.is_activity() && !node.node_type.is_chemical() {
                 nodes_to_remove.insert(node_idx);
             }
         }
@@ -1261,8 +1255,7 @@ pub struct GoCamNodeOverlap {
     pub node_id: String,
     pub node_label: String,
     pub node_type: GoCamNodeType,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub located_in: Option<GoCamComponent>,
+
     #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
     pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
@@ -1462,6 +1455,29 @@ impl Display for GoCamOutput {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[doc = "A chemical which will be the input, output or enabler of an activity "]
+pub struct GoCamChemical {
+    pub id: String,
+    pub label: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub located_in: Option<GoCamComponent>,
+}
+impl GoCamChemical {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+    pub fn label_or_id(&self) -> &str {
+        if self.label().len() > 0 {
+            self.label()
+        } else {
+            self.id()
+        }
+    }
+}
 
 macro_rules! from_individual_type {
     ($type_name:ident, $doc:expr) => {
@@ -1511,8 +1527,6 @@ impl Display for $type_name {
 }
 
 from_individual_type!{GoCamMRNA, "An mRNA - either an input/output or the enabler of an activity"}
-
-from_individual_type!{GoCamChemical, "A chemical in a node, possibly enabling an activity"}
 
 from_individual_type!{GoCamModifiedProtein, "A PRO modified protein in a node, possibly enabling an activity"}
 
@@ -1704,12 +1718,22 @@ impl GoCamEnabledBy {
     }
 }
 
+impl From<&IndividualType> for GoCamChemical {
+    fn from(individual_process: &IndividualType) -> GoCamChemical {
+        GoCamChemical {
+            id: individual_process.id().to_owned(),
+            label: individual_process.label().to_owned(),
+            located_in: None,
+        }
+    }
+}
+
 /// The type of a node in a GoCamModel
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum GoCamNodeType {
     Unknown,
-    Chemical,
+    Chemical(GoCamChemical),
     Gene(GoCamGene),
     MRNA(GoCamMRNA),
     ModifiedProtein(GoCamModifiedProtein),
@@ -1729,13 +1753,47 @@ impl GoCamNodeType {
             return false;
         }
     }
+
+    pub fn is_chemical(&self) -> bool {
+        if let GoCamNodeType::Chemical(_) = self {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::Chemical(chemical) => &chemical.id,
+            GoCamNodeType::Gene(gene) => &gene.id,
+            GoCamNodeType::MRNA(mrna) => &mrna.id,
+            GoCamNodeType::ModifiedProtein(modified_protein) => &modified_protein.id,
+            GoCamNodeType::UnknownMRNA => "unknown mRNA",
+            GoCamNodeType::Activity { enabler, inputs: _, outputs: _ } => enabler.id(),
+        }
+    }
+
+    pub fn label(&self) -> &str {
+        match self {
+            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::Chemical(chemical) => &chemical.label,
+            GoCamNodeType::Gene(gene) => &gene.label,
+            GoCamNodeType::MRNA(mrna) => &mrna.label,
+            GoCamNodeType::ModifiedProtein(modified_protein) => &modified_protein.label,
+            GoCamNodeType::UnknownMRNA => "unknown mRNA",
+            GoCamNodeType::Activity { enabler, inputs: _, outputs: _ } => enabler.label(),
+        }
+    }
 }
 
 impl Display for GoCamNodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GoCamNodeType::Unknown => write!(f, "unknown")?,
-            GoCamNodeType::Chemical => write!(f, "chemical")?,
+            GoCamNodeType::Chemical(chemical) => {
+                write!(f, "chemical: {} ({})", chemical.label, chemical.id)?
+            },
             GoCamNodeType::Gene(gene) => write!(f, "gene: {} ({})", gene.label, gene.id)?,
             GoCamNodeType::MRNA(mrna) => write!(f, "mrna: {} ({})", mrna.label, mrna.id)?,
             GoCamNodeType::ModifiedProtein(modified_protein) => {
@@ -1766,8 +1824,6 @@ pub struct GoCamNode {
     pub label: String,
     pub node_type: GoCamNodeType,
 
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub located_in: Option<GoCamComponent>,
     #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
     pub occurs_in: BTreeSet<GoCamComponent>,
     #[serde(skip_serializing_if="Option::is_none")]
@@ -1789,7 +1845,7 @@ impl GoCamNode {
     pub fn type_string(&self) -> &str {
         match &self.node_type {
             GoCamNodeType::Unknown => "unknown",
-            GoCamNodeType::Chemical => "chemical",
+            GoCamNodeType::Chemical(_) => "chemical",
             GoCamNodeType::UnknownMRNA => "unknown_mrna",
             GoCamNodeType::Gene(_) => "gene",
             GoCamNodeType::MRNA(_) => "mrna",
@@ -1854,9 +1910,6 @@ impl Display for GoCamNode {
             for has_output in outputs {
                 write!(f, " [has output] {}", has_output)?;
             }
-        }
-        if let Some(ref located_in) = self.located_in {
-            write!(f, " [located in] {}", located_in)?;
         }
         for occurs_in in &self.occurs_in {
             write!(f, " [occurs in] {}", occurs_in)?;
@@ -1950,9 +2003,14 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             else {
                 continue;
             };
-            let detail =
+            let node_type =
                 if individual.individual_is_chemical() {
-                    GoCamNodeType::Chemical
+                    let chemical = GoCamChemical {
+                         id: individual_type.id().to_owned(),
+                         label: individual_type.label().to_owned(),
+                         located_in: None,
+                    };
+                    GoCamNodeType::Chemical(chemical)
                 } else {
                     if interesting_inputs_and_outputs.contains(&individual.id) {
                         if individual.individual_is_unknown_mrna() {
@@ -1981,8 +2039,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 individual_gocam_id: individual.id.clone(),
                 node_id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
                 label: individual_type.label.clone().unwrap_or_else(|| "NO_LABEL".to_owned()),
-                node_type: detail,
-                located_in: None,
+                node_type,
                 occurs_in: BTreeSet::new(),
                 part_of_process: None,
                 happens_during: None,
@@ -2087,7 +2144,11 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 }
             },
             "located in" => {
-                if subject_node.located_in.is_some() {
+                let GoCamNodeType::Chemical(ref mut chemical) = subject_node.node_type
+                else {
+                    panic!("located_in relation for non-chemical");
+                };
+                if chemical.located_in.is_some() {
                     panic!("{}: {} is located in multiple components", model.id(),
                            subject_node.description());
                 }
@@ -2097,7 +2158,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     } else {
                         GoCamComponent::OtherComponent(object_type.into())
                     };
-                subject_node.located_in = Some(located_in);
+                chemical.located_in = Some(located_in);
             },
             "occurs in" => {
                 let occurs_in =
@@ -2129,19 +2190,22 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             continue;
         };
 
-        let object_node_located_in = {
-            if let Some(ref object_node) = node_map.get(&object_individual.id) {
-                object_node.located_in.clone()
+        let object_node_located_in =
+             if let Some(object_node) = node_map.get(&object_individual.id) {
+                if let GoCamNodeType::Chemical(ref chemical) = object_node.node_type {
+                    chemical.located_in.clone()
+                } else {
+                    None
+                }
             } else {
                 continue;
-            }
-        };
+            };
 
         let object_node_occurs_in = {
             if let Some(ref object_node) = node_map.get(&object_individual.id) {
                 object_node.occurs_in.clone()
             } else {
-                continue;
+                panic!("internal error: can't find node for {}", object_individual.id);
             }
         };
 
@@ -2406,7 +2470,7 @@ mod tests {
                 GoCamNodeType::Activity { enabler: ref enabled_by, .. } => {
                     activity_enabled_by_ids.insert(enabled_by.id().to_owned());
                 },
-                GoCamNodeType::Chemical => {
+                GoCamNodeType::Chemical(_) => {
                     chemical_ids.insert(overlap.node_id);
                 },
                 _ => panic!(),
@@ -2573,7 +2637,7 @@ mod tests {
 
         let chemical_nodes_iter = merged.node_iterator();
         let chemical_count = chemical_nodes_iter
-            .filter(|(_, n)| n.node_type == GoCamNodeType::Chemical)
+            .filter(|(_, n)| n.node_type.is_chemical())
             .count();
         assert_eq!(chemical_count, 6);
 
@@ -2583,7 +2647,7 @@ mod tests {
 
         let chemical_nodes_iter = new_model.node_iterator();
         let chemical_count = chemical_nodes_iter
-            .filter(|(_, n)| n.node_type == GoCamNodeType::Chemical)
+            .filter(|(_, n)| n.node_type.is_chemical())
             .count();
         assert_eq!(chemical_count, 0);
 
