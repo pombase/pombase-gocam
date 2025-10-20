@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
+use petgraph::{graph::{EdgeReference, NodeIndex}, visit::EdgeRef, Direction};
 
 use anyhow::Result;
 
@@ -40,7 +40,6 @@ impl GoCamNodeOverlap {
 }
 
 
-
 /// Return the overlaps between models.  A [GoCamNodeOverlap] is
 /// returned for each pair of models that have an activity in
 /// common.  The pair of activities must have the same MF term, be
@@ -48,7 +47,7 @@ impl GoCamNodeOverlap {
 /// chemical), have the same process and same the component
 /// ("occurs in").  The process and component must be non-None.
 pub fn find_overlaps(models: &[GoCamModel])
-                     -> Vec<GoCamNodeOverlap>
+   -> Vec<GoCamNodeOverlap>
 {
     let make_key = |node: &GoCamNode| {
         if node.occurs_in.is_empty() ||
@@ -180,7 +179,7 @@ pub fn find_overlaps(models: &[GoCamModel])
         for (model_id, node_idx, node) in models_and_individuals.clone() {
             let &model = models_by_id.get(model_id).unwrap();
 
-            let direction = model.node_rel_direction(node_idx);
+            let direction = node_rel_direction(&model.graph(), node_idx);
 
             model_ids_and_titles.insert((model_id.to_owned(), model.title().to_owned(),
                                          direction));
@@ -468,11 +467,88 @@ fn process_subgraph_in_overlap(model: &GoCamModel, start_idx: NodeIndex,
     true
 }
 
+// If the activity at `activity_idx` has only incoming relations (excluding inputs/outputs),
+// return Incoming, unless all the incoming relations are "constitutively upstream" in which
+// case return IncomingConstitutivelyUpstream.
+// If the activity has only outgoing relations return Outgoing.
+// Otherwise return None.
+fn node_rel_direction(graph: &GoCamGraph, activity_idx: NodeIndex) -> GoCamDirection {
+    let is_causal_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
+        let edge = edge_ref.weight();
+        edge.id != "RO:0002234" && edge.id != "RO:0002233"
+    };
+
+    let is_constitutively_upstream_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
+        let edge = edge_ref.weight();
+        edge.id == "RO:0012009"
+    };
+
+    let mut has_incoming = graph.edges_directed(activity_idx, Direction::Incoming)
+        .into_iter()
+        .any(is_causal_edge);
+
+
+    let all_incoming_edge_constitutively_upstream = {
+        // true if there are some incoming edges and the are all
+        // "constitutively upstream" rels
+        graph.edges_directed(activity_idx, Direction::Incoming).next().is_some() &&
+            graph.edges_directed(activity_idx, Direction::Incoming).into_iter()
+            .all(is_constitutively_upstream_edge)
+    };
+
+    let mut has_outgoing = graph.edges_directed(activity_idx, Direction::Outgoing)
+        .into_iter()
+        .any(is_causal_edge);
+
+    if all_incoming_edge_constitutively_upstream && !has_outgoing {
+        let node = graph.node_weight(activity_idx).unwrap();
+        if node.type_string() == "enabled_by_complex" {
+            // special case for activities enable by a complex that
+            // only has "constitutively upstream" incoming relations
+            return GoCamDirection::IncomingConstitutivelyUpstream;
+        }
+    }
+
+    if !has_incoming || !has_outgoing {
+
+        for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
+            let is_input_edge =
+                if edge.weight().id == "RO:0002233" {
+                    true
+                } else {
+                    if edge.weight().id == "RO:0002234" {
+                        false
+                    } else {
+                        continue;
+                    }
+                };
+            let target_idx = edge.target();
+            for incoming_edge in graph.edges_directed(target_idx, Direction::Incoming) {
+                if is_input_edge && incoming_edge.weight().id == "RO:0002234" {
+                    has_incoming = true;
+                    break;
+                }
+                if !is_input_edge && incoming_edge.weight().id == "RO:0002233" {
+                    has_outgoing = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    match (has_incoming, has_outgoing) {
+        (true, true) => GoCamDirection::None,
+        (false, false) => GoCamDirection::None,
+        (true, false) => GoCamDirection::Incoming,
+        (false, true) => GoCamDirection::Outgoing,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
 
-    use crate::{overlaps::find_overlaps, parse_gocam_model};
+    use crate::{overlaps::{find_overlaps, node_rel_direction}, parse_gocam_model, GoCamDirection};
 
     #[test]
     fn find_overlaps_test() {
@@ -517,6 +593,36 @@ mod tests {
 
         let overlap_chemical = &overlaps[1];
         assert_eq!(overlap_chemical.node_label, "O-acetyl-L-homoserine");
+    }
+
+    #[test]
+    fn test_node_rel_direction() {
+        let mut source = File::open("tests/data/gomodel_67f85f2b00002766.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:67f85f2b00002766");
+
+        let Some ((test_out_node_idx, _)) = model.node_iterator()
+            .find(|(_, node)| {
+                node.enabler_id() == "GO:0061671"
+            })
+        else {
+            panic!()
+        };
+
+        // this a complex at the bottom of an assembly model
+        let Some ((test_in_node_idx, _)) = model.node_iterator()
+            .find(|(_, node)| {
+                node.enabler_id() == "GO:0045275"
+            })
+        else {
+            panic!()
+        };
+
+        let test_out_direction = node_rel_direction(model.graph(), test_out_node_idx);
+        assert_eq!(test_out_direction, GoCamDirection::Outgoing);
+
+        let test_in_direction = node_rel_direction(model.graph(), test_in_node_idx);
+        assert_eq!(test_in_direction, GoCamDirection::IncomingConstitutivelyUpstream);
     }
 
 }
