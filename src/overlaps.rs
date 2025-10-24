@@ -386,6 +386,58 @@ pub fn find_overlaps(models: &[GoCamModel])
     ret
 }
 
+// return the nodes (activities) that the chemical is an input for
+fn inputs_for(model: &GoCamModel, chemical_index: NodeIndex)
+    -> Vec<(GoCamEdge, GoCamNode, NodeIndex)>
+{
+    let mut ret = vec![];
+
+    let graph = model.graph();
+
+    let incoming_iter = model.graph().edges_directed(chemical_index, Direction::Incoming);
+
+    for edge_ref in incoming_iter {
+        let object_idx = edge_ref.source();
+        let object_node = graph.node_weight(object_idx).unwrap();
+
+        let edge = edge_ref.weight();
+
+        if edge.id != "RO:0002233" {
+            continue;
+        }
+
+        ret.push((edge.to_owned(), object_node.to_owned(), object_idx))
+    }
+
+    ret
+}
+
+// return the nodes (activities) that the chemical is an output for
+fn outputs_for(model: &GoCamModel, chemical_index: NodeIndex)
+    -> Vec<(GoCamEdge, GoCamNode, NodeIndex)>
+{
+    let mut ret = vec![];
+
+    let graph = model.graph();
+
+    let incoming_iter = model.graph().edges_directed(chemical_index, Direction::Incoming);
+
+    for edge_ref in incoming_iter {
+        let object_idx = edge_ref.source();
+        let object_node = graph.node_weight(object_idx).unwrap();
+
+        let edge = edge_ref.weight();
+
+        if edge.id != "RO:0002234" {
+            continue;
+        }
+
+        ret.push((edge.to_owned(), object_node.to_owned(), object_idx))
+    }
+
+    ret
+}
+
 fn inputs_outputs_of(model: &GoCamModel, activity_index: NodeIndex)
       -> Vec<(GoCamEdge, GoCamNode, NodeIndex)>
 {
@@ -550,7 +602,7 @@ mod tests {
 
     use petgraph::graph::NodeIndex;
 
-    use crate::{overlaps::{find_overlaps, inputs_outputs_of, node_rel_direction}, parse_gocam_model, GoCamDirection, GoCamModel};
+    use crate::{overlaps::*, parse_gocam_model, GoCamDirection, GoCamModel};
 
     fn find_idx_by_node_id(model: &GoCamModel, search_id: &str)
         -> NodeIndex
@@ -658,5 +710,50 @@ mod tests {
         assert_eq!(res_set.len(), 2);
         assert!(res_set.contains("CHEBI:58165"));
         assert!(res_set.contains("CHEBI:30616"));
+    }
+
+
+    #[test]
+    fn test_inputs_for() {
+        let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:66187e4700003150");
+
+        let atp_idx = find_idx_by_node_id(&model, "CHEBI:30616");
+        let cyclic_amp_idx = find_idx_by_node_id(&model, "CHEBI:58165");
+        let adenosine_monophosphate_idx = find_idx_by_node_id(&model, "CHEBI:456215");
+
+        let apt_result = inputs_for(&model, atp_idx);
+        assert_eq!(apt_result.len(), 1);
+        assert_eq!(apt_result[0].1.node_id, "GO:0004016");
+
+        let cyclic_amp_result = inputs_for(&model, cyclic_amp_idx);
+        assert_eq!(cyclic_amp_result.len(), 1);
+        assert_eq!(cyclic_amp_result[0].1.node_id, "GO:0004115");
+
+        let adenosine_monophosphate_result = inputs_for(&model, adenosine_monophosphate_idx);
+        assert!(adenosine_monophosphate_result.is_empty());
+    }
+
+    #[test]
+    fn test_outputs_for() {
+        let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:66187e4700003150");
+
+        let atp_idx = find_idx_by_node_id(&model, "CHEBI:30616");
+        let cyclic_amp_idx = find_idx_by_node_id(&model, "CHEBI:58165");
+        let adenosine_monophosphate_idx = find_idx_by_node_id(&model, "CHEBI:456215");
+
+        let apt_result = outputs_for(&model, atp_idx);
+        assert_eq!(apt_result.len(), 0);
+
+        let cyclic_amp_result = outputs_for(&model, cyclic_amp_idx);
+        assert_eq!(cyclic_amp_result.len(), 1);
+        assert_eq!(cyclic_amp_result[0].1.node_id, "GO:0004016");
+
+        let adenosine_monophosphate_result = outputs_for(&model, adenosine_monophosphate_idx);
+        assert_eq!(adenosine_monophosphate_result.len(), 1);
+        assert_eq!(adenosine_monophosphate_result[0].1.node_id, "GO:0004115");
     }
 }
