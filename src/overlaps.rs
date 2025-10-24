@@ -546,9 +546,24 @@ fn node_rel_direction(graph: &GoCamGraph, activity_idx: NodeIndex) -> GoCamDirec
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::{collections::HashSet, fs::File};
 
-    use crate::{overlaps::{find_overlaps, node_rel_direction}, parse_gocam_model, GoCamDirection};
+    use petgraph::graph::NodeIndex;
+
+    use crate::{overlaps::{find_overlaps, inputs_outputs_of, node_rel_direction}, parse_gocam_model, GoCamDirection, GoCamModel};
+
+    fn find_idx_by_node_id(model: &GoCamModel, search_id: &str)
+        -> NodeIndex
+    {
+        let Some ((node_idx, _)) = model.node_iterator()
+            .find(|(_, node)| {
+                node.node_id == search_id
+            })
+        else {
+            panic!()
+        };
+        node_idx
+    }
 
     #[test]
     fn find_overlaps_test() {
@@ -625,4 +640,23 @@ mod tests {
         assert_eq!(test_in_direction, GoCamDirection::IncomingConstitutivelyUpstream);
     }
 
+
+    #[test]
+    fn test_inputs_outputs_of() {
+        let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        assert_eq!(model.id(), "gomodel:66187e4700003150");
+
+        let cyr1_idx = find_idx_by_node_id(&model, "GO:0004016");
+
+        let cyr1_result = inputs_outputs_of(&model, cyr1_idx);
+
+        let res_set: HashSet<_> = cyr1_result.iter()
+            .map(|(_, node, _)| node.db_id())
+            .collect();
+
+        assert_eq!(res_set.len(), 2);
+        assert!(res_set.contains("CHEBI:58165"));
+        assert!(res_set.contains("CHEBI:30616"));
+    }
 }
