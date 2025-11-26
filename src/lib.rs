@@ -58,6 +58,7 @@ pub mod graph;
 pub mod overlaps;
 pub mod gocam_py;
 
+use overlaps::{find_activity_overlaps, find_chemical_overlaps};
 use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
 
 use phf::phf_map;
@@ -68,8 +69,6 @@ use petgraph::{graph::{NodeIndex, NodeReferences},
                visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
                Direction, Graph};
 use regex::Regex;
-
-use crate::overlaps::find_overlaps;
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -163,6 +162,11 @@ type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
 static TITLE_GO_TERM_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\((\s*GO:\d+\s*)\)").unwrap());
+
+pub enum GoCamMergeAlgorithm {
+    Activity,
+    Chemical,
+}
 
 /// A high level representation of the model with nodes for
 /// activities, chemicals, complexes etc. and edges for causal
@@ -426,14 +430,18 @@ impl GoCamModel {
     /// [GoCamModel] with the `new_id` as the ID and `new_title` as
     /// the title.
     ///
-    /// We use the result of calling [find_overlaps()] to find
+    /// We use the result of calling find_overlaps() to find
     /// nodes in common between all the `models`.
-    pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel])
+    pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel],
+                        algorithm: GoCamMergeAlgorithm)
         -> Result<GoCamModel>
     {
         let mut merged_graph = GoCamGraph::new();
 
-        let overlaps = find_overlaps(models);
+        let overlaps = match algorithm {
+            GoCamMergeAlgorithm::Activity => find_activity_overlaps(models),
+            GoCamMergeAlgorithm::Chemical => find_chemical_overlaps(models),
+        };
 
         let mut overlap_map = HashMap::new();
 
@@ -749,6 +757,20 @@ pub enum GoCamDirection {
     IncomingConstitutivelyUpstream,
     Outgoing,
     None,
+}
+
+impl Display for GoCamDirection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let dir_str =
+            match self {
+                GoCamDirection::Incoming => "Incoming",
+                GoCamDirection::Outgoing => "Incoming",
+                GoCamDirection::IncomingConstitutivelyUpstream => "IncomingConstitutivelyUpstream",
+                GoCamDirection::None => "None",
+            };
+        write!(f, "{}", dir_str)?;
+        Ok(())
+    }
 }
 
 /// An iterator over [GoCamNode], returned by [GoCamModel::node_iterator()]
@@ -1881,7 +1903,7 @@ mod tests {
         assert_eq!(model2.id(), "gomodel:663d668500002178");
         assert_eq!(model2.node_iterator().count(), 14);
 
-        let overlaps = find_overlaps(&[model1, model2]);
+        let overlaps = find_activity_overlaps(&[model1, model2]);
 
         assert_eq!(overlaps.len(), 2);
 
@@ -1925,7 +1947,8 @@ mod tests {
         let model2 = parse_gocam_model(&mut source2).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[model1, model2]).unwrap();
+                                              &[model1, model2],
+                                              GoCamMergeAlgorithm::Activity).unwrap();
 
         assert_eq!(merged.node_iterator().count(), 46);
 
@@ -1955,7 +1978,8 @@ mod tests {
         let model2 = parse_gocam_model(&mut source2).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[model1, model2]).unwrap();
+                                              &[model1, model2],
+                                              GoCamMergeAlgorithm::Activity).unwrap();
 
         assert_eq!(merged.node_iterator().count(), 89);
 
@@ -2023,7 +2047,8 @@ mod tests {
         let model2 = parse_gocam_model(&mut source2).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[model1, model2]).unwrap();
+                                              &[model1, model2],
+                                              GoCamMergeAlgorithm::Activity).unwrap();
 
         let chemical_nodes_iter = merged.node_iterator();
         let chemical_count = chemical_nodes_iter
@@ -2092,7 +2117,8 @@ mod tests {
         let model3 = parse_gocam_model(&mut source3).unwrap();
 
         let merged = GoCamModel::merge_models("new_id", "new_title",
-                                              &[model1, model2, model3]).unwrap();
+                                              &[model1, model2, model3],
+                                              GoCamMergeAlgorithm::Activity).unwrap();
 
         use petgraph::visit::NodeRef;
 

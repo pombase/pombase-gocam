@@ -40,13 +40,97 @@ impl GoCamNodeOverlap {
 }
 
 
+/// Find overlaps using chemicals only
+pub fn find_chemical_overlaps(gocam_models: &[GoCamModel])
+   -> Vec<GoCamNodeOverlap>
+{
+    let mut chemical_groups = HashMap::new();
+
+    for gocam_model in gocam_models {
+        for (node_idx, node) in gocam_model.node_iterator() {
+            if let GoCamNodeType::Chemical(ref chemical) = node.node_type {
+                let chemical_node_idx = node_idx;
+                if chemical.located_in.is_none() {
+                    continue;
+                }
+                let (model_id, model_title) = node.models.first().unwrap();
+
+                let is_input = !inputs_for(&gocam_model, chemical_node_idx).is_empty();
+                let is_output = !outputs_for(&gocam_model, chemical_node_idx).is_empty();
+
+                chemical_groups.entry(chemical)
+                    .or_insert_with(Vec::new)
+                    .push((node, chemical_node_idx, model_id, model_title, is_input, is_output));
+            }
+        }
+    }
+
+    let mut overlaps = vec![];
+
+    for (chemical, nodes_and_models) in chemical_groups.into_iter() {
+        if nodes_and_models.len() < 2 {
+            continue;
+        }
+
+        let mut overlapping_individual_ids = BTreeSet::new();
+        let mut models = BTreeSet::new();
+
+        let mut join_has_inputs = false;
+        let mut join_has_outputs = false;
+
+        for (node, _, model_id, model_title, is_input, is_output) in nodes_and_models {
+            overlapping_individual_ids.insert(node.individual_gocam_id.clone());
+            let direction =
+                if is_input == is_output {
+                    GoCamDirection::None
+                } else {
+                    if is_input {
+                        GoCamDirection::Incoming
+                    } else {
+                        GoCamDirection::Outgoing
+                    }
+                };
+
+            let model = (model_id.clone(), model_title.clone(), direction);
+            models.insert(model.clone());
+
+            if is_input {
+                join_has_inputs = true;
+            }
+            if is_output {
+                join_has_outputs = true;
+            }
+        }
+
+        if !join_has_inputs || !join_has_outputs {
+            continue;
+        }
+
+        let overlap = GoCamNodeOverlap {
+            node_id: chemical.id.clone(),
+            node_label: chemical.label.clone(),
+            node_type: GoCamNodeType::Chemical(chemical.to_owned()),
+            occurs_in: BTreeSet::new(),
+            part_of_process: None,
+            happens_during: None,
+            overlapping_individual_ids,
+            original_model_id: None,
+            models,
+        };
+
+        overlaps.push(overlap);
+    }
+
+    overlaps
+}
+
 /// Return the overlaps between models.  A [GoCamNodeOverlap] is
 /// returned for each pair of models that have an activity in
 /// common.  The pair of activities must have the same MF term, be
 /// enabled by the same entity (gene, complex, modified protein or
 /// chemical), have the same process and same the component
 /// ("occurs in").  The process and component must be non-None.
-pub fn find_overlaps(models: &[GoCamModel])
+pub fn find_activity_overlaps(models: &[GoCamModel])
    -> Vec<GoCamNodeOverlap>
 {
     let make_key = |node: &GoCamNode| {
@@ -637,7 +721,7 @@ mod tests {
 
         assert_eq!(model3.node_iterator().count(), 13);
 
-        let overlaps = find_overlaps(&[model1, model2, model3]);
+        let overlaps = find_activity_overlaps(&[model1, model2, model3]);
 
         assert_eq!(overlaps.len(), 2);
 
