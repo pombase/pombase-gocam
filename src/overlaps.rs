@@ -55,8 +55,8 @@ pub fn find_chemical_overlaps(gocam_models: &[GoCamModel])
                 }
                 let (model_id, model_title) = node.models.first().unwrap();
 
-                let is_input = !inputs_for(&gocam_model, chemical_node_idx).is_empty();
-                let is_output = !outputs_for(&gocam_model, chemical_node_idx).is_empty();
+                let is_input = !inputs_for(gocam_model, chemical_node_idx).is_empty();
+                let is_output = !outputs_for(gocam_model, chemical_node_idx).is_empty();
 
                 chemical_groups.entry(chemical)
                     .or_insert_with(Vec::new)
@@ -83,12 +83,10 @@ pub fn find_chemical_overlaps(gocam_models: &[GoCamModel])
             let direction =
                 if is_input == is_output {
                     GoCamDirection::None
+                } else if is_input {
+                    GoCamDirection::Incoming
                 } else {
-                    if is_input {
-                        GoCamDirection::Incoming
-                    } else {
-                        GoCamDirection::Outgoing
-                    }
+                    GoCamDirection::Outgoing
                 };
 
             let model = (model_id.clone(), model_title.clone(), direction);
@@ -188,9 +186,9 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
 
             let mut models_and_nodes = vec![];
 
-            for (model_id, nodes) in node_details.into_iter() {
+            for (model_id, nodes) in node_details.iter() {
                 if nodes.len() == 1 {
-                    let (node_idx, node) = nodes.iter().next().unwrap().clone();
+                    let (node_idx, node) = *nodes.iter().next().unwrap();
                     models_and_nodes.push((model_id.to_owned(), node_idx, node));
                 } else {
                     // for now ignore cases where an activity is duplicated in a model
@@ -263,7 +261,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
         for (model_id, node_idx, node) in models_and_individuals.clone() {
             let &model = models_by_id.get(model_id).unwrap();
 
-            let direction = node_rel_direction(&model.graph(), node_idx);
+            let direction = node_rel_direction(model.graph(), node_idx);
 
             model_ids_and_titles.insert((model_id.to_owned(), model.title().to_owned(),
                                          direction));
@@ -301,7 +299,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
                 else {
                     continue;
                 };
-                let Some(ref model) = models_by_id.get(model_id)
+                let Some(model) = models_by_id.get(model_id)
                 else {
                     continue;
                 };
@@ -317,7 +315,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
                 }
             }
             if found_original_model_ids.len() == 1 {
-                original_model_id = found_original_model_ids.iter().cloned().next();
+                original_model_id = found_original_model_ids.iter().next().cloned();
             }
         }
 
@@ -335,6 +333,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
             .any(|(_, _, direction)| *direction == GoCamDirection::None);
 
         // See: https://github.com/pombase/pombase-gocam/issues/36#issuecomment-2982741903
+        #[allow(clippy::nonminimal_bool)]
         if !has_incoming_constitutively_upstream && // special case for complex assembly
             (!has_incoming && !has_outgoing ||
              has_incoming && !(has_outgoing || has_none) ||
@@ -410,7 +409,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
             let mut overlapping_individual_ids = BTreeSet::new();
             let mut model_ids_and_titles = BTreeSet::new();
 
-            let (_, _, first_node, _) = input_output_details.get(0).unwrap().to_owned();
+            let (_, _, first_node, _) = input_output_details.first().unwrap().to_owned();
 
             let mut original_model_ids: BTreeSet<_> = BTreeSet::new();
 
@@ -424,7 +423,7 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
                 let model = models_by_id.get(model_id).unwrap();
 
                 // in this case these are activities:
-                let inputs_outputs = inputs_outputs_of(*model, node_idx);
+                let inputs_outputs = inputs_outputs_of(model, node_idx);
 
                 let has_upstream_activity = inputs_outputs
                     .iter()
@@ -651,12 +650,10 @@ fn node_rel_direction(graph: &GoCamGraph, activity_idx: NodeIndex) -> GoCamDirec
             let is_input_edge =
                 if edge.weight().id == "RO:0002233" {
                     true
+                } else if edge.weight().id == "RO:0002234" {
+                    false
                 } else {
-                    if edge.weight().id == "RO:0002234" {
-                        false
-                    } else {
-                        continue;
-                    }
+                    continue;
                 };
             let target_idx = edge.target();
             for incoming_edge in graph.edges_directed(target_idx, Direction::Incoming) {

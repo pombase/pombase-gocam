@@ -99,19 +99,19 @@ const SO_MRNA_ID: &str = "SO:0000234";
 impl IndividualType {
     /// Return the ID or if the ID is None return "UNKNOWN_ID"
     pub fn id(&self) -> &str {
-        self.id.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_ID")
+        self.id.as_deref().unwrap_or("UNKNOWN_ID")
     }
 
     /// Return the label or if the label is None return "UNKNOWN_ID"
     pub fn label(&self) -> &str {
-        self.label.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN_LABEL")
+        self.label.as_deref().unwrap_or("UNKNOWN_LABEL")
     }
 
     // Return the label, if set (not None).  Otherise return the ID.
     // If the label and ID are both unset, return "UNKNOWN"
     pub fn label_or_id(&self) -> &str {
-        self.label.as_ref().map(|s| s.as_str())
-            .or(self.id.as_ref().map(|s| s.as_str()))
+        self.label.as_deref()
+            .or(self.id.as_deref())
             .unwrap_or("UNKNOWN")
     }
 }
@@ -157,7 +157,7 @@ impl Individual {
             // See: https://github.com/pombase/pombase-chado/issues/1262#issuecomment-2708083647
             if individual_type.label().starts_with("obsolete ") &&
                 individual_type.id().starts_with("GO:") {
-                    return model.facts_of_subject(individual_type.id()).len() == 0;
+                    return model.facts_of_subject(individual_type.id()).is_empty();
                 }
         }
 
@@ -178,7 +178,7 @@ impl Individual {
             return id.starts_with("PR:") && id != "PR:000000001";
         }
 
-        return false;
+        false
     }
 
     pub fn individual_is_gene(&self) -> bool {
@@ -245,7 +245,7 @@ impl Individual {
 
     /// Return the first element of the types collection
     pub fn get_individual_type(&self) -> Option<&IndividualType> {
-        self.types.get(0)
+        self.types.first()
     }
 
     /// Return true if the Individual is "protein" from ChEBI, but not
@@ -320,7 +320,7 @@ fn annotation_values(annotations: Box<dyn Iterator<Item = &Annotation> + '_>, ke
 {
     annotations.filter(|annotation| annotation.key == key)
         .map(|annotation| &annotation.value)
-        .map(|s| s.replace(&['\n', '\t'], " ").trim_matches(' ').to_owned())
+        .map(|s| s.replace(['\n', '\t'], " ").trim_matches(' ').to_owned())
         .collect()
 }
 
@@ -413,7 +413,7 @@ impl GoCamRawModel {
         -> &Individual
     {
         self._individuals.get(individual_id)
-            .expect(&format!("can't find individual: {}",
+            .unwrap_or_else(|| panic!("can't find individual: {}",
                              individual_id))
     }
 }
@@ -522,7 +522,7 @@ mod tests {
         assert_eq!(first_fact.property_label, "part of");
         assert_eq!(first_fact.id(), "gomodel:66187e4700001744/66187e4700001758-BFO:0000050-gomodel:66187e4700001744/66187e4700001760");
 
-        let fact_object = model.fact_object(&first_fact);
+        let fact_object = model.fact_object(first_fact);
         assert_eq!(first_fact.object, fact_object.id);
 
         let object_first_type = &fact_object.types[0];

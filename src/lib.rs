@@ -238,7 +238,9 @@ impl GoCamModel {
 
         let title_process_term_ids = process_term_ids_from_title(&raw_model.title());
 
-        let model = GoCamModel {
+
+
+        GoCamModel {
             id: raw_model.id().to_owned(),
             title: raw_model.title().to_owned(),
             title_process_term_ids,
@@ -248,9 +250,7 @@ impl GoCamModel {
             graph,
             gene_name_map: HashMap::new(),
             pro_term_to_gene_map: HashMap::new(),
-        };
-
-        model
+        }
     }
 
     /// Add a map from gene ID to gene name to the model. This map is used to
@@ -371,30 +371,27 @@ impl GoCamModel {
         };
 
         for (_, node) in self.node_iterator() {
-            match &node.node_type {
-                GoCamNodeType::Activity(GoCamActivity { enabler: enabled_by, .. }) => {
-                    match enabled_by {
-                        GoCamEnabledBy::Gene(gene) => {
-                            let (gene_id,_name) = get_gene_and_name(&gene.id);
+            if let GoCamNodeType::Activity(GoCamActivity { enabler: enabled_by, .. }) = &node.node_type {
+                match enabled_by {
+                    GoCamEnabledBy::Gene(gene) => {
+                        let (gene_id,_name) = get_gene_and_name(&gene.id);
+                        ret_genes.insert(gene_id,_name);
+                    },
+                    GoCamEnabledBy::Complex(complex) => {
+                        for gene_id in &complex.has_part_genes {
+                            let (gene_id,_name) = get_gene_and_name(gene_id);
                             ret_genes.insert(gene_id,_name);
-                        },
-                        GoCamEnabledBy::Complex(complex) => {
-                            for gene_id in &complex.has_part_genes {
-                                let (gene_id,_name) = get_gene_and_name(gene_id);
-                                ret_genes.insert(gene_id,_name);
-                            }
-                        },
-                        GoCamEnabledBy::ModifiedProtein(modified_protein) => {
-                            let pro_id = modified_protein.id();
-                            if let Some(gene_id) = self.pro_term_to_gene_map.get(pro_id) {
-                                let (gene_id,_name) = get_gene_and_name(gene_id);
-                                ret_genes.insert(gene_id,_name);
-                            }
-                        },
-                        _ => (),
-                    }
-                },
-                _ => (),
+                        }
+                    },
+                    GoCamEnabledBy::ModifiedProtein(modified_protein) => {
+                        let pro_id = modified_protein.id();
+                        if let Some(gene_id) = self.pro_term_to_gene_map.get(pro_id) {
+                            let (gene_id,_name) = get_gene_and_name(gene_id);
+                            ret_genes.insert(gene_id,_name);
+                        }
+                    },
+                    _ => (),
+                }
             }
         }
 
@@ -783,7 +780,7 @@ impl<'a> Iterator for NodeIterator<'a> {
     type Item = (NodeIndex, &'a GoCamNode);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.node_refs.next().map(|(idx, node)| (idx, node))
+        self.node_refs.next()
     }
 }
 
@@ -816,7 +813,7 @@ impl GoCamGene {
     }
 
     pub fn label_or_id(&self) -> String {
-        if self.label().len() > 0 {
+        if !self.label().is_empty() {
             self.label()
         } else {
             self.id().to_owned()
@@ -859,7 +856,7 @@ impl GoCamInput {
         &self.label
     }
     pub fn label_or_id(&self) -> &str {
-        if self.label().len() > 0 {
+        if !self.label().is_empty() {
             self.label()
         } else {
             self.id()
@@ -913,7 +910,7 @@ impl GoCamOutput {
         &self.label
     }
     pub fn label_or_id(&self) -> &str {
-        if self.label().len() > 0 {
+        if !self.label().is_empty() {
             self.label()
         } else {
             self.id()
@@ -963,7 +960,7 @@ impl GoCamChemical {
         &self.label
     }
     pub fn label_or_id(&self) -> &str {
-        if self.label().len() > 0 {
+        if !self.label().is_empty() {
             self.label()
         } else {
             self.id()
@@ -1100,7 +1097,7 @@ fn is_gene_id(identifier: &str) -> bool {
 
 impl GoCamProcess {
     pub fn label_or_id(&self) -> &str {
-        if self.label.len() > 0 {
+        if !self.label.is_empty() {
             self.label.as_str()
         } else {
             self.id.as_str()
@@ -1235,19 +1232,11 @@ pub enum GoCamNodeType {
 
 impl GoCamNodeType {
     pub fn is_activity(&self) -> bool {
-        if let GoCamNodeType::Activity { .. } = self {
-            return true;
-        } else {
-            return false;
-        }
+        matches!(self, GoCamNodeType::Activity { .. })
     }
 
     pub fn is_chemical(&self) -> bool {
-        if let GoCamNodeType::Chemical(_) = self {
-            return true;
-        } else {
-            return false;
-        }
+        matches!(self, GoCamNodeType::Chemical(_))
     }
 
     pub fn id(&self) -> &str {
@@ -1303,7 +1292,7 @@ impl Display for GoCamNodeType {
 /// [the GO-CAM paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC7012280/)
 /// except for:
 ///  - `individual_gocam_id` which is the ID of the corresponding
-///  Individual in the [GoCamRawModel]
+///    Individual in the [GoCamRawModel]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GoCamNode {
     /// Individual ID in raw model from the JSON file
@@ -1416,9 +1405,9 @@ impl Display for GoCamNode {
 /// An edge in the model - a causal relation between two activities.
 ///
 ///  - `id` - the term ID of the relation connecting two nodes, for
-///  example "RO:0002629"
+///    example "RO:0002629"
 ///  - `label` - the term name of the relation, e.g. "directly
-///  positively regulates",
+///    positively regulates",
 ///
 /// see [REL_NAMES] for a list of possible relations
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -1499,25 +1488,19 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                          located_in: None,
                     };
                     GoCamNodeType::Chemical(chemical)
-                } else {
-                    if interesting_inputs_and_outputs.contains(&individual.id) {
-                        if individual.individual_is_unknown_mrna() {
-                            GoCamNodeType::UnknownMRNA
-                        } else {
-                            if individual.individual_is_modified_protein() {
-                                GoCamNodeType::ModifiedProtein(individual_type.into())
-                            } else {
-                                if individual.individual_is_mrna() {
-                                    GoCamNodeType::MRNA(individual_type.into())
-                                } else {
-                                    let gene = GoCamGene::new(individual_type, &None);
-                                    GoCamNodeType::Gene(gene)
-                                }
-                            }
-                        }
+                } else if interesting_inputs_and_outputs.contains(&individual.id) {
+                    if individual.individual_is_unknown_mrna() {
+                        GoCamNodeType::UnknownMRNA
+                    } else if individual.individual_is_modified_protein() {
+                        GoCamNodeType::ModifiedProtein(individual_type.into())
+                    } else if individual.individual_is_mrna() {
+                        GoCamNodeType::MRNA(individual_type.into())
                     } else {
-                        GoCamNodeType::Unknown
+                        let gene = GoCamGene::new(individual_type, &None);
+                        GoCamNodeType::Gene(gene)
                     }
+                } else {
+                    GoCamNodeType::Unknown
                 };
             let mut source_ids = BTreeSet::new();
             source_ids.insert(individual.id.clone());
@@ -1544,7 +1527,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 
     for individual in model.individuals() {
         if individual.individual_is_complex() {
-            let Some(complex_type) = individual.types.get(0)
+            let Some(complex_type) = individual.types.first()
             else {
                 continue;
             };
@@ -1564,7 +1547,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 
             let object_individual = model.fact_object(fact);
 
-            let Some(complex_part_type) = object_individual.types.get(0)
+            let Some(complex_part_type) = object_individual.types.first()
             else {
                 continue;
             };
@@ -1593,8 +1576,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                         let facts = model.facts_of_subject(&object_individual.id);
                         let complex = facts.iter()
                             .find(|f| f.property_label == "part of")
-                            .map(|f| complex_map.get(&f.object))
-                            .flatten()
+                            .and_then(|f| complex_map.get(&f.object))
                             .cloned();
 
                         let gene = GoCamGene::new(object_type, &complex);
@@ -1612,7 +1594,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     }
                     else if object_type_id.starts_with("GO:") || object_type_id.starts_with("ComplexPortal:") {
                         let complex = complex_map.get(&fact.object)
-                            .expect(&format!("expected complex {}", fact.object))
+                            .unwrap_or_else(|| panic!("expected complex {}", fact.object))
                             .to_owned();
                         let enabler = GoCamEnabledBy::Complex(complex);
                         subject_node.node_type = GoCamNodeType::Activity(GoCamActivity {
@@ -1690,7 +1672,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             };
 
         let object_node_occurs_in = {
-            if let Some(ref object_node) = node_map.get(&object_individual.id) {
+            if let Some(object_node) = node_map.get(&object_individual.id) {
                 object_node.occurs_in.clone()
             } else {
                 panic!("internal error: can't find node for {}", object_individual.id);
@@ -1707,22 +1689,16 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 let mut input: GoCamInput = object_type.into();
                 input.occurs_in = object_node_occurs_in;
                 input.located_in = object_node_located_in;
-                match subject_node.node_type {
-                    GoCamNodeType::Activity(GoCamActivity { enabler: _, ref mut inputs, outputs: _ }) => {
-                        inputs.insert(input);
-                    },
-                    _ => (),
+                if let GoCamNodeType::Activity(GoCamActivity { enabler: _, ref mut inputs, outputs: _ }) = subject_node.node_type {
+                    inputs.insert(input);
                 }
             },
             "has output" => {
                 let mut output: GoCamOutput = object_type.into();
                 output.occurs_in = object_node_occurs_in;
                 output.located_in = object_node_located_in;
-                match subject_node.node_type {
-                    GoCamNodeType::Activity(GoCamActivity { enabler: _, inputs: _, ref mut outputs }) => {
-                        outputs.insert(output);
-                    },
-                    _ => (),
+                if let GoCamNodeType::Activity(GoCamActivity { enabler: _, inputs: _, ref mut outputs }) = subject_node.node_type {
+                    outputs.insert(output);
                 }
             },
             &_ => (),
@@ -2125,7 +2101,7 @@ mod tests {
 
         for node in merged.node_iterator() {
             if node.weight().node_id == "GO:0004582" {
-                assert_eq!(node.weight().models.iter().count(), 3);
+                assert_eq!(node.weight().models.len(), 3);
             }
         }
     }
@@ -2212,9 +2188,9 @@ mod tests {
         let model = parse_gocam_model(&mut source).unwrap();
 
         let (_, cgs2_node) =
-            model.node_iterator().filter(|(_, node)| {
+            model.node_iterator().find(|(_, node)| {
                 node.node_id == "GO:0004016"
-            }).next().unwrap();
+            }).unwrap();
         assert!(cgs2_node.is_activity());
 
         let GoCamNodeType::Activity(GoCamActivity { enabler: _, ref inputs, outputs: _ }) = cgs2_node.node_type
