@@ -163,6 +163,7 @@ type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 static TITLE_GO_TERM_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\((\s*GO:\d+\s*)\)").unwrap());
 
+#[derive(Debug)]
 pub enum GoCamMergeAlgorithm {
     Activity,
     Chemical,
