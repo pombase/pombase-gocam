@@ -4,9 +4,8 @@ use std::collections::HashSet;
 
 use petgraph::{Direction, Graph};
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
-//use petgraph::algo::is_isomorphic_subgraph;
 
-use anyhow::{Result, anyhow};
+use crate::GoCamError;
 
 /// A predicate function to pass to [subgraph_by].  The arguments are an initial node and the
 /// current node while traversing the graph.
@@ -19,15 +18,17 @@ pub type SubGraphPred<N> =
 pub fn subgraph_by<N: Clone, E: Clone>(graph: &Graph<N, E>,
                                        start_idx: NodeIndex,
                                        match_pred: &SubGraphPred<N>)
-    -> Result<Graph<N, E>>
+    -> Result<Graph<N, E>, GoCamError>
 {
     let mut stack = vec![];
     let mut seen_nodes = HashSet::new();
 
     let mut ret_graph = Graph::<N, E>::new();
 
-    let old_start_node = graph.node_weight(start_idx)
-        .ok_or(anyhow!("node not found: {:?}", start_idx))?;
+    let Some(old_start_node) = graph.node_weight(start_idx)
+    else {
+        return Err(GoCamError::GraphError(format!("start node not found: {:?}", start_idx)));
+    };
 
     let new_start_idx = ret_graph.add_node(old_start_node.to_owned());
 

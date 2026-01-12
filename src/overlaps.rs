@@ -2,9 +2,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use petgraph::{graph::{EdgeReference, NodeIndex}, visit::EdgeRef, Direction};
 
-use anyhow::Result;
-
-use crate::{graph::{self, SubGraphPred}, raw::IndividualId, GoCamActivity, GoCamComponent, GoCamDirection, GoCamEdge, GoCamEnabledBy, GoCamGraph, GoCamModel, GoCamModelId, GoCamModelIdTitle, GoCamNode, GoCamNodeType, GoCamProcess};
+use crate::{GoCamActivity, GoCamComponent, GoCamDirection, GoCamEdge, GoCamEnabledBy, GoCamGraph, GoCamModel, GoCamModelId, GoCamModelIdTitle, GoCamNode, GoCamNodeType, GoCamProcess, GoCamError, graph::{self, SubGraphPred}, raw::{IndividualId}};
 
 /// An overlap returned by [GoCamModel::find_overlaps()]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -564,7 +562,7 @@ fn inputs_outputs_of(model: &GoCamModel, activity_index: NodeIndex)
     // return the sub-graph of `graph` that includes `start_idx` and has the
     // same process as `start_idx`
     fn subgraph_by_process(graph: &GoCamGraph, start_idx: NodeIndex)
-       -> Result<GoCamGraph>
+       -> Result<GoCamGraph, GoCamError>
     {
         let same_process: SubGraphPred<GoCamNode> =
         |a: &GoCamNode, b: &GoCamNode| -> bool {

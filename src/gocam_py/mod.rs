@@ -3,11 +3,12 @@
 
 use std::io::{BufReader, Read};
 
-use anyhow::Result;
 use serde::{Deserialize, Deserializer};
 
+use crate::GoCamError;
+
 /// Parse a model in gocam-py YAML format.
-pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel> {
+pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel, GoCamError> {
     let reader = BufReader::new(source);
 
     let raw_model: GoCamPyModel = serde_yaml::from_reader(reader)?;

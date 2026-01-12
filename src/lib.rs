@@ -49,6 +49,10 @@
 use std::{cmp::Ordering, collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::Read, sync::LazyLock};
 use std::hash::{Hash, Hasher};
 
+use thiserror::Error;
+
+pub type GoCamResult = Result<GoCamModel, GoCamError>;
+
 extern crate serde_json;
 extern crate serde_yaml;
 #[macro_use] extern crate serde_derive;
@@ -63,12 +67,27 @@ use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, Indi
 
 use phf::phf_map;
 
-use anyhow::{Result, anyhow};
 
 use petgraph::{graph::{NodeIndex, NodeReferences},
                visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
                Direction, Graph};
 use regex::Regex;
+
+#[derive(Error, Debug)]
+pub enum GoCamError {
+    #[error("no models")]
+    NoModelsError,
+    #[error("taxon IDs much match when merging models")]
+    TaxonMismatchError { detail: String },
+    #[error("I/O error: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("parse error: {0}")]
+    RawParseError(#[from] serde_json::Error),
+    #[error("parse error: {0}")]
+    PyParseError(#[from] serde_yaml::Error),
+    #[error("graph error")]
+    GraphError(String),
+}
 
 /// A map of edge relation term IDs to term names.  Example:
 /// "RO:0002211" => "regulates",
@@ -185,12 +204,12 @@ pub struct GoCamModel {
     pro_term_to_gene_map: HashMap<String, String>,
 }
 
-fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
+fn check_model_taxons(models: &[GoCamModel]) -> Result<String, GoCamError> {
     let mut model_iter = models.iter();
 
     let Some(first_model) = model_iter.next()
     else {
-        return Err(anyhow!("no models passed to check_model_taxons()"));
+        return Err(GoCamError::NoModelsError);
     };
 
     for this_model in model_iter {
@@ -198,9 +217,10 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String> {
         // "NCBITaxon:4896,NCBITaxon:559292"
         if !first_model.taxon.contains(&this_model.taxon) &&
            !this_model.taxon.contains(&first_model.taxon) {
-            return Err(anyhow!("mismatched taxons: {} ({}) != {} ({})",
-                               first_model.taxon, first_model.id,
-                               this_model.taxon, this_model.id));
+            let detail = format!("mismatched taxons: {} ({}) != {} ({})",
+                                 first_model.taxon, first_model.id,
+                                 this_model.taxon, this_model.id);
+            return Err(GoCamError::TaxonMismatchError { detail });
         }
     }
 
@@ -432,7 +452,7 @@ impl GoCamModel {
     /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel],
                         algorithm: GoCamMergeAlgorithm)
-        -> Result<GoCamModel>
+        -> GoCamResult
     {
         let mut merged_graph = GoCamGraph::new();
 
@@ -1715,7 +1735,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 /// let mut source = std::fs::File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
 /// let model = pombase_gocam::parse_gocam_model(&mut source).unwrap();
 /// ```
-pub fn parse_gocam_model(source: &mut dyn Read) -> Result<GoCamModel> {
+pub fn parse_gocam_model(source: &mut dyn Read) -> GoCamResult {
     let raw_model = gocam_parse_raw(source)?;
 
     let model = GoCamModel::new(raw_model);

@@ -24,11 +24,10 @@
 //! }
 //! ```
 
-use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, fmt::{self, Display}, io::{BufReader, Read}};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+         fmt::{self, Display}, io::{BufReader, Read}};
 
-use anyhow::Result;
-
-use crate::{GoCamModelId, REL_NAMES};
+use crate::{GoCamError, GoCamModelId, REL_NAMES};
 
 pub type FactId = String;
 pub type IndividualId = String;
@@ -418,7 +417,7 @@ impl GoCamRawModel {
     }
 }
 
-fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
+fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel, GoCamError> {
     let reader = BufReader::new(source);
 
     let mut raw_model: SerdeModel = serde_json::from_reader(reader)?;
@@ -460,7 +459,7 @@ fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel> {
 ///   }
 /// }
 /// ```
-pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel> {
+pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel, GoCamError> {
     let raw_model = gocam_parse_raw_helper(source)?;
 
     let mut fact_map = BTreeMap::new();
