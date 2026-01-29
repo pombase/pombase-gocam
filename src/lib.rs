@@ -1394,6 +1394,20 @@ impl GoCamNode {
             &self.node_id
         }
     }
+
+    /// Return true if the node is a chemical with a location or if
+    /// the node is an activity with a non-empty occurs_in field
+    pub fn has_location(&self) -> bool {
+        match &self.node_type {
+            GoCamNodeType::Chemical(chemical) => {
+                chemical.located_in.is_some()
+            },
+            GoCamNodeType::Activity(_) => {
+                !self.occurs_in.is_empty()
+            },
+            _ => false,
+        }
+    }
 }
 
 impl Display for GoCamNode {
@@ -2222,5 +2236,27 @@ mod tests {
 
         let input = inputs.iter().next().unwrap();
         assert_eq!(input.located_in.clone().unwrap().to_string(), "cytosol (GO:0005829)");
+    }
+
+    #[test]
+    fn test_has_location() {
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+
+        let located_nodes: Vec<_> =
+            model.node_iterator().filter(|(_, node)| {
+                node.has_location()
+            })
+            .collect();
+
+        assert_eq!(located_nodes.len(), 7);
+
+        let non_located_nodes: Vec<_> =
+            model.node_iterator().filter(|(_, node)| {
+                !node.has_location()
+            })
+            .collect();
+
+        assert_eq!(non_located_nodes.len(), 5);
     }
 }
