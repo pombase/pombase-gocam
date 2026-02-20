@@ -240,46 +240,6 @@ pub struct Object {
     pub obsolete: bool
 }
 
-pub type TermObject = String;
-pub type PublicationObject = String;
-pub type EvidenceTermObject = String;
-
-pub type MolecularFunctionTermObject = String;
-
-
-pub type BiologicalProcessTermObject = String;
-
-
-pub type CellularAnatomicalEntityTermObject = String;
-
-
-pub type MoleculeTermObject = String;
-
-
-pub type CellTypeTermObject = String;
-
-
-pub type GrossAnatomicalStructureTermObject = String;
-
-
-pub type PhaseTermObject = String;
-
-
-pub type InformationBiomacromoleculeTermObject = String;
-
-
-pub type GeneProductTermObject = String;
-
-
-pub type ProteinComplexTermObject = String;
-
-
-pub type TaxonTermObject = String;
-
-
-pub type PredicateTermObject = String;
-
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProvenanceInfo {
     pub contributor: Vec<String>,
@@ -287,7 +247,6 @@ pub struct ProvenanceInfo {
     pub date: String,
     pub provided_by: Vec<String>
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct QueryIndex {
@@ -309,6 +268,21 @@ pub struct QueryIndex {
     pub annoton_terms: Vec<TermObject>
 }
 
+pub type TermObject = String;
+pub type PublicationObject = String;
+pub type EvidenceTermObject = String;
+pub type MolecularFunctionTermObject = String;
+pub type BiologicalProcessTermObject = String;
+pub type CellularAnatomicalEntityTermObject = String;
+pub type MoleculeTermObject = String;
+pub type CellTypeTermObject = String;
+pub type GrossAnatomicalStructureTermObject = String;
+pub type PhaseTermObject = String;
+pub type InformationBiomacromoleculeTermObject = String;
+pub type GeneProductTermObject = String;
+pub type ProteinComplexTermObject = String;
+pub type TaxonTermObject = String;
+pub type PredicateTermObject = String;
 
 #[cfg(test)]
 mod tests {
