@@ -32,8 +32,12 @@ type UriOrCurie = String;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ModelStateEnum {
-    Production,
     Development,
+    Production,
+    Delete,
+    Review,
+    InternalTest,
+    Closed,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -56,14 +60,32 @@ pub enum CausalPredicateEnum {
     Regulates,
     NegativelyRegulates,
     PositivelyRegulates,
+    ProvidesInputFor,
+    RemovesInputFor,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum EvidenceCodeEnum {
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum CellularAnatomicalEntityEnum {
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum PhaseEnum {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct GoCamPyModel {
     pub id: UriOrCurie,
     pub title: String,
-    pub taxon: String,
+    pub taxon: TaxonTermObject,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub additional_taxa: Vec<TaxonTermObject>,
     pub status: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub date_modified: Option<String>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub comments: Vec<String>,
     pub activities: Vec<Activity>,
@@ -250,22 +272,44 @@ pub struct ProvenanceInfo {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct QueryIndex {
+    pub taxon_label: String,
     pub number_of_activities: isize,
     pub number_of_enabled_by_terms: isize,
     pub number_of_causal_associations: isize,
     pub length_of_longest_causal_association_path: isize,
     pub number_of_strongly_connected_components: isize,
     pub flattened_references: Vec<PublicationObject>,
+    pub flattened_provided_by: Vec<Object>,
+    pub flattened_contributors: Vec<String>,
+    pub flattened_evidence_terms: Vec<EvidenceTermObject>,
     pub model_activity_molecular_function_terms: Vec<TermObject>,
     pub model_activity_molecular_function_closure: Vec<TermObject>,
+    pub model_activity_molecular_function_rollup: Vec<TermObject>,
     pub model_activity_occurs_in_terms: Vec<TermObject>,
     pub model_activity_occurs_in_closure: Vec<TermObject>,
+    pub model_activity_occurs_in_rollup: Vec<TermObject>,
+    pub model_activity_enabled_by_terms: Vec<TermObject>,
+    pub model_activity_enabled_by_closure: Vec<TermObject>,
+    pub model_activity_enabled_by_rollup: Vec<TermObject>,
+    pub model_activity_enabled_by_genes: Vec<TermObject>,
     pub model_activity_part_of_terms: Vec<TermObject>,
     pub model_activity_part_of_closure: Vec<TermObject>,
+    pub model_activity_part_of_rollup: Vec<TermObject>,
     pub model_activity_has_input_terms: Vec<TermObject>,
     pub model_activity_has_input_closure: Vec<TermObject>,
-    pub taxon_closure: Vec<TermObject>,
-    pub annoton_terms: Vec<TermObject>
+    pub model_activity_has_input_rollup: Vec<TermObject>,
+    pub model_taxon: Vec<TermObject>,
+    pub model_taxon_closure: Vec<TermObject>,
+    pub model_taxon_rollup: Vec<TermObject>,
+    pub annoton_terms: Vec<TermObject>,
+    pub start_activities: Vec<Activity>,
+    pub end_activities: Vec<Activity>,
+    pub intermediate_activities: Vec<Activity>,
+    pub singleton_activities: Vec<Activity>,
+    pub number_of_start_activities: isize,
+    pub number_of_end_activities: isize,
+    pub number_of_intermediate_activities: isize,
+    pub number_of_singleton_activities: isize
 }
 
 pub type TermObject = String;
