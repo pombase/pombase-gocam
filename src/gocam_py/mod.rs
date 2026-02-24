@@ -89,6 +89,7 @@ pub struct GoCamPyModel {
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub comments: Vec<String>,
     pub activities: Vec<Activity>,
+    pub molecules: Vec<MoleculeNode>,
     pub objects: Vec<Object>,
     pub provenances: Vec<ProvenanceInfo>,
     pub query_index: Option<QueryIndex>
@@ -113,6 +114,12 @@ pub struct Activity {
     pub provenances: Vec<ProvenanceInfo>
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MoleculeNode {
+    pub id: UriOrCurie,
+    pub term: MoleculeTermObject,
+    pub located_in: Option<CellularAnatomicalEntityAssociation>,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EvidenceItem {
@@ -167,7 +174,7 @@ pub struct EnabledByProteinComplexAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CausalAssociation {
     pub predicate: PredicateTermObject,
-    pub downstream_activity: String,
+    pub downstream_activity: UriOrCurie,
 #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
@@ -245,7 +252,7 @@ pub struct GrossAnatomyAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MoleculeAssociation {
-    pub term: MoleculeTermObject,
+    pub molecule: UriOrCurie,
 #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
@@ -336,10 +343,10 @@ mod tests {
 
     #[test]
     fn parse_test() {
-        let mut source = File::open("tests/data/6690711d00000331.yaml").unwrap();
+        let mut source = File::open("tests/data/67ae98b500000055.yaml").unwrap();
         let model = gocam_py_parse(&mut source).unwrap();
 
-        assert_eq!(model.id, "gomodel:6690711d00000331");
-        assert_eq!(model.activities.len(), 19);
+        assert_eq!(model.id, "gomodel:67ae98b500000055");
+        assert_eq!(model.activities.len(), 15);
     }
 }
