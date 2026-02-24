@@ -1815,7 +1815,7 @@ mod tests {
         assert_eq!(first_node_model_id, "gomodel:66187e4700001744");
         assert_eq!(first_node_model_title, "meiotic cohesion protection in anaphase I (GO:1990813)");
 
-        assert_eq!(model.node_iterator().count(), 12);
+        assert_eq!(model.node_iterator().count(), 15);
 
         assert_eq!(first_node.to_string(),
                    "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
@@ -2257,6 +2257,6 @@ mod tests {
             })
             .collect();
 
-        assert_eq!(non_located_nodes.len(), 5);
+        assert_eq!(non_located_nodes.len(), 8);
     }
 }

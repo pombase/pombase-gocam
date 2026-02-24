@@ -510,8 +510,8 @@ mod tests {
         let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
         let model = gocam_parse_raw(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700001744");
-        assert_eq!(model.facts().count(), 42);
-        assert_eq!(model.individuals().count(), 82);
+        assert_eq!(model.facts().count(), 45);
+        assert_eq!(model.individuals().count(), 85);
 
         assert_eq!(model.title(), "meiotic cohesion protection in anaphase I (GO:1990813)");
         assert_eq!(model.taxon(), "NCBITaxon:4896");
