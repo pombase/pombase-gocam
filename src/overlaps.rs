@@ -681,7 +681,7 @@ mod tests {
 
     use petgraph::graph::NodeIndex;
 
-    use crate::{overlaps::*, parse_gocam_model, GoCamDirection, GoCamModel};
+    use crate::{overlaps::*, parse_raw_gocam_model, GoCamDirection, GoCamModel};
 
     fn find_idx_by_node_id(model: &GoCamModel, search_id: &str)
         -> NodeIndex
@@ -699,19 +699,19 @@ mod tests {
     #[test]
     fn find_overlaps_test() {
         let mut source1 = File::open("tests/data/gomodel_66a3e0bb00001342.json").unwrap();
-        let model1 = parse_gocam_model(&mut source1).unwrap();
+        let model1 = parse_raw_gocam_model(&mut source1).unwrap();
         assert_eq!(model1.id(), "gomodel:66a3e0bb00001342");
 
         assert_eq!(model1.node_iterator().count(), 29);
 
         let mut source2 = File::open("tests/data/gomodel_665912ed00000015.json").unwrap();
-        let model2 = parse_gocam_model(&mut source2).unwrap();
+        let model2 = parse_raw_gocam_model(&mut source2).unwrap();
         assert_eq!(model2.id(), "gomodel:665912ed00000015");
 
         assert_eq!(model2.node_iterator().count(), 25);
 
         let mut source3 = File::open("tests/data/gomodel_678073a900003175.json").unwrap();
-        let model3 = parse_gocam_model(&mut source3).unwrap();
+        let model3 = parse_raw_gocam_model(&mut source3).unwrap();
         assert_eq!(model3.id(), "gomodel:678073a900003175");
 
         assert_eq!(model3.node_iterator().count(), 13);
@@ -744,7 +744,7 @@ mod tests {
     #[test]
     fn test_node_rel_direction() {
         let mut source = File::open("tests/data/gomodel_67f85f2b00002766.json").unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
+        let model = parse_raw_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:67f85f2b00002766");
 
         let Some ((test_out_node_idx, _)) = model.node_iterator()
@@ -775,7 +775,7 @@ mod tests {
     #[test]
     fn test_inputs_outputs_of() {
         let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
+        let model = parse_raw_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700003150");
 
         let cyr1_idx = find_idx_by_node_id(&model, "GO:0004016");
@@ -795,7 +795,7 @@ mod tests {
     #[test]
     fn test_inputs_for() {
         let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
+        let model = parse_raw_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700003150");
 
         let atp_idx = find_idx_by_node_id(&model, "CHEBI:30616");
@@ -817,7 +817,7 @@ mod tests {
     #[test]
     fn test_outputs_for() {
         let mut source = File::open("tests/data/gomodel_66187e4700003150.json").unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
+        let model = parse_raw_gocam_model(&mut source).unwrap();
         assert_eq!(model.id(), "gomodel:66187e4700003150");
 
         let atp_idx = find_idx_by_node_id(&model, "CHEBI:30616");
