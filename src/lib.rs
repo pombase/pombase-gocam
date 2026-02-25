@@ -51,7 +51,7 @@ use std::hash::{Hash, Hasher};
 
 use thiserror::Error;
 
-pub type GoCamResult = Result<GoCamModel, GoCamError>;
+pub type GoCamModelResult = Result<GoCamModel, GoCamError>;
 
 extern crate serde_json;
 extern crate serde_yaml;
@@ -450,7 +450,7 @@ impl GoCamModel {
     /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel],
                         algorithm: GoCamMergeAlgorithm)
-        -> GoCamResult
+        -> GoCamModelResult
     {
         let mut merged_graph = GoCamGraph::new();
 
@@ -1747,7 +1747,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 /// let mut source = std::fs::File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
 /// let model = pombase_gocam::parse_raw_gocam_model(&mut source).unwrap();
 /// ```
-pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamResult {
+pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamModelResult {
     let raw_model = gocam_parse_raw(source)?;
 
     let model = GoCamModel::new_from_raw(raw_model);
