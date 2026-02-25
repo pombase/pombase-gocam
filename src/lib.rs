@@ -254,11 +254,9 @@ impl GoCamModel {
     ///
     /// See also [parse_gocam_model()].
     pub fn new_from_raw(raw_model: GoCamRawModel) -> GoCamModel {
-        let graph = make_graph(&raw_model);
+        let graph = make_graph_from_raw(&raw_model);
 
         let title_process_term_ids = process_term_ids_from_title(&raw_model.title());
-
-
 
         GoCamModel {
             id: raw_model.id().to_owned(),
@@ -1757,7 +1755,7 @@ pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamResult {
     Ok(model)
 }
 
-fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
+fn make_graph_from_raw(model: &GoCamRawModel) -> GoCamGraph {
     let mut graph = GoCamGraph::new();
 
     let node_map = make_nodes(model);
