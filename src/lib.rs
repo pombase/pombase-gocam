@@ -63,7 +63,7 @@ pub mod overlaps;
 pub mod gocam_py;
 
 use overlaps::{find_activity_overlaps, find_chemical_overlaps};
-use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
+use raw::{gocam_parse_raw, GoCamRawModel, Individual, IndividualId, IndividualType};
 use gocam_py::{GoCamPyModel, gocam_py_parse};
 
 use phf::phf_map;
@@ -628,10 +628,6 @@ impl GoCamModel {
 
 
             for source_idx in &sources {
-                let source_individual_gocam_id = {
-                    new_model.graph.node_weight(*source_idx).unwrap().individual_gocam_id.clone()
-                };
-
                 for target_idx in &targets {
                     let existing_edges = new_model.graph.edges_connecting(*source_idx, *target_idx);
 
@@ -639,13 +635,7 @@ impl GoCamModel {
                         continue;
                     }
 
-                    let target_node = new_model.graph.node_weight(*target_idx).unwrap();
-
-                    let fact_gocam_id = format!("RO:0002413-{}-{}", source_individual_gocam_id,
-                                                target_node.individual_gocam_id);
-
                     let edge_value = GoCamEdge {
-                        fact_gocam_id,
                         id: "RO:0002413".to_owned(),
                         label: "provides input for".to_owned(),
                     };
@@ -1469,7 +1459,6 @@ impl Display for GoCamNode {
 /// see [REL_NAMES] for a list of possible relations
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamEdge {
-    pub fact_gocam_id: FactId,
     pub id: String,
     pub label: String,
 }
@@ -1803,7 +1792,6 @@ fn make_graph_from_raw(model: &GoCamRawModel) -> GoCamGraph {
             let object_idx = id_map.get(object_id).unwrap();
 
             let edge = GoCamEdge {
-                fact_gocam_id: fact.id(),
                 id: fact.property.clone(),
                 label: fact.property_label.clone(),
             };
@@ -2048,6 +2036,7 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     let mut activities_by_id = HashMap::new();
     let mut molecules_by_id = HashMap::new();
     let mut objects_by_id = HashMap::new();
+    let mut node_idx_map = HashMap::new();
 
     for activity in &gocam_py_model.activities {
         activities_by_id.insert(activity.id.clone(), activity);
@@ -2064,13 +2053,58 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     for activity in activities_by_id.values() {
         let node = node_from_gocam_py_activity(gocam_py_model, &objects_by_id,
                                                &molecules_by_id, activity);
-        graph.add_node(node);
+        let idx = graph.add_node(node);
+        node_idx_map.insert(activity.id.clone(), idx);
     }
 
     for molecule in molecules_by_id.values() {
         let node = node_from_gocam_py_molecule(gocam_py_model, &objects_by_id,
                                                molecule);
-        graph.add_node(node);
+        let idx = graph.add_node(node);
+        node_idx_map.insert(molecule.id.clone(), idx);
+    }
+
+    for (activity_id, activity) in activities_by_id.iter() {
+        let activity_idx = node_idx_map.get(activity_id).unwrap();
+
+        for input in &activity.has_input {
+            let molecule = &input.molecule;
+            let molecule_idx = node_idx_map.get(molecule).unwrap();
+
+            let edge = GoCamEdge {
+                id: "RO:0002233".into(),
+                label: "has input".into(),
+            };
+
+            graph.add_edge(*activity_idx, *molecule_idx, edge);
+        }
+
+        for output in &activity.has_output {
+            let molecule = &output.molecule;
+            let molecule_idx = node_idx_map.get(molecule).unwrap();
+
+            let edge = GoCamEdge {
+                id: "RO:0002234".into(),
+                label: "has output".into(),
+            };
+
+            graph.add_edge(*activity_idx, *molecule_idx, edge);
+        }
+
+        for causal_association in &activity.causal_associations {
+            let rel_id = &causal_association.predicate;
+            let rel_name = REL_NAMES.get(&rel_id).unwrap();
+
+            let downstream_activity = &causal_association.downstream_activity;
+            let downstream_activity_idx = node_idx_map.get(downstream_activity).unwrap();
+
+            let edge = GoCamEdge {
+                id: rel_id.to_owned(),
+                label: (*rel_name).to_owned(),
+            };
+
+            graph.add_edge(*activity_idx, *downstream_activity_idx, edge);
+        }
     }
 
     graph
