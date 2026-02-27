@@ -1,7 +1,7 @@
 //! Code for parsing gocam-py YAML models
 //! See: <https://github.com/geneontology/gocam-py>
 
-use std::io::{BufReader, Read};
+use std::{collections::HashMap, io::{BufReader, Read}};
 
 use serde::{Deserialize, Deserializer};
 
@@ -43,6 +43,8 @@ pub type GeneProductTermObject = String;
 pub type ProteinComplexTermObject = String;
 pub type TaxonTermObject = String;
 pub type PredicateTermObject = String;
+
+pub type GoCamPyObjectMap = HashMap<String, Object>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct GoCamPyModel {
@@ -160,7 +162,29 @@ pub struct EnabledByAssociation {
 #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
-    pub provenances: Vec<ProvenanceInfo>
+    pub provenances: Vec<ProvenanceInfo>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub members: Vec<TermAssociation>,  // if type is "EnabledByProteinComplexAssociation"
+}
+
+pub enum GoCamPyEnablerType {
+    Complex,
+    Gene,
+    Chemical,
+    ModifiedProtein,
+}
+
+impl EnabledByAssociation {
+    pub fn enabler_type(&self) -> GoCamPyEnablerType {
+        if self.term.starts_with("CHEBI:") {
+            return GoCamPyEnablerType::Chemical;
+        }
+        match self.type_.as_str() {
+            "EnabledByGeneProductAssociation" => GoCamPyEnablerType::Gene,
+            "EnabledByProteinComplexAssociation" => GoCamPyEnablerType::Complex,
+            _ => panic!("{}", self.type_),
+        }
+    }
 }
 
 
@@ -221,7 +245,7 @@ pub struct MolecularFunctionAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BiologicalProcessAssociation {
     pub happens_during: Option<PhaseTermObject>,
-    pub part_of: Option<BiologicalProcessTermObject>,
+    pub part_of: Option<Box<BiologicalProcessAssociation>>,
     pub term: BiologicalProcessTermObject,
 #[serde(rename = "type")]
     pub type_: String,
@@ -288,6 +312,7 @@ pub struct ProvenanceInfo {
     pub contributor: Vec<String>,
     pub created: Option<String>,
     pub date: String,
+#[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provided_by: Vec<String>
 }
 
