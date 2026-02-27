@@ -1855,8 +1855,6 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
     let mut models = BTreeSet::new();
     models.insert((gocam_py_model.id.clone(), gocam_py_model.title.clone()));
 
-    let enabled_by_term_id = &gocam_py_activity.enabled_by.term;
-
     let molecular_function = &gocam_py_activity.molecular_function;
     let mf_term = &molecular_function.term;
     let mf_term_object = object_map.get(mf_term).unwrap();
@@ -1894,6 +1892,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
 
     let enabled_by_term_object = object_map.get(&gocam_py_activity.enabled_by.term).unwrap();
     let enabled_by_label = enabled_by_term_object.label.clone().unwrap();
+
     let enabler = match gocam_py_activity.enabled_by.enabler_type() {
         GoCamPyEnablerType::Complex => {
             let has_part_genes = gocam_py_activity.enabled_by.members
@@ -1981,6 +1980,9 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
     };
     let node_type = GoCamNodeType::Activity(gocam_activity);
 
+    let mut source_ids = BTreeSet::new();
+    source_ids.insert(gocam_py_activity.id.clone());
+
     GoCamNode {
         individual_gocam_id: gocam_py_activity.id.clone(),
         label: mf_label,
@@ -1991,19 +1993,54 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         part_of_process,
         happens_during: None,  // See: https://github.com/geneontology/gocam-py/issues/170
         original_model_id: Some(gocam_py_model.id.clone()),
-        source_ids: BTreeSet::new(), // TODO
+        source_ids,
     }
 }
 
-/*
 fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
                                object_map: &GoCamPyObjectMap,
-                               molecule: &MoleculeAssociation)
+                               molecule: &MoleculeNode)
     -> GoCamNode
 {
+    let term_object = object_map.get(&molecule.term).unwrap();
+    let label = term_object.label.clone().unwrap();
+    let node_id = term_object.id.clone();
 
+    let model_id = gocam_py_model.id.to_owned();
+
+    let mut models = BTreeSet::new();
+    models.insert((model_id.clone(), gocam_py_model.title.clone()));
+
+    let mut source_ids = BTreeSet::new();
+    source_ids.insert(model_id.clone());
+
+    let located_in =
+        if let Some(ref molecule_located_in) = molecule.located_in {
+            Some(component_from_term(object_map, &molecule_located_in.term))
+        } else {
+            None
+        };
+
+    let gocam_chemical = GoCamChemical {
+        id: node_id.clone(),
+        label: label.clone(),
+        located_in,
+    };
+    let node_type = GoCamNodeType::Chemical(gocam_chemical);
+
+    GoCamNode {
+        individual_gocam_id: molecule.id.clone(),
+        label,
+        node_id,
+        node_type,
+        occurs_in: BTreeSet::new(),
+        part_of_process: None,
+        happens_during: None,
+        source_ids,
+        original_model_id: Some(model_id),
+        models,
+    }
 }
-*/
 
 fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     let mut graph = GoCamGraph::new();
@@ -2031,9 +2068,9 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     }
 
     for molecule in molecules_by_id.values() {
-/*
-        let node = node_from_gocam_py_molecule(gocam_py_model, &objects_by_id, molecule);
-*/
+        let node = node_from_gocam_py_molecule(gocam_py_model, &objects_by_id,
+                                               molecule);
+        graph.add_node(node);
     }
 
     graph
