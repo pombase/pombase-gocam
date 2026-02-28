@@ -1923,14 +1923,10 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         .iter()
         .map(|i| {
             let input_molecule = molecule_map.get(&i.molecule)
-                .expect(&format!("can't find object with id: {}", i.molecule));
+                .unwrap_or_else(|| panic!("can't find object with id: {}", i.molecule));
             let input_molecule_term_object = object_map.get(&input_molecule.term).unwrap();
-            let located_in =
-                if let Some(ref input_located_in) = input_molecule.located_in {
-                    Some(component_from_term(object_map, &input_located_in.term))
-                } else {
-                    None
-                };
+            let located_in = input_molecule.located_in.as_ref()
+                .map(|input_located_in| component_from_term(object_map, &input_located_in.term));
             GoCamInput {
                 id: input_molecule_term_object.id.clone(),
                 label: input_molecule_term_object.label.clone().unwrap(),
@@ -1944,14 +1940,10 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         .iter()
         .map(|o| {
             let output_molecule = molecule_map.get(&o.molecule)
-                .expect(&format!("can't find object with id: {}", o.molecule));
+                .unwrap_or_else(|| panic!("can't find object with id: {}", o.molecule));
             let output_molecule_term_object = object_map.get(&output_molecule.term).unwrap();
-            let located_in =
-                if let Some(ref output_located_in) = output_molecule.located_in {
-                    Some(component_from_term(object_map, &output_located_in.term))
-                } else {
-                    None
-                };
+            let located_in = output_molecule.located_in.as_ref()
+                   .map(|output_located_in| component_from_term(object_map, &output_located_in.term));
             GoCamOutput {
                 id: output_molecule_term_object.id.clone(),
                 label: output_molecule_term_object.label.clone().unwrap(),
@@ -2002,12 +1994,8 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
     let mut source_ids = BTreeSet::new();
     source_ids.insert(model_id.clone());
 
-    let located_in =
-        if let Some(ref molecule_located_in) = molecule.located_in {
-            Some(component_from_term(object_map, &molecule_located_in.term))
-        } else {
-            None
-        };
+    let located_in = molecule.located_in.as_ref()
+        .map(|molecule_located_in| component_from_term(object_map, &molecule_located_in.term));
 
     let gocam_chemical = GoCamChemical {
         id: node_id.clone(),
@@ -2093,7 +2081,7 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
 
         for causal_association in &activity.causal_associations {
             let rel_id = &causal_association.predicate;
-            let rel_name = REL_NAMES.get(&rel_id).unwrap();
+            let rel_name = REL_NAMES.get(rel_id).unwrap();
 
             let downstream_activity = &causal_association.downstream_activity;
             let downstream_activity_idx = node_idx_map.get(downstream_activity).unwrap();
