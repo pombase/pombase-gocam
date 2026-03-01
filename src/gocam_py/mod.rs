@@ -1,7 +1,7 @@
 //! Code for parsing gocam-py YAML models
 //! See: <https://github.com/geneontology/gocam-py>
 
-use std::io::{BufReader, Read};
+use std::{collections::HashMap, io::{BufReader, Read}};
 
 use serde::{Deserialize, Deserializer};
 
@@ -27,8 +27,62 @@ where
     Ok(opt.unwrap_or_default())
 }
 
+pub type UriOrCurie = String;
+pub type TermObject = String;
+pub type PublicationObject = String;
+pub type EvidenceTermObject = String;
+pub type MolecularFunctionTermObject = String;
+pub type BiologicalProcessTermObject = String;
+pub type CellularAnatomicalEntityTermObject = String;
+pub type MoleculeTermObject = String;
+pub type CellTypeTermObject = String;
+pub type GrossAnatomicalStructureTermObject = String;
+pub type PhaseTermObject = String;
+pub type InformationBiomacromoleculeTermObject = String;
+pub type GeneProductTermObject = String;
+pub type ProteinComplexTermObject = String;
+pub type TaxonTermObject = String;
+pub type PredicateTermObject = String;
 
-type UriOrCurie = String;
+pub type GoCamPyObjectMap = HashMap<String, Object>;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct GoCamPyModel {
+    pub id: UriOrCurie,
+    pub title: String,
+    pub taxon: TaxonTermObject,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub additional_taxa: Vec<TaxonTermObject>,
+    pub status: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub date_modified: Option<String>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub comments: Vec<String>,
+    pub activities: Vec<Activity>,
+    pub molecules: Vec<MoleculeNode>,
+    pub objects: Vec<Object>,
+    pub provenances: Vec<ProvenanceInfo>,
+    pub query_index: Option<QueryIndex>
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Activity {
+    pub id: UriOrCurie,
+    pub enabled_by: EnabledByAssociation,
+    pub molecular_function: MolecularFunctionAssociation,
+    pub occurs_in: Option<CellularAnatomicalEntityAssociation>,
+    pub part_of: Option<BiologicalProcessAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub has_input: Vec<MoleculeAssociation>,
+    pub has_primary_input: Option<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub has_output: Vec<MoleculeAssociation>,
+    pub has_primary_output: Option<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub causal_associations: Vec<CausalAssociation>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub provenances: Vec<ProvenanceInfo>
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ModelStateEnum {
@@ -77,44 +131,6 @@ pub enum PhaseEnum {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct GoCamPyModel {
-    pub id: UriOrCurie,
-    pub title: String,
-    pub taxon: TaxonTermObject,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub additional_taxa: Vec<TaxonTermObject>,
-    pub status: String,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub date_modified: Option<String>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub comments: Vec<String>,
-    pub activities: Vec<Activity>,
-    pub molecules: Vec<MoleculeNode>,
-    pub objects: Vec<Object>,
-    pub provenances: Vec<ProvenanceInfo>,
-    pub query_index: Option<QueryIndex>
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct Activity {
-    pub id: UriOrCurie,
-    pub enabled_by: EnabledByAssociation,
-    pub molecular_function: MolecularFunctionAssociation,
-    pub occurs_in: Option<CellularAnatomicalEntityAssociation>,
-    pub part_of: Option<BiologicalProcessAssociation>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub has_input: Vec<MoleculeAssociation>,
-    pub has_primary_input: Option<MoleculeAssociation>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub has_output: Vec<MoleculeAssociation>,
-    pub has_primary_output: Option<MoleculeAssociation>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub causal_associations: Vec<CausalAssociation>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub provenances: Vec<ProvenanceInfo>
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MoleculeNode {
     pub id: UriOrCurie,
     pub term: MoleculeTermObject,
@@ -146,7 +162,29 @@ pub struct EnabledByAssociation {
 #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
-    pub provenances: Vec<ProvenanceInfo>
+    pub provenances: Vec<ProvenanceInfo>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub members: Vec<TermAssociation>,  // if type is "EnabledByProteinComplexAssociation"
+}
+
+pub enum GoCamPyEnablerType {
+    Complex,
+    Gene,
+    Chemical,
+    ModifiedProtein,
+}
+
+impl EnabledByAssociation {
+    pub fn enabler_type(&self) -> GoCamPyEnablerType {
+        if self.term.starts_with("CHEBI:") {
+            return GoCamPyEnablerType::Chemical;
+        }
+        match self.type_.as_str() {
+            "EnabledByGeneProductAssociation" => GoCamPyEnablerType::Gene,
+            "EnabledByProteinComplexAssociation" => GoCamPyEnablerType::Complex,
+            _ => panic!("{}", self.type_),
+        }
+    }
 }
 
 
@@ -207,7 +245,7 @@ pub struct MolecularFunctionAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BiologicalProcessAssociation {
     pub happens_during: Option<PhaseTermObject>,
-    pub part_of: Option<BiologicalProcessTermObject>,
+    pub part_of: Option<Box<BiologicalProcessAssociation>>,
     pub term: BiologicalProcessTermObject,
 #[serde(rename = "type")]
     pub type_: String,
@@ -274,6 +312,7 @@ pub struct ProvenanceInfo {
     pub contributor: Vec<String>,
     pub created: Option<String>,
     pub date: String,
+#[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provided_by: Vec<String>
 }
 
@@ -318,22 +357,6 @@ pub struct QueryIndex {
     pub number_of_intermediate_activities: isize,
     pub number_of_singleton_activities: isize
 }
-
-pub type TermObject = String;
-pub type PublicationObject = String;
-pub type EvidenceTermObject = String;
-pub type MolecularFunctionTermObject = String;
-pub type BiologicalProcessTermObject = String;
-pub type CellularAnatomicalEntityTermObject = String;
-pub type MoleculeTermObject = String;
-pub type CellTypeTermObject = String;
-pub type GrossAnatomicalStructureTermObject = String;
-pub type PhaseTermObject = String;
-pub type InformationBiomacromoleculeTermObject = String;
-pub type GeneProductTermObject = String;
-pub type ProteinComplexTermObject = String;
-pub type TaxonTermObject = String;
-pub type PredicateTermObject = String;
 
 #[cfg(test)]
 mod tests {

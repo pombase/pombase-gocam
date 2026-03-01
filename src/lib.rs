@@ -51,7 +51,7 @@ use std::hash::{Hash, Hasher};
 
 use thiserror::Error;
 
-pub type GoCamResult = Result<GoCamModel, GoCamError>;
+pub type GoCamModelResult = Result<GoCamModel, GoCamError>;
 
 extern crate serde_json;
 extern crate serde_yaml;
@@ -63,15 +63,17 @@ pub mod overlaps;
 pub mod gocam_py;
 
 use overlaps::{find_activity_overlaps, find_chemical_overlaps};
-use raw::{gocam_parse_raw, FactId, GoCamRawModel, Individual, IndividualId, IndividualType};
+use raw::{gocam_parse_raw, GoCamRawModel, Individual, IndividualId, IndividualType};
+use gocam_py::{GoCamPyModel, gocam_py_parse};
 
 use phf::phf_map;
-
 
 use petgraph::{graph::{NodeIndex, NodeReferences},
                visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
                Direction, Graph};
 use regex::Regex;
+
+use crate::gocam_py::{Activity, GoCamPyEnablerType, GoCamPyObjectMap, MoleculeNode};
 
 #[derive(Error, Debug)]
 pub enum GoCamError {
@@ -252,13 +254,11 @@ impl GoCamModel {
     /// let model = pombase_gocam::GoCamModel::new_from_raw(raw_model);
     /// ```
     ///
-    /// See also [parse_gocam_model()].
+    /// See also [parse_raw_gocam_model()].
     pub fn new_from_raw(raw_model: GoCamRawModel) -> GoCamModel {
-        let graph = make_graph(&raw_model);
+        let graph = make_graph_from_raw(&raw_model);
 
         let title_process_term_ids = process_term_ids_from_title(&raw_model.title());
-
-
 
         GoCamModel {
             id: raw_model.id().to_owned(),
@@ -267,6 +267,29 @@ impl GoCamModel {
             taxon: raw_model.taxon().to_owned(),
             date: raw_model.date().to_owned(),
             contributors: raw_model.contributors(),
+            graph,
+            gene_name_map: HashMap::new(),
+            pro_term_to_gene_map: HashMap::new(),
+        }
+    }
+
+    pub fn new_from_gocam_py(gocam_py_model: GoCamPyModel) -> GoCamModel {
+        let graph = make_graph_from_gocam_py(&gocam_py_model);
+
+        let contributors: BTreeSet<_> = gocam_py_model.provenances
+            .iter()
+            .flat_map(|p| p.contributor.iter().cloned())
+            .collect();
+
+        let title_process_term_ids = process_term_ids_from_title(&gocam_py_model.title);
+
+        GoCamModel {
+            id: gocam_py_model.id.clone(),
+            title: gocam_py_model.title.clone(),
+            taxon: gocam_py_model.taxon.clone(),
+            date: gocam_py_model.date_modified.clone().unwrap(),
+            contributors,
+            title_process_term_ids,
             graph,
             gene_name_map: HashMap::new(),
             pro_term_to_gene_map: HashMap::new(),
@@ -452,7 +475,7 @@ impl GoCamModel {
     /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel],
                         algorithm: GoCamMergeAlgorithm)
-        -> GoCamResult
+        -> GoCamModelResult
     {
         let mut merged_graph = GoCamGraph::new();
 
@@ -605,10 +628,6 @@ impl GoCamModel {
 
 
             for source_idx in &sources {
-                let source_individual_gocam_id = {
-                    new_model.graph.node_weight(*source_idx).unwrap().individual_gocam_id.clone()
-                };
-
                 for target_idx in &targets {
                     let existing_edges = new_model.graph.edges_connecting(*source_idx, *target_idx);
 
@@ -616,13 +635,7 @@ impl GoCamModel {
                         continue;
                     }
 
-                    let target_node = new_model.graph.node_weight(*target_idx).unwrap();
-
-                    let fact_gocam_id = format!("RO:0002413-{}-{}", source_individual_gocam_id,
-                                                target_node.individual_gocam_id);
-
                     let edge_value = GoCamEdge {
-                        fact_gocam_id,
                         id: "RO:0002413".to_owned(),
                         label: "provides input for".to_owned(),
                     };
@@ -1312,7 +1325,7 @@ impl Display for GoCamNodeType {
 /// [the GO-CAM paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC7012280/)
 /// except for:
 ///  - `individual_gocam_id` which is the ID of the corresponding
-///    Individual in the [GoCamRawModel]
+///    Individual in the [GoCamRawModel] or [GoCamPyModel]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GoCamNode {
     /// Individual ID in raw model from the JSON file
@@ -1446,7 +1459,6 @@ impl Display for GoCamNode {
 /// see [REL_NAMES] for a list of possible relations
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GoCamEdge {
-    pub fact_gocam_id: FactId,
     pub id: String,
     pub label: String,
 }
@@ -1749,7 +1761,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
 /// let mut source = std::fs::File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
 /// let model = pombase_gocam::parse_raw_gocam_model(&mut source).unwrap();
 /// ```
-pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamResult {
+pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamModelResult {
     let raw_model = gocam_parse_raw(source)?;
 
     let model = GoCamModel::new_from_raw(raw_model);
@@ -1757,7 +1769,7 @@ pub fn parse_raw_gocam_model(source: &mut dyn Read) -> GoCamResult {
     Ok(model)
 }
 
-fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
+fn make_graph_from_raw(model: &GoCamRawModel) -> GoCamGraph {
     let mut graph = GoCamGraph::new();
 
     let node_map = make_nodes(model);
@@ -1780,7 +1792,6 @@ fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
             let object_idx = id_map.get(object_id).unwrap();
 
             let edge = GoCamEdge {
-                fact_gocam_id: fact.id(),
                 id: fact.property.clone(),
                 label: fact.property_label.clone(),
             };
@@ -1791,6 +1802,302 @@ fn make_graph(model: &GoCamRawModel) -> GoCamGraph {
 
     graph
 }
+
+pub fn parse_gocam_py_model(source: &mut dyn Read) -> GoCamModelResult {
+    let gocam_py_model = gocam_py_parse(source)?;
+
+    let model = GoCamModel::new_from_gocam_py(gocam_py_model);
+
+    Ok(model)
+}
+
+fn id_is_complex(id: &str) -> bool {
+    !id.starts_with("GO:")
+}
+
+fn component_from_term(object_map: &GoCamPyObjectMap,
+                       term: &String) -> GoCamComponent {
+    let term_object = object_map.get(term).unwrap();
+    let object_label = term_object.label.as_ref().unwrap().to_owned();
+    if id_is_complex(term) {
+        let comp = GoCamComplexComponent {
+            id: term.clone(),
+            label: object_label,
+        };
+        GoCamComponent::ComplexComponent(comp)
+    } else {
+        let comp = GoCamOtherComponent {
+            id: term.clone(),
+            label: object_label,
+        };
+        GoCamComponent::OtherComponent(comp)
+    }
+}
+
+fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
+                               object_map: &GoCamPyObjectMap,
+                               molecule_map: &HashMap<String, MoleculeNode>,
+                               gocam_py_activity: &Activity)
+    -> GoCamNode
+{
+    let mut models = BTreeSet::new();
+    models.insert((gocam_py_model.id.clone(), gocam_py_model.title.clone()));
+
+    let molecular_function = &gocam_py_activity.molecular_function;
+    let mf_term = &molecular_function.term;
+    let mf_term_object = object_map.get(mf_term).unwrap();
+    let mf_label = mf_term_object.label.clone().unwrap();
+
+    let mut occurs_in = BTreeSet::new();
+
+    if let Some(ref association) = gocam_py_activity.occurs_in {
+        let term_object = object_map.get(&association.term).unwrap();
+        let object_label = term_object.label.as_ref().unwrap().to_owned();
+        if id_is_complex(&association.term) {
+            let comp = GoCamComplexComponent {
+                id: association.term.clone(),
+                label: object_label,
+            };
+            occurs_in.insert(GoCamComponent::ComplexComponent(comp));
+        } else {
+            let comp = GoCamOtherComponent {
+                id: association.term.clone(),
+                label: object_label,
+            };
+            occurs_in.insert(GoCamComponent::OtherComponent(comp));
+        }
+    }
+
+    let part_of_process = gocam_py_activity.part_of.as_ref()
+        .map(|p| {
+            let part_of_object = object_map.get(&p.term).unwrap();
+            GoCamProcess {
+                id: part_of_object.id.clone(),
+                label: part_of_object.label.clone().unwrap(),
+                part_of_parent: None, // TODO - see: https://github.com/geneontology/gocam-py/issues/172
+            }
+        });
+
+    let enabled_by_term_object = object_map.get(&gocam_py_activity.enabled_by.term).unwrap();
+    let enabled_by_label = enabled_by_term_object.label.clone().unwrap();
+
+    let enabler = match gocam_py_activity.enabled_by.enabler_type() {
+        GoCamPyEnablerType::Complex => {
+            let has_part_genes = gocam_py_activity.enabled_by.members
+                .iter()
+                .map(|m| m.term.clone())
+                .collect();
+            let complex = GoCamComplex {
+                id: gocam_py_activity.enabled_by.term.clone(),
+                label: enabled_by_label,
+                has_part_genes,
+            };
+            GoCamEnabledBy::Complex(complex)
+        },
+        GoCamPyEnablerType::Gene => {
+            let gene = GoCamGene {
+                id: gocam_py_activity.enabled_by.term.clone(),
+                label: enabled_by_label,
+                part_of_complex: None,  // TODO
+            };
+            GoCamEnabledBy::Gene(gene)
+        },
+        GoCamPyEnablerType::Chemical => {
+            let chemical = GoCamChemical {
+                id: gocam_py_activity.enabled_by.term.clone(),
+                label: enabled_by_label,
+                located_in: None, // TODO
+            };
+            GoCamEnabledBy::Chemical(chemical)
+        },
+        GoCamPyEnablerType::ModifiedProtein => {
+            let modified_protein = GoCamModifiedProtein {
+                id: gocam_py_activity.enabled_by.term.clone(),
+                label: enabled_by_label,
+            };
+            GoCamEnabledBy::ModifiedProtein(modified_protein)
+        },
+    };
+
+    let inputs = gocam_py_activity.has_input
+        .iter()
+        .map(|i| {
+            let input_molecule = molecule_map.get(&i.molecule)
+                .unwrap_or_else(|| panic!("can't find object with id: {}", i.molecule));
+            let input_molecule_term_object = object_map.get(&input_molecule.term).unwrap();
+            let located_in = input_molecule.located_in.as_ref()
+                .map(|input_located_in| component_from_term(object_map, &input_located_in.term));
+            GoCamInput {
+                id: input_molecule_term_object.id.clone(),
+                label: input_molecule_term_object.label.clone().unwrap(),
+                located_in,
+                occurs_in: BTreeSet::new(), // TODO
+            }
+        })
+        .collect();
+
+    let outputs = gocam_py_activity.has_output
+        .iter()
+        .map(|o| {
+            let output_molecule = molecule_map.get(&o.molecule)
+                .unwrap_or_else(|| panic!("can't find object with id: {}", o.molecule));
+            let output_molecule_term_object = object_map.get(&output_molecule.term).unwrap();
+            let located_in = output_molecule.located_in.as_ref()
+                   .map(|output_located_in| component_from_term(object_map, &output_located_in.term));
+            GoCamOutput {
+                id: output_molecule_term_object.id.clone(),
+                label: output_molecule_term_object.label.clone().unwrap(),
+                located_in,
+                occurs_in: BTreeSet::new(), // TODO
+            }
+        })
+        .collect();
+
+    let gocam_activity = GoCamActivity {
+        enabler,
+        inputs,
+        outputs,
+    };
+    let node_type = GoCamNodeType::Activity(gocam_activity);
+
+    let mut source_ids = BTreeSet::new();
+    source_ids.insert(gocam_py_activity.id.clone());
+
+    GoCamNode {
+        individual_gocam_id: gocam_py_activity.id.clone(),
+        label: mf_label,
+        node_id: mf_term_object.id.clone(),
+        node_type,
+        models,
+        occurs_in,
+        part_of_process,
+        happens_during: None,  // See: https://github.com/geneontology/gocam-py/issues/170
+        original_model_id: Some(gocam_py_model.id.clone()),
+        source_ids,
+    }
+}
+
+fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
+                               object_map: &GoCamPyObjectMap,
+                               molecule: &MoleculeNode)
+    -> GoCamNode
+{
+    let term_object = object_map.get(&molecule.term).unwrap();
+    let label = term_object.label.clone().unwrap();
+    let node_id = term_object.id.clone();
+
+    let model_id = gocam_py_model.id.to_owned();
+
+    let mut models = BTreeSet::new();
+    models.insert((model_id.clone(), gocam_py_model.title.clone()));
+
+    let mut source_ids = BTreeSet::new();
+    source_ids.insert(model_id.clone());
+
+    let located_in = molecule.located_in.as_ref()
+        .map(|molecule_located_in| component_from_term(object_map, &molecule_located_in.term));
+
+    let gocam_chemical = GoCamChemical {
+        id: node_id.clone(),
+        label: label.clone(),
+        located_in,
+    };
+    let node_type = GoCamNodeType::Chemical(gocam_chemical);
+
+    GoCamNode {
+        individual_gocam_id: molecule.id.clone(),
+        label,
+        node_id,
+        node_type,
+        occurs_in: BTreeSet::new(),
+        part_of_process: None,
+        happens_during: None,
+        source_ids,
+        original_model_id: Some(model_id),
+        models,
+    }
+}
+
+fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
+    let mut graph = GoCamGraph::new();
+
+    let mut activities_by_id = HashMap::new();
+    let mut molecules_by_id = HashMap::new();
+    let mut objects_by_id = HashMap::new();
+    let mut node_idx_map = HashMap::new();
+
+    for activity in &gocam_py_model.activities {
+        activities_by_id.insert(activity.id.clone(), activity);
+    }
+
+    for object in &gocam_py_model.objects {
+        objects_by_id.insert(object.id.clone(), object.to_owned());
+    }
+
+    for molecule in &gocam_py_model.molecules {
+        molecules_by_id.insert(molecule.id.clone(), molecule.to_owned());
+    }
+
+    for activity in activities_by_id.values() {
+        let node = node_from_gocam_py_activity(gocam_py_model, &objects_by_id,
+                                               &molecules_by_id, activity);
+        let idx = graph.add_node(node);
+        node_idx_map.insert(activity.id.clone(), idx);
+    }
+
+    for molecule in molecules_by_id.values() {
+        let node = node_from_gocam_py_molecule(gocam_py_model, &objects_by_id,
+                                               molecule);
+        let idx = graph.add_node(node);
+        node_idx_map.insert(molecule.id.clone(), idx);
+    }
+
+    for (activity_id, activity) in activities_by_id.iter() {
+        let activity_idx = node_idx_map.get(activity_id).unwrap();
+
+        for input in &activity.has_input {
+            let molecule = &input.molecule;
+            let molecule_idx = node_idx_map.get(molecule).unwrap();
+
+            let edge = GoCamEdge {
+                id: "RO:0002233".into(),
+                label: "has input".into(),
+            };
+
+            graph.add_edge(*activity_idx, *molecule_idx, edge);
+        }
+
+        for output in &activity.has_output {
+            let molecule = &output.molecule;
+            let molecule_idx = node_idx_map.get(molecule).unwrap();
+
+            let edge = GoCamEdge {
+                id: "RO:0002234".into(),
+                label: "has output".into(),
+            };
+
+            graph.add_edge(*activity_idx, *molecule_idx, edge);
+        }
+
+        for causal_association in &activity.causal_associations {
+            let rel_id = &causal_association.predicate;
+            let rel_name = REL_NAMES.get(rel_id).unwrap();
+
+            let downstream_activity = &causal_association.downstream_activity;
+            let downstream_activity_idx = node_idx_map.get(downstream_activity).unwrap();
+
+            let edge = GoCamEdge {
+                id: rel_id.to_owned(),
+                label: (*rel_name).to_owned(),
+            };
+
+            graph.add_edge(*activity_idx, *downstream_activity_idx, edge);
+        }
+    }
+
+    graph
+}
+
 
 #[cfg(test)]
 mod tests {
