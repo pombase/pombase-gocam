@@ -902,8 +902,6 @@ pub struct GoCamInput {
     pub label: String,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
-    pub occurs_in: BTreeSet<GoCamComponent>,
 }
 impl GoCamInput {
     pub fn id(&self) -> &str {
@@ -926,7 +924,6 @@ impl From<&IndividualType> for GoCamInput {
             id: individual_gene.id().to_owned(),
             label: individual_gene.label().to_owned(),
             located_in: None,
-            occurs_in: BTreeSet::new(),
         }
     }
 }
@@ -935,13 +932,6 @@ impl Display for GoCamInput {
         write!(f, "{} ({})", self.label, self.id)?;
         if let Some(ref located_in) = self.located_in {
             write!(f, " located in {}", located_in)?;
-        }
-        if !self.occurs_in.is_empty() {
-            let occurs_in = self.occurs_in.iter()
-                .map(|o| o.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            write!(f, " occurs in {}", occurs_in)?;
         }
         Ok(())
     }
@@ -955,8 +945,6 @@ pub struct GoCamOutput {
     pub label: String,
     #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<GoCamComponent>,
-    #[serde(skip_serializing_if="BTreeSet::is_empty", default)]
-    pub occurs_in: BTreeSet<GoCamComponent>,
 }
 
 impl GoCamOutput {
@@ -980,7 +968,6 @@ impl From<&IndividualType> for GoCamOutput {
             id: individual_gene.id().to_owned(),
             label: individual_gene.label().to_owned(),
             located_in: None,
-            occurs_in: BTreeSet::new(),
         }
     }
 }
@@ -989,13 +976,6 @@ impl Display for GoCamOutput {
         write!(f, "{} ({})", self.label, self.id)?;
         if let Some(ref located_in) = self.located_in {
             write!(f, " located in {}", located_in)?;
-        }
-        if !self.occurs_in.is_empty() {
-            let occurs_in = self.occurs_in.iter()
-                .map(|o| o.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            write!(f, " occurs in {}", occurs_in)?;
         }
         Ok(())
     }
@@ -1741,14 +1721,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                 continue;
             };
 
-        let object_node_occurs_in = {
-            if let Some(object_node) = node_map.get(&object_individual.id) {
-                object_node.occurs_in.clone()
-            } else {
-                panic!("internal error: can't find node for {}", object_individual.id);
-            }
-        };
-
         let Some(subject_node) = node_map.get_mut(&fact.subject)
         else {
             continue;
@@ -1757,7 +1729,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
         match fact.property_label.as_str() {
             "has input" => {
                 let mut input: GoCamInput = object_type.into();
-                input.occurs_in = object_node_occurs_in;
                 input.located_in = object_node_located_in;
                 if let GoCamNodeType::Activity(GoCamActivity { enabler: _, ref mut inputs, outputs: _ }) = subject_node.node_type {
                     inputs.insert(input);
@@ -1765,7 +1736,6 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             },
             "has output" => {
                 let mut output: GoCamOutput = object_type.into();
-                output.occurs_in = object_node_occurs_in;
                 output.located_in = object_node_located_in;
                 if let GoCamNodeType::Activity(GoCamActivity { enabler: _, inputs: _, ref mut outputs }) = subject_node.node_type {
                     outputs.insert(output);
@@ -1956,7 +1926,6 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
                 id: input_molecule_term_object.id.clone(),
                 label: input_molecule_term_object.label.clone().unwrap(),
                 located_in,
-                occurs_in: BTreeSet::new(), // TODO
             }
         })
         .collect();
@@ -1973,7 +1942,6 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
                 id: output_molecule_term_object.id.clone(),
                 label: output_molecule_term_object.label.clone().unwrap(),
                 located_in,
-                occurs_in: BTreeSet::new(), // TODO
             }
         })
         .collect();
