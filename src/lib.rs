@@ -68,9 +68,8 @@ use gocam_py::{GoCamPyModel, gocam_py_parse};
 
 use phf::phf_map;
 
-use petgraph::{graph::{NodeIndex, NodeReferences},
-               visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor},
-               Direction, Graph};
+use petgraph::{Direction, Graph, graph::{EdgeIndex, EdgeReferences, NodeIndex, NodeReferences},
+               visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor}};
 use regex::Regex;
 
 use crate::gocam_py::{Activity, GoCamPyEnablerType, GoCamPyObjectMap, MoleculeNode};
@@ -334,6 +333,13 @@ impl GoCamModel {
     pub fn node_iterator(&self) -> NodeIterator<'_> {
         NodeIterator {
             node_refs: self.graph().node_references(),
+        }
+    }
+
+    /// Return an iterator over the edges ([GoCamEdge]) of the model
+    pub fn edge_iterator(&self) -> EdgeIterator<'_> {
+        EdgeIterator {
+            edge_refs: self.graph().edge_references(),
         }
     }
 
@@ -814,6 +820,24 @@ impl<'a> Iterator for NodeIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.node_refs.next()
+    }
+}
+
+/// An iterator over [GoCamEdge] returned by [GoCamModel::edge_iterator()]
+pub struct EdgeIterator<'a> {
+    edge_refs: EdgeReferences<'a, GoCamEdge>,
+}
+
+impl<'a> Iterator for EdgeIterator<'a> {
+    type Item = (EdgeIndex, NodeIndex, &'a GoCamEdge, NodeIndex);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let edge_ref = self.edge_refs.next()?;
+
+        let source_idx = edge_ref.source();
+        let target_idx = edge_ref.target();
+
+        Some((edge_ref.id(), source_idx, edge_ref.weight(), target_idx))
     }
 }
 
