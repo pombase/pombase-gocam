@@ -1928,9 +1928,10 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         },
         GoCamPyEnablerType::Chemical => {
             let chemical = GoCamChemical {
+                // the enabling chemical is always CHEBI:36008
                 id: gocam_py_activity.enabled_by.term.clone(),
                 label: enabled_by_label,
-                located_in: None, // TODO
+                located_in: None, // the activity has an "occurs_in" instead
             };
             GoCamEnabledBy::Chemical(chemical)
         },
