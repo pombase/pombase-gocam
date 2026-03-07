@@ -1892,7 +1892,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             let gene = GoCamGene {
                 id: gocam_py_activity.enabled_by.term.clone(),
                 label: enabled_by_label,
-                part_of_complex: None,  // TODO
+                part_of_complex: None,  // TODO - needs an example YAML
             };
             GoCamEnabledBy::Gene(gene)
         },
