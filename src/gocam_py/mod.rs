@@ -11,7 +11,11 @@ use crate::GoCamError;
 pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel, GoCamError> {
     let reader = BufReader::new(source);
 
-    let raw_model: GoCamPyModel = serde_yaml::from_reader(reader)?;
+    let mut raw_model: GoCamPyModel = serde_yaml::from_reader(reader)?;
+
+    for obj in &raw_model.objects {
+        raw_model.objects_by_id.insert(obj.id.clone(), obj.clone());
+    }
 
     Ok(raw_model)
 }
@@ -61,8 +65,16 @@ pub struct GoCamPyModel {
     pub activities: Vec<Activity>,
     pub molecules: Vec<MoleculeNode>,
     pub objects: Vec<Object>,
+    #[serde(skip_serializing_if="HashMap::is_empty", default)]
+    objects_by_id: HashMap<UriOrCurie, Object>,
     pub provenances: Vec<ProvenanceInfo>,
     pub query_index: Option<QueryIndex>
+}
+
+impl GoCamPyModel {
+    pub fn get_object(&self, object_id: &UriOrCurie) -> Option<&Object> {
+        self.objects_by_id.get(object_id)
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
