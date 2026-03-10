@@ -160,7 +160,7 @@ pub struct EvidenceItem {
     pub term: EvidenceTermObject,
     #[serde(skip_serializing_if="Option::is_none")]
     pub reference: Option<PublicationObject>,
-#[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub with_objects: Vec<String>,
     pub provenances: Vec<ProvenanceInfo>
 }
@@ -168,7 +168,7 @@ pub struct EvidenceItem {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Association {
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -178,7 +178,7 @@ pub struct Association {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByAssociation {
     pub term: String,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>,
@@ -210,7 +210,7 @@ impl EnabledByAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByGeneProductAssociation {
     pub term: String,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -221,7 +221,7 @@ pub struct EnabledByGeneProductAssociation {
 pub struct EnabledByProteinComplexAssociation {
     pub members: Vec<String>,
     pub term: ProteinComplexTermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -232,7 +232,7 @@ pub struct EnabledByProteinComplexAssociation {
 pub struct CausalAssociation {
     pub predicate: PredicateTermObject,
     pub downstream_activity: UriOrCurie,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -242,7 +242,7 @@ pub struct CausalAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct TermAssociation {
     pub term: TermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -252,7 +252,7 @@ pub struct TermAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MolecularFunctionAssociation {
     pub term: String,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub evidence: Vec<EvidenceItem>,
@@ -268,7 +268,7 @@ pub struct BiologicalProcessAssociation {
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<Box<BiologicalProcessAssociation>>,
     pub term: BiologicalProcessTermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -280,7 +280,7 @@ pub struct CellularAnatomicalEntityAssociation {
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<CellTypeAssociation>,
     pub term: CellularAnatomicalEntityTermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub evidence: Vec<EvidenceItem>,
@@ -292,7 +292,7 @@ pub struct CellularAnatomicalEntityAssociation {
 pub struct CellTypeAssociation {
     pub part_of: GrossAnatomyAssociation,
     pub term: CellTypeTermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -303,7 +303,7 @@ pub struct CellTypeAssociation {
 pub struct GrossAnatomyAssociation {
     pub part_of: Box<GrossAnatomyAssociation>,
     pub term: GrossAnatomicalStructureTermObject,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -313,7 +313,7 @@ pub struct GrossAnatomyAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MoleculeAssociation {
     pub molecule: UriOrCurie,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
     pub provenances: Vec<ProvenanceInfo>
@@ -324,7 +324,7 @@ pub struct Object {
     pub id: UriOrCurie,
     #[serde(skip_serializing_if="Option::is_none")]
     pub label: Option<String>,
-#[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: UriOrCurie,
     #[serde(default)]
     pub obsolete: bool
@@ -336,7 +336,7 @@ pub struct ProvenanceInfo {
     #[serde(skip_serializing_if="Option::is_none")]
     pub created: Option<String>,
     pub date: String,
-#[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provided_by: Vec<String>
 }
 
