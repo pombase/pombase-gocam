@@ -187,7 +187,16 @@ pub struct EnabledByAssociation {
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub members: Vec<TermAssociation>,  // if type is "EnabledByProteinComplexAssociation"
+    pub members: Vec<ProteinComplexMemberAssociation>,  // if type is "EnabledByProteinComplexAssociation"
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ProteinComplexMemberAssociation {
+    pub term: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub evidence: Vec<EvidenceItem>,
+    pub provenances: Vec<ProvenanceInfo>,
 }
 
 pub enum GoCamPyEnablerType {
