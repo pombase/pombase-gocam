@@ -67,6 +67,7 @@ pub struct GoCamPyModel {
     pub objects: Vec<Object>,
     #[serde(skip_serializing_if="HashMap::is_empty", default)]
     objects_by_id: HashMap<UriOrCurie, Object>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub query_index: Option<QueryIndex>
@@ -162,6 +163,7 @@ pub struct EvidenceItem {
     pub reference: Option<PublicationObject>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub with_objects: Vec<String>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -171,6 +173,7 @@ pub struct Association {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -181,6 +184,7 @@ pub struct EnabledByAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub members: Vec<TermAssociation>,  // if type is "EnabledByProteinComplexAssociation"
@@ -213,6 +217,7 @@ pub struct EnabledByGeneProductAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -224,6 +229,7 @@ pub struct EnabledByProteinComplexAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -235,6 +241,7 @@ pub struct CausalAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -245,6 +252,7 @@ pub struct TermAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -271,6 +279,7 @@ pub struct BiologicalProcessAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -284,6 +293,7 @@ pub struct CellularAnatomicalEntityAssociation {
     pub type_: String,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -295,6 +305,7 @@ pub struct CellTypeAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -306,6 +317,7 @@ pub struct GrossAnatomyAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
@@ -316,6 +328,7 @@ pub struct MoleculeAssociation {
     #[serde(rename = "type")]
     pub type_: String,
     pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
 
