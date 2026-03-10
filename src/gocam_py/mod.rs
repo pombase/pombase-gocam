@@ -68,6 +68,7 @@ pub struct GoCamPyModel {
     #[serde(skip_serializing_if="HashMap::is_empty", default)]
     objects_by_id: HashMap<UriOrCurie, Object>,
     pub provenances: Vec<ProvenanceInfo>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub query_index: Option<QueryIndex>
 }
 
@@ -82,13 +83,17 @@ pub struct Activity {
     pub id: UriOrCurie,
     pub enabled_by: EnabledByAssociation,
     pub molecular_function: MolecularFunctionAssociation,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub occurs_in: Option<CellularAnatomicalEntityAssociation>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<BiologicalProcessAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub has_input: Vec<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub has_primary_input: Option<MoleculeAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub has_output: Vec<MoleculeAssociation>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub has_primary_output: Option<MoleculeAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub causal_associations: Vec<CausalAssociation>,
@@ -146,12 +151,14 @@ pub enum PhaseEnum {
 pub struct MoleculeNode {
     pub id: UriOrCurie,
     pub term: MoleculeTermObject,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub located_in: Option<CellularAnatomicalEntityAssociation>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EvidenceItem {
     pub term: EvidenceTermObject,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub reference: Option<PublicationObject>,
 #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub with_objects: Vec<String>,
@@ -256,7 +263,9 @@ pub struct MolecularFunctionAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BiologicalProcessAssociation {
+    #[serde(skip_serializing_if="Option::is_none")]
     pub happens_during: Option<PhaseTermObject>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<Box<BiologicalProcessAssociation>>,
     pub term: BiologicalProcessTermObject,
 #[serde(rename = "type")]
@@ -268,6 +277,7 @@ pub struct BiologicalProcessAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CellularAnatomicalEntityAssociation {
+    #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<CellTypeAssociation>,
     pub term: CellularAnatomicalEntityTermObject,
 #[serde(rename = "type")]
@@ -312,6 +322,7 @@ pub struct MoleculeAssociation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Object {
     pub id: UriOrCurie,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub label: Option<String>,
 #[serde(rename = "type")]
     pub type_: UriOrCurie,
@@ -322,6 +333,7 @@ pub struct Object {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProvenanceInfo {
     pub contributor: Vec<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
     pub created: Option<String>,
     pub date: String,
 #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
