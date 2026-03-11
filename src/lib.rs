@@ -1872,6 +1872,18 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             }
         });
 
+    let happens_during = gocam_py_activity.happens_during.as_ref()
+        .map(|h| {
+            let happens_during_term_id = &h.term;
+            let happens_during_object =
+                object_map.get(happens_during_term_id).unwrap();
+            GoCamProcess {
+                id: happens_during_object.id.clone(),
+                label: happens_during_object.label.clone().unwrap(),
+                part_of_parent: None,
+            }
+        });
+
     let enabled_by_term_object = object_map.get(&gocam_py_activity.enabled_by.term).unwrap();
     let enabled_by_label = enabled_by_term_object.label.clone().unwrap();
 
@@ -1964,7 +1976,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         models,
         occurs_in,
         part_of_process,
-        happens_during: None,  // See: https://github.com/geneontology/gocam-py/issues/170
+        happens_during,
         original_model_id: Some(gocam_py_model.id.clone()),
         source_ids,
     }
