@@ -17,7 +17,22 @@ pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel, GoCamError>
         raw_model.objects_by_id.insert(obj.id.clone(), obj.clone());
     }
 
+    let model_title = raw_model.title.replace("\n", " ");
+
+    raw_model.title = trim_whitespace(&model_title);
+
     Ok(raw_model)
+}
+
+fn trim_whitespace(s: &str) -> String {
+    let mut new_str = s.trim().to_owned();
+    let mut prev = ' '; // The initial value doesn't really matter
+    new_str.retain(|ch| {
+        let result = ch != ' ' || prev != ' ';
+        prev = ch;
+        result
+    });
+    new_str
 }
 
 /// A deserialiser for null values that treats them the same as
