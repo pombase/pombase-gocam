@@ -104,7 +104,7 @@ pub struct Activity {
     #[serde(skip_serializing_if="Option::is_none")]
     pub part_of: Option<BiologicalProcessAssociation>,
     #[serde(skip_serializing_if="Option::is_none")]
-    pub happens_during: Option<BiologicalProcessPhaseAssociation>,
+    pub happens_during: Option<PhaseAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub has_input: Vec<MoleculeAssociation>,
     #[serde(skip_serializing_if="Option::is_none")]
@@ -314,6 +314,16 @@ pub struct BiologicalProcessAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BiologicalProcessPhaseAssociation {
+    pub term: PhaseTermObject,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub evidence: Vec<EvidenceItem>,
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
+    pub provenances: Vec<ProvenanceInfo>
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PhaseAssociation {
     pub term: PhaseTermObject,
     #[serde(rename = "type")]
     pub type_: String,
