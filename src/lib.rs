@@ -2002,12 +2002,27 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
     let located_in = molecule.located_in.as_ref()
         .map(|molecule_located_in| component_from_term(object_map, &molecule_located_in.term));
 
-    let gocam_chemical = GoCamChemical {
-        id: node_id.clone(),
-        label: label.clone(),
-        located_in,
+    let node_type = if node_id.starts_with("CHEBI:") {
+        let gocam_chemical = GoCamChemical {
+            id: node_id.clone(),
+            label: label.clone(),
+            located_in,
+        };
+        GoCamNodeType::Chemical(gocam_chemical)
+    } else if node_id.starts_with("PR:") {
+        let pr = GoCamModifiedProtein {
+            id: node_id.clone(),
+            label: label.clone(),
+        };
+        GoCamNodeType::ModifiedProtein(pr)
+    } else {
+        let gene = GoCamGene {
+            id: node_id.clone(),
+            label: label.clone(),
+            part_of_complex: None,
+        };
+        GoCamNodeType::Gene(gene)
     };
-    let node_type = GoCamNodeType::Chemical(gocam_chemical);
 
     GoCamNode {
         individual_gocam_id: molecule.id.clone(),

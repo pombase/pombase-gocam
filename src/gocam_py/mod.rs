@@ -216,6 +216,7 @@ pub struct ProteinComplexMemberAssociation {
     pub provenances: Vec<ProvenanceInfo>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum GoCamPyEnablerType {
     Complex,
     Gene,
@@ -225,6 +226,9 @@ pub enum GoCamPyEnablerType {
 
 impl EnabledByAssociation {
     pub fn enabler_type(&self) -> GoCamPyEnablerType {
+        if self.term.starts_with("PR:") {
+            return GoCamPyEnablerType::ModifiedProtein;
+        }
         if self.term.starts_with("CHEBI:") {
             return GoCamPyEnablerType::Chemical;
         }
