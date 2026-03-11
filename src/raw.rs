@@ -237,7 +237,7 @@ impl Individual {
 
     pub fn individual_is_mrna(&self) -> bool {
         if let Some(individual_type) = self.get_individual_type() {
-           return is_mrna_id(individual_type.id());
+           return crate::is_mrna_id(individual_type.id());
         }
         false
     }
@@ -263,14 +263,6 @@ impl Individual {
 
         false
     }
-}
-
-pub(crate) fn is_mrna_id(id: &str) -> bool {
-    if let Some(no_suffix) = id.strip_suffix(|c: char| c.is_numeric()) {
-        return no_suffix.ends_with('.')
-    }
-
-    false
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

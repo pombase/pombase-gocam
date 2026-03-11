@@ -229,7 +229,8 @@ impl EnabledByAssociation {
         if self.term.starts_with("PR:") {
             return GoCamPyEnablerType::ModifiedProtein;
         }
-        if self.term.starts_with("CHEBI:") {
+        if self.term.starts_with("CHEBI:") || &self.term == "SO:0000234" ||
+            &self.term == "SO:0000185" {
             return GoCamPyEnablerType::Chemical;
         }
         match self.type_.as_str() {

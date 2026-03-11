@@ -2002,7 +2002,8 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
     let located_in = molecule.located_in.as_ref()
         .map(|molecule_located_in| component_from_term(object_map, &molecule_located_in.term));
 
-    let node_type = if node_id.starts_with("CHEBI:") {
+    let node_type = if node_id.starts_with("CHEBI:") || &node_id == "SO:0000234" ||
+        &node_id == "SO:0000185" {
         let gocam_chemical = GoCamChemical {
             id: node_id.clone(),
             label: label.clone(),
@@ -2015,6 +2016,12 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
             label: label.clone(),
         };
         GoCamNodeType::ModifiedProtein(pr)
+    } else if is_mrna_id(&node_id) {
+        let mrna = GoCamMRNA {
+            id: node_id.clone(),
+            label: label.clone(),
+        };
+        GoCamNodeType::MRNA(mrna)
     } else {
         let gene = GoCamGene {
             id: node_id.clone(),
@@ -2118,6 +2125,13 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     graph
 }
 
+pub(crate) fn is_mrna_id(id: &str) -> bool {
+    if let Some(no_suffix) = id.strip_suffix(|c: char| c.is_numeric()) {
+        return no_suffix.ends_with('.')
+    }
+
+    false
+}
 
 #[cfg(test)]
 mod tests {
