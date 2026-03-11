@@ -1865,10 +1865,19 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
     let part_of_process = gocam_py_activity.part_of.as_ref()
         .map(|p| {
             let part_of_object = object_map.get(&p.term).unwrap();
+            let part_of_parent = p.part_of.as_ref()
+                .map(|part_of_parent| {
+                    let part_of_parent_object = object_map.get(&part_of_parent.term).unwrap();
+                    Box::new(GoCamProcess {
+                        id: part_of_parent_object.id.clone(),
+                        label: part_of_parent_object.label.clone().unwrap(),
+                        part_of_parent: None,
+                    })
+                });
             GoCamProcess {
                 id: part_of_object.id.clone(),
                 label: part_of_object.label.clone().unwrap(),
-                part_of_parent: None, // TODO - see: https://github.com/geneontology/gocam-py/issues/172
+                part_of_parent,
             }
         });
 
