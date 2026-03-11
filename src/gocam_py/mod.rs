@@ -432,6 +432,13 @@ mod tests {
         let model = gocam_py_parse(&mut source).unwrap();
 
         assert_eq!(model.id, "gomodel:67ae98b500000055");
+        assert_eq!(model.title, "iron import into cell (GO:0033212) / siderophore biosynthetic process (GO:0019290)");
         assert_eq!(model.activities.len(), 15);
+
+        let first_activity = model.activities.first().unwrap();
+        let enabled_by = &first_activity.enabled_by;
+        let enabled_by_term_id = &enabled_by.term;
+        let enabled_by_term_object = model.get_object(enabled_by_term_id).unwrap();
+        assert_eq!(enabled_by_term_object.label.as_ref().unwrap(), "protein");
     }
 }
