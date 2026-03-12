@@ -106,13 +106,7 @@ pub struct Activity {
     #[serde(skip_serializing_if="Option::is_none")]
     pub happens_during: Option<PhaseAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub has_input: Vec<MoleculeAssociation>,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub has_primary_input: Option<MoleculeAssociation>,
-    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
-    pub has_output: Vec<MoleculeAssociation>,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub has_primary_output: Option<MoleculeAssociation>,
+    pub molecular_associations: Vec<MoleculeAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub causal_associations: Vec<CausalAssociation>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
@@ -374,6 +368,7 @@ pub struct GrossAnatomyAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MoleculeAssociation {
+    pub predicate: PredicateTermObject,
     pub molecule: UriOrCurie,
     #[serde(rename = "type")]
     pub type_: String,

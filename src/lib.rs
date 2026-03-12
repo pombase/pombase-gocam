@@ -1935,37 +1935,45 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         },
     };
 
-    let inputs = gocam_py_activity.has_input
-        .iter()
-        .map(|i| {
-            let input_molecule = molecule_map.get(&i.molecule)
-                .unwrap_or_else(|| panic!("can't find object with id: {}", i.molecule));
-            let input_molecule_term_object = object_map.get(&input_molecule.term).unwrap();
-            let located_in = input_molecule.located_in.as_ref()
-                .map(|input_located_in| component_from_term(object_map, &input_located_in.term));
-            GoCamInput {
-                id: input_molecule_term_object.id.clone(),
-                label: input_molecule_term_object.label.clone().unwrap(),
-                located_in,
-            }
-        })
-        .collect();
+    let mut inputs = BTreeSet::new();
+    let mut outputs = BTreeSet::new();
 
-    let outputs = gocam_py_activity.has_output
-        .iter()
-        .map(|o| {
-            let output_molecule = molecule_map.get(&o.molecule)
-                .unwrap_or_else(|| panic!("can't find object with id: {}", o.molecule));
-            let output_molecule_term_object = object_map.get(&output_molecule.term).unwrap();
-            let located_in = output_molecule.located_in.as_ref()
-                   .map(|output_located_in| component_from_term(object_map, &output_located_in.term));
-            GoCamOutput {
-                id: output_molecule_term_object.id.clone(),
-                label: output_molecule_term_object.label.clone().unwrap(),
-                located_in,
+    for mol_assoc in &gocam_py_activity.molecular_associations {
+        let rel_id = &mol_assoc.predicate;
+        let rel_name = REL_NAMES.get(rel_id).unwrap();
+
+        let molecule = molecule_map.get(&mol_assoc.molecule)
+            .unwrap_or_else(|| panic!("can't find object with id: {}", mol_assoc.molecule));
+        let molecule_term_object = object_map.get(&molecule.term).unwrap();
+        let located_in = molecule.located_in.as_ref()
+            .map(|located_in| component_from_term(object_map, &located_in.term));
+
+        match rel_id.as_str() {
+            "RO:0002233" => {    // has input
+                let input = GoCamInput {
+                    id: molecule_term_object.id.clone(),
+                    label: molecule_term_object.label.clone().unwrap(),
+                    located_in,
+                };
+                inputs.insert(input);
+            },
+            "RO:0002234" => {    // has output
+                let output = GoCamOutput {
+                    id: molecule_term_object.id.clone(),
+                    label: molecule_term_object.label.clone().unwrap(),
+                    located_in,
+                };
+                outputs.insert(output);
+            },
+            "RO:0012005" => (),    // is small molecule activator of
+            "RO:0012006" => (),    // is small molecule inhibitor of
+            "RO:0012001" => (),    // has small molecule activator
+            "RO:0012002" => (),    // has small molecule inhibitor
+            _ => {
+                panic!("unknown molecular association predicate: {} {}", rel_id, rel_name);
             }
-        })
-        .collect();
+        }
+    }
 
     let gocam_activity = GoCamActivity {
         enabler,
@@ -2091,25 +2099,15 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
     for (activity_id, activity) in activities_by_id.iter() {
         let activity_idx = node_idx_map.get(activity_id).unwrap();
 
-        for input in &activity.has_input {
-            let molecule = &input.molecule;
-            let molecule_idx = node_idx_map.get(molecule).unwrap();
+        for mol_assoc in &activity.molecular_associations {
+            let rel_id = &mol_assoc.predicate;
+            let rel_name = REL_NAMES.get(rel_id).unwrap();
+
+            let molecule_idx = node_idx_map.get(&mol_assoc.molecule).unwrap();
 
             let edge = GoCamEdge {
-                id: "RO:0002233".into(),
-                label: "has input".into(),
-            };
-
-            graph.add_edge(*activity_idx, *molecule_idx, edge);
-        }
-
-        for output in &activity.has_output {
-            let molecule = &output.molecule;
-            let molecule_idx = node_idx_map.get(molecule).unwrap();
-
-            let edge = GoCamEdge {
-                id: "RO:0002234".into(),
-                label: "has output".into(),
+                id: rel_id.to_owned(),
+                label: (*rel_name).to_owned(),
             };
 
             graph.add_edge(*activity_idx, *molecule_idx, edge);
@@ -2170,6 +2168,15 @@ mod tests {
         assert_eq!(first_node.to_string(),
                    "GO:0140483 kinetochore adaptor activity enabled by: moa1 Spom (PomBase:SPAC15E1.07c) [occurs in] kinetochore (GO:0000776) [part of] meiotic centromeric cohesion protection in anaphase I (GO:1990813)");
 
+    }
+
+    #[test]
+    fn parse_yaml_test() {
+        let mut source = File::open("tests/data/67ae98b500000055.yaml").unwrap();
+        let gocam_py_model = gocam_py_parse(&mut source).unwrap();
+        let model = GoCamModel::new_from_gocam_py(gocam_py_model);
+
+        assert_eq!(model.title(), "iron import into cell (GO:0033212) / siderophore biosynthetic process (GO:0019290)");
     }
 
     #[test]
