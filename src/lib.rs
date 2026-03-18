@@ -1669,9 +1669,10 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                     panic!("located_in relation for non-chemical");
                 };
                 if chemical.located_in.is_some() {
-                    panic!("{}: {} is located in multiple components", model.id(),
+                    eprintln!("{}: {} is located in multiple components", model.id(),
                            subject_node.description());
-                }
+                } else {
+
                 let located_in =
                     if object_individual.individual_is_complex() {
                         GoCamComponent::ComplexComponent(object_type.into())
@@ -1679,6 +1680,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                         GoCamComponent::OtherComponent(object_type.into())
                     };
                 chemical.located_in = Some(located_in);
+            }
             },
             "occurs in" => {
                 let occurs_in =
