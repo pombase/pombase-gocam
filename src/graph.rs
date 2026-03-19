@@ -35,12 +35,7 @@ pub fn subgraph_by<N: Clone, E: Clone>(graph: &Graph<N, E>,
     stack.push((start_idx, new_start_idx));
     seen_nodes.insert(start_idx);
 
-    loop {
-        let Some((old_current_idx, new_current_idx)) = stack.pop()
-        else {
-            break;
-        };
-
+    while let Some((old_current_idx, new_current_idx)) = stack.pop() {
         let outgoing_iter = graph.edges_directed(old_current_idx, Direction::Outgoing)
             .map(|e| (e, Direction::Outgoing));
         let incoming_iter = graph.edges_directed(old_current_idx, Direction::Incoming)

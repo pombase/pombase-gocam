@@ -419,7 +419,7 @@ impl GoCamModel {
             (gene_id.to_owned(), gene_name.map(String::to_owned))
         };
 
-        ret_genes.iter().map(|g| get_gene_and_name(g)).collect()
+        ret_genes.iter().map(get_gene_and_name).collect()
     }
 
     /// Return the IDs and name of the genes that enable an activity, including genes in complexes.
@@ -579,7 +579,7 @@ impl GoCamModel {
         let mut gene_name_map = HashMap::new();
 
         for model in models {
-            gene_name_map.extend(model.gene_name_map.clone().into_iter());
+            gene_name_map.extend(model.gene_name_map.clone());
         }
 
         let first_model = models.first().unwrap();
