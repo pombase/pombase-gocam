@@ -2134,17 +2134,29 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
         let activity_idx = node_idx_map.get(activity_id).unwrap();
 
         for mol_assoc in &activity.molecular_associations {
-            let rel_id = &mol_assoc.predicate;
+            let rel_id = mol_assoc.predicate.as_str();
             let rel_name = REL_NAMES.get(rel_id).unwrap();
 
             let molecule_idx = node_idx_map.get(&mol_assoc.molecule).unwrap();
 
+            let (edge_id, edge_label, subject_idx, object_idx) =
+                match rel_id {
+                    "RO:0012001" => 
+                        ("RO:0012005".to_owned(), "is small molecule activator of".to_owned(),
+                         *molecule_idx, *activity_idx),
+                    "RO:0012002" =>
+                        ("RO:0012006".to_owned(), "is small molecule inhibitor of".to_owned(),
+                         *molecule_idx, *activity_idx),
+                    _ => (rel_id.to_string(), rel_name.to_string(), 
+                          *activity_idx, *molecule_idx),
+                };
+
             let edge = GoCamEdge {
-                id: rel_id.to_owned(),
-                label: (*rel_name).to_owned(),
+                id: edge_id,
+                label: edge_label,
             };
 
-            graph.add_edge(*activity_idx, *molecule_idx, edge);
+            graph.add_edge(subject_idx, object_idx, edge);
         }
 
         for causal_association in &activity.causal_associations {
