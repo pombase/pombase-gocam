@@ -1293,6 +1293,7 @@ pub enum GoCamNodeType {
     Unknown,
     Chemical(GoCamChemical),
     Gene(GoCamGene),
+    Complex(GoCamComplex),
     MRNA(GoCamMRNA),
     ModifiedProtein(GoCamModifiedProtein),
     UnknownMRNA,
@@ -1308,11 +1309,16 @@ impl GoCamNodeType {
         matches!(self, GoCamNodeType::Chemical(_))
     }
 
+    pub fn is_complex(&self) -> bool {
+        matches!(self, GoCamNodeType::Complex(_))
+    }
+
     pub fn id(&self) -> &str {
         match self {
             GoCamNodeType::Unknown => "unknown",
             GoCamNodeType::Chemical(chemical) => &chemical.id,
             GoCamNodeType::Gene(gene) => &gene.id,
+            GoCamNodeType::Complex(complex) => &complex.id,
             GoCamNodeType::MRNA(mrna) => &mrna.id,
             GoCamNodeType::ModifiedProtein(modified_protein) => &modified_protein.id,
             GoCamNodeType::UnknownMRNA => "unknown mRNA",
@@ -1325,6 +1331,7 @@ impl GoCamNodeType {
             GoCamNodeType::Unknown => "unknown",
             GoCamNodeType::Chemical(chemical) => &chemical.label,
             GoCamNodeType::Gene(gene) => &gene.label,
+            GoCamNodeType::Complex(complex) => &complex.label,
             GoCamNodeType::MRNA(mrna) => &mrna.label,
             GoCamNodeType::ModifiedProtein(modified_protein) => &modified_protein.label,
             GoCamNodeType::UnknownMRNA => "unknown mRNA",
@@ -1341,6 +1348,7 @@ impl Display for GoCamNodeType {
                 write!(f, "chemical: {} ({})", chemical.label, chemical.id)?
             },
             GoCamNodeType::Gene(gene) => write!(f, "gene: {} ({})", gene.label, gene.id)?,
+            GoCamNodeType::Complex(complex) => write!(f, "complex: {} ({})", complex.label, complex.id)?,
             GoCamNodeType::MRNA(mrna) => write!(f, "mrna: {} ({})", mrna.label, mrna.id)?,
             GoCamNodeType::ModifiedProtein(modified_protein) => {
                 write!(f, "modified protein: {} ({})",
@@ -1394,6 +1402,7 @@ impl GoCamNode {
             GoCamNodeType::Chemical(_) => "chemical",
             GoCamNodeType::UnknownMRNA => "unknown_mrna",
             GoCamNodeType::Gene(_) => "gene",
+            GoCamNodeType::Complex(_) => "complex",
             GoCamNodeType::MRNA(_) => "mrna",
             GoCamNodeType::ModifiedProtein(_) => "modified_protein",
             GoCamNodeType::Activity(GoCamActivity { enabler, inputs: _, outputs: _ }) => match enabler {
@@ -2073,13 +2082,21 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
             label: label.clone(),
         };
         GoCamNodeType::MRNA(mrna)
-    } else {
+    } else if is_gene_id(&node_id) {
         let gene = GoCamGene {
             id: node_id.clone(),
             label: label.clone(),
             part_of_complex: None,
         };
         GoCamNodeType::Gene(gene)
+    } else {
+        let has_part_genes = BTreeSet::new();   // FIXME
+        let complex = GoCamComplex {
+            id: node_id.clone(),
+            label: label.clone(),
+            has_part_genes,
+        };
+        GoCamNodeType::Complex(complex)
     };
 
     GoCamNode {
