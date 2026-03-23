@@ -2141,13 +2141,13 @@ fn make_graph_from_gocam_py(gocam_py_model: &GoCamPyModel) -> GoCamGraph {
 
             let (edge_id, edge_label, subject_idx, object_idx) =
                 match rel_id {
-                    "RO:0012001" => 
+                    "RO:0012001" =>
                         ("RO:0012005".to_owned(), "is small molecule activator of".to_owned(),
                          *molecule_idx, *activity_idx),
                     "RO:0012002" =>
                         ("RO:0012006".to_owned(), "is small molecule inhibitor of".to_owned(),
                          *molecule_idx, *activity_idx),
-                    _ => (rel_id.to_string(), rel_name.to_string(), 
+                    _ => (rel_id.to_string(), rel_name.to_string(),
                           *activity_idx, *molecule_idx),
                 };
 
