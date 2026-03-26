@@ -390,10 +390,11 @@ pub struct Object {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProvenanceInfo {
+    #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub contributor: Vec<String>,
     #[serde(skip_serializing_if="Option::is_none")]
     pub created: Option<String>,
-    pub date: String,
+    pub date: Option<String>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provided_by: Vec<String>
 }
