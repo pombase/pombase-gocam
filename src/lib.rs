@@ -1899,7 +1899,8 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
 
     if let Some(ref association) = gocam_py_activity.occurs_in {
         let term_object = object_map.get(&association.term).unwrap();
-        let object_label = term_object.label.as_ref().unwrap().to_owned();
+        let object_label = term_object.label.clone()
+            .unwrap_or_else(|| term_object.id.clone());
         if id_is_complex(&association.term) {
             let comp = GoCamComplexComponent {
                 id: association.term.clone(),
@@ -1947,7 +1948,8 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         });
 
     let enabled_by_term_object = object_map.get(&gocam_py_activity.enabled_by.term).unwrap();
-    let enabled_by_label = enabled_by_term_object.label.clone().unwrap();
+    let enabled_by_label = enabled_by_term_object.label.clone()
+        .unwrap_or_else(|| enabled_by_term_object.id.to_owned());
 
     let enabler = match gocam_py_activity.enabled_by.enabler_type() {
         GoCamPyEnablerType::Complex => {
@@ -2001,11 +2003,14 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         let located_in = molecule.located_in.as_ref()
             .map(|located_in| component_from_term(object_map, &located_in.term));
 
+        let molecule_label = molecule_term_object.label.clone()
+            .unwrap_or_else(|| molecule_term_object.id.clone());
+
         match rel_id.as_str() {
             "RO:0002233" => {    // has input
                 let input = GoCamInput {
                     id: molecule_term_object.id.clone(),
-                    label: molecule_term_object.label.clone().unwrap(),
+                    label: molecule_label,
                     located_in,
                 };
                 inputs.insert(input);
@@ -2013,7 +2018,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             "RO:0002234" => {    // has output
                 let output = GoCamOutput {
                     id: molecule_term_object.id.clone(),
-                    label: molecule_term_object.label.clone().unwrap(),
+                    label: molecule_label,
                     located_in,
                 };
                 outputs.insert(output);
@@ -2060,7 +2065,8 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
     -> GoCamNode
 {
     let term_object = object_map.get(&molecule.term).unwrap();
-    let label = term_object.label.clone().unwrap();
+    let label = term_object.label.clone()
+        .unwrap_or_else(|| term_object.id.clone());
     let node_id = term_object.id.clone();
 
     let model_id = gocam_py_model.id.to_owned();
