@@ -2022,6 +2022,8 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             "RO:0012006" => (),    // is small molecule inhibitor of
             "RO:0012001" => (),    // has small molecule activator
             "RO:0012002" => (),    // has small molecule inhibitor
+            "RO:0004009" => (),    // has primary input
+            "RO:0004008" => (),    // has primary output
             _ => {
                 panic!("unknown molecular association predicate: {} {}", rel_id, rel_name);
             }
