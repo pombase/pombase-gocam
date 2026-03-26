@@ -80,6 +80,8 @@ pub enum GoCamError {
     NoModelsError,
     #[error("taxon IDs much match when merging models")]
     TaxonMismatchError { detail: String },
+    #[error("model for merging has no taxon ID")]
+    TaxonMissingError { detail: String },
     #[error("I/O error: {0}")]
     IOError(#[from] std::io::Error),
     #[error("parse error: {0}")]
@@ -197,13 +199,15 @@ pub struct GoCamModel {
     id: String,
     title: String,
     title_process_term_ids: HashSet<String>,
-    taxon: String,
+    taxon: Option<String>,
     date: String,
     contributors: BTreeSet<String>,
     graph: GoCamGraph,
     gene_name_map: HashMap<String, String>,
     pro_term_to_gene_map: HashMap<String, String>,
 }
+
+const EMPTY_STR: &str = "";
 
 fn check_model_taxons(models: &[GoCamModel]) -> Result<String, GoCamError> {
     let mut model_iter = models.iter();
@@ -216,11 +220,11 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String, GoCamError> {
     for this_model in model_iter {
         // a hack to cope with models with more than one taxon:
         // "NCBITaxon:4896,NCBITaxon:559292"
-        if !first_model.taxon.contains(&this_model.taxon) &&
-           !this_model.taxon.contains(&first_model.taxon) {
+        if !first_model.taxon().contains(&this_model.taxon()) &&
+           !this_model.taxon().contains(&first_model.taxon()) {
             let detail = format!("mismatched taxons: {} ({}) != {} ({})",
-                                 first_model.taxon, first_model.id,
-                                 this_model.taxon, this_model.id);
+                                 first_model.taxon(), first_model.id,
+                                 this_model.taxon(), this_model.id);
             return Err(GoCamError::TaxonMismatchError { detail });
         }
     }
@@ -259,11 +263,17 @@ impl GoCamModel {
 
         let title_process_term_ids = process_term_ids_from_title(&raw_model.title());
 
+        let taxon = if raw_model.taxon().is_empty() {
+            None
+        } else {
+            Some(raw_model.taxon().to_owned())
+        };
+
         GoCamModel {
             id: raw_model.id().to_owned(),
             title: raw_model.title().to_owned(),
             title_process_term_ids,
-            taxon: raw_model.taxon().to_owned(),
+            taxon,
             date: raw_model.date().to_owned(),
             contributors: raw_model.contributors(),
             graph,
@@ -480,7 +490,7 @@ impl GoCamModel {
     /// The taxon ID in the format "NCBITaxon:4896" or possible a
     /// comma separated list like: "NCBITaxon:4896,NCBITaxon:559292"
     pub fn taxon(&self) -> &str {
-        &self.taxon
+        self.taxon.as_deref().unwrap_or(EMPTY_STR)
     }
 
     /// The date the model last changed
@@ -542,7 +552,7 @@ impl GoCamModel {
         }
 
         let mut idx_map = HashMap::new();
-        let taxon = check_model_taxons(models)?;
+        let taxon = Some(check_model_taxons(models)?);
 
         let mut contributors = BTreeSet::new();
 

@@ -69,7 +69,7 @@ pub type GoCamPyObjectMap = HashMap<String, Object>;
 pub struct GoCamPyModel {
     pub id: UriOrCurie,
     pub title: String,
-    pub taxon: TaxonTermObject,
+    pub taxon: Option<TaxonTermObject>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub additional_taxa: Vec<TaxonTermObject>,
     pub status: String,
