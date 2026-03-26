@@ -356,7 +356,7 @@ pub struct CellTypeAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct GrossAnatomyAssociation {
-    pub part_of: Box<GrossAnatomyAssociation>,
+    pub part_of: Option<Box<GrossAnatomyAssociation>>,
     pub term: GrossAnatomicalStructureTermObject,
     #[serde(rename = "type")]
     pub type_: String,
