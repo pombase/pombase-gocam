@@ -453,7 +453,7 @@ mod tests {
         let model = gocam_py_parse(&mut source).unwrap();
 
         assert_eq!(model.id, "gomodel:67ae98b500000055");
-        assert_eq!(model.title, "iron import into cell (GO:0033212) / siderophore biosynthetic process (GO:0019290)");
+        assert_eq!(model.title, "iron import into cell (GO:0033212 ) / siderophore biosynthetic process (GO:0019290)");
         assert_eq!(model.activities.len(), 15);
 
         let first_activity = model.activities.first().unwrap();

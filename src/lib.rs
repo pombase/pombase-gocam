@@ -183,7 +183,7 @@ pub type GoCamGeneName = String;
 type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
 static TITLE_GO_TERM_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\((\s*GO:\d+\s*)\)").unwrap());
+    LazyLock::new(|| Regex::new(r"\((\s*GO:\d+)\s*\)").unwrap());
 
 #[derive(Debug)]
 pub enum GoCamMergeAlgorithm {
@@ -238,7 +238,9 @@ pub enum RemoveType {
     Targets,
 }
 
-fn process_term_ids_from_title(title: &str) -> HashSet<String> {
+pub type TermId = String;
+
+fn process_term_ids_from_title(title: &str) -> HashSet<TermId> {
     TITLE_GO_TERM_RE.captures_iter(title).map(|c| c[1].to_owned()).collect()
 }
 
@@ -485,6 +487,10 @@ impl GoCamModel {
 
     pub fn title(&self) -> &str {
         &self.title
+    }
+
+    pub fn title_process_term_ids(&self) -> &HashSet<TermId> {
+        &self.title_process_term_ids
     }
 
     /// The taxon ID in the format "NCBITaxon:4896" or possible a
@@ -1175,6 +1181,10 @@ fn is_gene_id(identifier: &str) -> bool {
 }
 
 impl GoCamProcess {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     pub fn label_or_id(&self) -> &str {
         if !self.label.is_empty() {
             self.label.as_str()
@@ -2257,7 +2267,13 @@ mod tests {
         let gocam_py_model = gocam_py_parse(&mut source).unwrap();
         let model = GoCamModel::new_from_gocam_py(gocam_py_model);
 
-        assert_eq!(model.title(), "iron import into cell (GO:0033212) / siderophore biosynthetic process (GO:0019290)");
+        assert_eq!(model.title(), "iron import into cell (GO:0033212 ) / siderophore biosynthetic process (GO:0019290)");
+
+        let title_process_term_ids = model.title_process_term_ids();
+        let mut expected_title_terms = HashSet::new();
+        expected_title_terms.insert("GO:0019290".to_owned());
+        expected_title_terms.insert("GO:0033212".to_owned());
+        assert_eq!(title_process_term_ids, &expected_title_terms);
     }
 
     #[test]
