@@ -301,6 +301,7 @@ pub struct GoCamRawModel {
     _id: GoCamModelId,
     _facts: BTreeMap<FactId, Fact>,
     _individuals: BTreeMap<IndividualId, Individual>,
+    _evidence_individuals: BTreeSet<IndividualId>,
 
     _facts_by_object: HashMap<IndividualId, HashSet<FactId>>,
     _facts_by_subject: HashMap<IndividualId, HashSet<FactId>>,
@@ -407,6 +408,11 @@ impl GoCamRawModel {
             .unwrap_or_else(|| panic!("can't find individual: {}",
                              individual_id))
     }
+
+    /// This Individual is as evidence
+    pub fn individual_is_evidence(&self, individual_id: &str) -> bool {
+        self._evidence_individuals.contains(individual_id)
+    }
 }
 
 fn gocam_parse_raw_helper(source: &mut dyn Read) -> Result<SerdeModel, GoCamError> {
@@ -456,6 +462,7 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel, GoCamErro
 
     let mut fact_map = BTreeMap::new();
     let mut individual_map = BTreeMap::new();
+    let mut evidence_individuals = BTreeSet::new();
 
     let mut _facts_by_subject = HashMap::new();
     let mut _facts_by_object = HashMap::new();
@@ -472,7 +479,14 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel, GoCamErro
                         .or_insert_with(HashSet::new)
                         .insert(fact.id());
 
+        for annotation in &fact.annotations {
+            if &annotation.key == "evidence" {
+                evidence_individuals.insert(annotation.value.clone());
+            }
+        }
+
         fact_map.insert(fact.id(), fact);
+
     }
 
     for individual in raw_model.individuals.into_iter() {
@@ -484,6 +498,7 @@ pub fn gocam_parse_raw(source: &mut dyn Read) -> Result<GoCamRawModel, GoCamErro
         _id: raw_model.id,
         _facts: fact_map,
         _individuals: individual_map,
+        _evidence_individuals: evidence_individuals,
 
         _facts_by_subject,
         _facts_by_object,
