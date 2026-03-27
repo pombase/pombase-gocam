@@ -232,7 +232,7 @@ fn check_model_taxons(models: &[GoCamModel]) -> Result<String, GoCamError> {
     Ok(first_model.taxon().to_owned())
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub enum RemoveType {
     Chemicals,
     Targets,
