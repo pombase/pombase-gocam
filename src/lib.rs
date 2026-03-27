@@ -515,7 +515,7 @@ impl GoCamModel {
     /// [GoCamModel] with the `new_id` as the ID and `new_title` as
     /// the title.
     ///
-    /// We use the result of calling find_overlaps() to find
+    /// We use the result of calling find_activity_overlaps() to find
     /// nodes in common between all the `models`.
     pub fn merge_models(new_id: &str, new_title: &str, models: &[GoCamModel],
                         algorithm: GoCamMergeAlgorithm)
