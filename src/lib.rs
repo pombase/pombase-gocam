@@ -1415,6 +1415,11 @@ impl GoCamNode {
         self.node_type.is_activity()
     }
 
+    /// Return true iff this node is a chemical
+    pub fn is_chemical(&self) -> bool {
+        self.node_type.is_chemical()
+    }
+
     /// The type of this node, e.g. "chemical" or "enabled_by_gene"
     pub fn type_string(&self) -> &str {
         match &self.node_type {

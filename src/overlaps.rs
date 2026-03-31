@@ -1,8 +1,9 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use petgraph::{graph::{EdgeReference, NodeIndex}, visit::EdgeRef, Direction};
+use petgraph::{Direction, graph::{EdgeReference, NodeIndex}, visit::EdgeRef};
 
-use crate::{GoCamActivity, GoCamComponent, GoCamDirection, GoCamEdge, GoCamEnabledBy, GoCamGraph, GoCamModel, GoCamModelId, GoCamModelIdTitle, GoCamNode, GoCamNodeType, GoCamProcess, GoCamError, graph::{self, SubGraphPred}, raw::{IndividualId}};
+use crate::{GoCamActivity, GoCamComponent, GoCamDirection, GoCamEdge, GoCamEnabledBy, GoCamGraph, GoCamModel, GoCamModelId, GoCamModelIdTitle, GoCamNode, GoCamNodeType, GoCamProcess, GoCamError,
+    graph::{self, SubGraphPred}, raw::{IndividualId}};
 
 /// An overlap returned by [GoCamModel::find_activity_overlaps()]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -600,70 +601,136 @@ fn process_subgraph_in_overlap(model: &GoCamModel, start_idx: NodeIndex,
     true
 }
 
+fn is_causal_edge(edge_ref: EdgeReference<GoCamEdge>) -> bool {
+    let edge = edge_ref.weight();
+    edge.id != "RO:0002234" && edge.id != "RO:0002233"
+}
+
+fn is_constitutively_upstream_edge(edge_ref: EdgeReference<GoCamEdge>) -> bool {
+    let edge = edge_ref.weight();
+    edge.id == "RO:0012009"
+}
+
+fn has_incoming_activity(graph: &GoCamGraph, activity_idx: NodeIndex) -> bool {
+    let has_incoming = graph.edges_directed(activity_idx, Direction::Incoming)
+        .into_iter()
+        .any(is_causal_edge);
+
+    if has_incoming {
+        // an activity is directly upstream
+        return true;
+    }
+
+    // check for is small molecule activator of
+    for edge in graph.edges_directed(activity_idx, Direction::Incoming) {
+        if edge.weight().id != "RO:0012005" {
+            continue;
+        }
+
+        // is small molecule activator of
+        let maybe_chemical_idx = edge.source();
+
+        if !graph.node_weight(maybe_chemical_idx).unwrap().is_chemical() {
+            continue;
+        }
+
+        let chemical_idx = maybe_chemical_idx;
+        for incoming_edge in graph.edges_directed(chemical_idx, Direction::Incoming) {
+            if incoming_edge.weight().id == "RO:0002234" {
+                // has_output, so there is an upstream activity
+                return true;
+            }
+        }
+
+    }
+
+    for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
+        // check for has_input
+        if edge.weight().id != "RO:0002233" {
+            continue;
+        }
+
+        let maybe_chemical_idx = edge.target();
+
+        if !graph.node_weight(maybe_chemical_idx).unwrap().is_chemical() {
+            continue;
+        }
+
+        let chemical_idx = maybe_chemical_idx;
+
+        for incoming_edge in graph.edges_directed(chemical_idx, Direction::Incoming) {
+            if incoming_edge.weight().id == "RO:0002234" {
+                // has_output, so there is an upstream activity
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn has_outgoing_activity(graph: &GoCamGraph, activity_idx: NodeIndex) -> bool {
+    let has_outgoing =graph.edges_directed(activity_idx, Direction::Outgoing)
+        .into_iter()
+        .any(is_causal_edge);
+    if has_outgoing {
+        // an activity is directly downstream
+        return true;
+    }
+
+    for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
+        // check for has_output
+        if edge.weight().id != "RO:0002234" {
+            continue;
+        }
+
+        let maybe_chemical_idx = edge.target();
+
+        if !graph.node_weight(maybe_chemical_idx).unwrap().is_chemical() {
+            continue;
+        }
+
+        let chemical_idx = maybe_chemical_idx;
+        for outgoing_edge in graph.edges_directed(chemical_idx, Direction::Outgoing) {
+            if outgoing_edge.weight().id == "RO:0012005" {
+                return true;
+            }
+        }
+
+        for incoming_edge in graph.edges_directed(chemical_idx, Direction::Incoming) {
+            if incoming_edge.weight().id == "RO:0002233" {
+                // has_input, so there is an downstream activity
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn all_incoming_constitutively_upstream(graph: &GoCamGraph, activity_idx: NodeIndex) -> bool {
+        // true if there are some incoming edges and the are all
+        // "constitutively upstream" rels
+        graph.edges_directed(activity_idx, Direction::Incoming).next().is_some() &&
+            graph.edges_directed(activity_idx, Direction::Incoming).into_iter()
+            .all(is_constitutively_upstream_edge)
+}
+
 // If the activity at `activity_idx` has only incoming relations (excluding inputs/outputs),
 // return Incoming, unless all the incoming relations are "constitutively upstream" in which
 // case return IncomingConstitutivelyUpstream.
 // If the activity has only outgoing relations return Outgoing.
 // Otherwise return None.
 fn node_rel_direction(graph: &GoCamGraph, activity_idx: NodeIndex) -> GoCamDirection {
-    let is_causal_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
-        let edge = edge_ref.weight();
-        edge.id != "RO:0002234" && edge.id != "RO:0002233"
-    };
+    let has_incoming = has_incoming_activity(graph, activity_idx);
+    let has_outgoing = has_outgoing_activity(graph, activity_idx);
 
-    let is_constitutively_upstream_edge = |edge_ref:  EdgeReference<GoCamEdge>| {
-        let edge = edge_ref.weight();
-        edge.id == "RO:0012009"
-    };
-
-    let mut has_incoming = graph.edges_directed(activity_idx, Direction::Incoming)
-        .into_iter()
-        .any(is_causal_edge);
-
-
-    let all_incoming_edge_constitutively_upstream = {
-        // true if there are some incoming edges and the are all
-        // "constitutively upstream" rels
-        graph.edges_directed(activity_idx, Direction::Incoming).next().is_some() &&
-            graph.edges_directed(activity_idx, Direction::Incoming).into_iter()
-            .all(is_constitutively_upstream_edge)
-    };
-
-    let mut has_outgoing = graph.edges_directed(activity_idx, Direction::Outgoing)
-        .into_iter()
-        .any(is_causal_edge);
-
-    if all_incoming_edge_constitutively_upstream && !has_outgoing {
+    if all_incoming_constitutively_upstream(graph, activity_idx) && !has_outgoing {
         let node = graph.node_weight(activity_idx).unwrap();
         if node.type_string() == "enabled_by_complex" {
             // special case for activities enable by a complex that
             // only has "constitutively upstream" incoming relations
             return GoCamDirection::IncomingConstitutivelyUpstream;
-        }
-    }
-
-    if !has_incoming || !has_outgoing {
-
-        for edge in graph.edges_directed(activity_idx, Direction::Outgoing) {
-            let is_input_edge =
-                if edge.weight().id == "RO:0002233" {
-                    true
-                } else if edge.weight().id == "RO:0002234" {
-                    false
-                } else {
-                    continue;
-                };
-            let target_idx = edge.target();
-            for incoming_edge in graph.edges_directed(target_idx, Direction::Incoming) {
-                if is_input_edge && incoming_edge.weight().id == "RO:0002234" {
-                    has_incoming = true;
-                    break;
-                }
-                if !is_input_edge && incoming_edge.weight().id == "RO:0002233" {
-                    has_outgoing = true;
-                    break;
-                }
-            }
         }
     }
 
