@@ -670,9 +670,10 @@ fn has_incoming_activity(graph: &GoCamGraph, activity_idx: NodeIndex) -> bool {
 }
 
 fn has_outgoing_activity(graph: &GoCamGraph, activity_idx: NodeIndex) -> bool {
-    let has_outgoing =graph.edges_directed(activity_idx, Direction::Outgoing)
+    let has_outgoing = graph.edges_directed(activity_idx, Direction::Outgoing)
         .into_iter()
         .any(is_causal_edge);
+
     if has_outgoing {
         // an activity is directly downstream
         return true;
