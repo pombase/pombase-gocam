@@ -168,6 +168,10 @@ pub static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "RO:0012010" => "removes input for",
 };
 
+pub const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
+pub const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
+pub const CELLULAR_COMPONENT_ID: &str = "GO:0005575";
+
 pub type GoCamModelId = String;
 pub type GoCamModelTitle = String;
 
