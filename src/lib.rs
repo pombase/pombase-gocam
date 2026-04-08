@@ -959,6 +959,13 @@ impl GoCamInput {
             self.id()
         }
     }
+    pub fn long_label(&self) -> String {
+        if self.label.is_empty() || self.label == self.id {
+            self.id.to_string()
+        } else {
+            format!("{} ({})", self.label, self.id)
+        }
+    }
     pub fn is_gene(&self) -> bool {
         !self.id.starts_with("GO:") &&
         !self.id.starts_with("PR:") &&
@@ -1008,6 +1015,13 @@ impl GoCamOutput {
             self.id()
         }
     }
+    pub fn long_label(&self) -> String {
+        if self.label.is_empty() || self.label == self.id {
+            self.id.to_string()
+        } else {
+            format!("{} ({})", self.label, self.id)
+        }
+    }
     pub fn is_gene(&self) -> bool {
         !self.id.starts_with("GO:") &&
         !self.id.starts_with("PR:") &&
@@ -1048,6 +1062,13 @@ impl GoCamChemical {
     pub fn label(&self) -> &str {
         &self.label
     }
+    pub fn long_label(&self) -> String {
+        if self.label.is_empty() || self.label == self.id {
+            self.id.to_string()
+        } else {
+            format!("{} ({})", self.label, self.id)
+        }
+    }
     pub fn label_or_id(&self) -> &str {
         if !self.label().is_empty() {
             self.label()
@@ -1081,6 +1102,14 @@ impl $type_name {
             self.label()
         } else {
             self.id()
+        }
+    }
+
+    pub fn long_label(&self) -> String {
+        if self.label.is_empty() || self.label == self.id {
+            self.id.to_string()
+        } else {
+            format!("{} ({})", self.label, self.id)
         }
     }
 }
@@ -1194,6 +1223,14 @@ impl GoCamProcess {
             self.label.as_str()
         } else {
             self.id.as_str()
+        }
+    }
+
+    pub fn long_label(&self) -> String {
+        if self.label.is_empty() || self.label == self.id {
+            self.id.to_string()
+        } else {
+            format!("{} ({})", self.label, self.id)
         }
     }
 }
