@@ -1230,7 +1230,12 @@ impl GoCamProcess {
         if self.label.is_empty() || self.label == self.id {
             self.id.to_string()
         } else {
-            format!("{} ({})", self.label, self.id)
+            let mut ret = format!("{} ({})", self.label, self.id);
+            if let Some(ref part_of) = self.part_of_parent {
+                ret += " [part of] ";
+                ret += &part_of.long_label();
+            }
+            ret
         }
     }
 }
