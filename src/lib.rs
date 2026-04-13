@@ -2014,7 +2014,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
 
     let enabler = match gocam_py_activity.enabled_by.enabler_type() {
         GoCamPyEnablerType::Complex => {
-            let has_part_genes = gocam_py_activity.enabled_by.members
+            let has_part_genes = gocam_py_activity.enabled_by.has_part
                 .iter()
                 .map(|m| m.term.clone())
                 .collect();
@@ -2026,10 +2026,20 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             GoCamEnabledBy::Complex(complex)
         },
         GoCamPyEnablerType::Gene => {
+            let enabled_by = &gocam_py_activity.enabled_by;
+            let part_of_complex = enabled_by.part_of.first().clone()
+                .map(|part_of| {
+                    let part_of_object = object_map.get(&part_of.term).unwrap();
+                    GoCamComplex {
+                        id: part_of.term.clone(),
+                        label: part_of_object.label.clone().unwrap_or_else(|| part_of.term.clone()),
+                        has_part_genes: BTreeSet::new(),
+                    }
+                 });
             let gene = GoCamGene {
-                id: gocam_py_activity.enabled_by.term.clone(),
+                id: enabled_by.term.clone(),
                 label: enabled_by_label,
-                part_of_complex: None,  // TODO: https://github.com/geneontology/gocam-py/issues/181
+                part_of_complex,
             };
             GoCamEnabledBy::Gene(gene)
         },
