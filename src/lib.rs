@@ -2027,7 +2027,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
         },
         GoCamPyEnablerType::Gene => {
             let enabled_by = &gocam_py_activity.enabled_by;
-            let part_of_complex = enabled_by.part_of.first().clone()
+            let part_of_complex = enabled_by.part_of.first()
                 .map(|part_of| {
                     let part_of_object = object_map.get(&part_of.term).unwrap();
                     GoCamComplex {
