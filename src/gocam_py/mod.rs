@@ -241,6 +241,7 @@ pub struct EnabledByGeneProductAssociation {
     pub term: String,
     #[serde(rename = "type")]
     pub type_: String,
+    pub part_of: Vec<String>,
     pub evidence: Vec<EvidenceItem>,
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
@@ -249,7 +250,7 @@ pub struct EnabledByGeneProductAssociation {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct EnabledByProteinComplexAssociation {
-    pub members: Vec<String>,
+    pub has_part: Vec<String>,
     pub term: ProteinComplexTermObject,
     #[serde(rename = "type")]
     pub type_: String,
@@ -280,6 +281,16 @@ pub struct TermAssociation {
     #[serde(skip_serializing_if="Vec::is_empty", default, deserialize_with = "deserialize_null_default")]
     pub provenances: Vec<ProvenanceInfo>
 }
+
+#[derive(Debug)]
+pub struct PartOfProteinComplexAssociation {
+    pub has_part: Vec<String>,
+    pub term: ProteinComplexTermObject,
+    pub type_: String,
+    pub evidence: HashMap<String, EvidenceItem>,
+    pub provenances: Vec<ProvenanceInfo>
+}
+
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
