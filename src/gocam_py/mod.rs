@@ -1,6 +1,4 @@
-//! Code for parsing gocam-py YAML models
-//! See: <https://github.com/geneontology/gocam-py>
-
+//! Functions for parsing [gocam-py models](https://github.com/geneontology/gocam-py).
 use std::{collections::HashMap, io::{BufReader, Read}};
 
 use serde::{Deserialize, Deserializer};

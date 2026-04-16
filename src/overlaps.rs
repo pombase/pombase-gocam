@@ -1,3 +1,4 @@
+//! Functions for calculating model overlaps
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use petgraph::{Direction, graph::{EdgeReference, NodeIndex}, visit::EdgeRef};
@@ -5,7 +6,7 @@ use petgraph::{Direction, graph::{EdgeReference, NodeIndex}, visit::EdgeRef};
 use crate::{GoCamActivity, GoCamComponent, GoCamDirection, GoCamEdge, GoCamEnabledBy, GoCamGraph, GoCamModel, GoCamModelId, GoCamModelIdTitle, GoCamNode, GoCamNodeType, GoCamProcess, GoCamError,
     graph::{self, SubGraphPred}, raw::{IndividualId}};
 
-/// An overlap returned by [GoCamModel::find_activity_overlaps()]
+/// An overlap returned by [find_activity_overlaps()]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct GoCamNodeOverlap {
