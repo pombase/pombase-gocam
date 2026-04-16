@@ -751,7 +751,7 @@ mod tests {
 
     use petgraph::graph::NodeIndex;
 
-    use crate::{overlaps::*, parse_raw_gocam_model, GoCamDirection, GoCamModel};
+    use crate::{GoCamDirection, GoCamModel, overlaps::*, parse_raw_gocam_model};
 
     fn find_idx_by_node_id(model: &GoCamModel, search_id: &str)
         -> NodeIndex
@@ -904,5 +904,52 @@ mod tests {
         let adenosine_monophosphate_result = outputs_for(&model, adenosine_monophosphate_idx);
         assert_eq!(adenosine_monophosphate_result.len(), 1);
         assert_eq!(adenosine_monophosphate_result[0].1.node_id, "GO:0004115");
+    }
+
+    #[test]
+    fn overlap_test() {
+        let mut source1 = File::open("tests/data/gomodel_665912ed00000192.json").unwrap();
+        let model1 = parse_raw_gocam_model(&mut source1).unwrap();
+        assert_eq!(model1.id(), "gomodel:665912ed00000192");
+        assert_eq!(model1.node_iterator().count(), 34);
+
+        let mut source2 = File::open("tests/data/gomodel_663d668500002178.json").unwrap();
+        let model2 = parse_raw_gocam_model(&mut source2).unwrap();
+        assert_eq!(model2.id(), "gomodel:663d668500002178");
+        assert_eq!(model2.node_iterator().count(), 14);
+
+        let overlaps = find_activity_overlaps(&[model1, model2]);
+
+        assert_eq!(overlaps.len(), 2);
+
+        let mut expected_node_ids = HashSet::new();
+        expected_node_ids.insert("CHEBI:16749".to_owned());
+        expected_node_ids.insert("GO:0003881".to_owned());
+
+        let activity_node_ids: HashSet<_> = overlaps.iter().map(|o| o.node_id.clone()).collect();
+        assert_eq!(activity_node_ids, expected_node_ids);
+
+        let mut expected_enabled_by_ids = HashSet::new();
+        expected_enabled_by_ids.insert("PomBase:SPAC1D4.08".to_owned());
+        let mut expected_chemical_ids = HashSet::new();
+        expected_chemical_ids.insert("CHEBI:16749".to_owned());
+
+        let mut activity_enabled_by_ids = HashSet::new();
+        let mut chemical_ids = HashSet::new();
+
+        for overlap in overlaps {
+            match overlap.node_type {
+                GoCamNodeType::Activity(GoCamActivity { enabler: ref enabled_by, .. }) => {
+                    activity_enabled_by_ids.insert(enabled_by.id().to_owned());
+                },
+                GoCamNodeType::Chemical(_) => {
+                    chemical_ids.insert(overlap.node_id);
+                },
+                _ => panic!(),
+            }
+        }
+
+        assert_eq!(activity_enabled_by_ids, expected_enabled_by_ids);
+        assert_eq!(chemical_ids, expected_chemical_ids);
     }
 }
