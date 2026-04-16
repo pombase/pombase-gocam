@@ -342,6 +342,19 @@ pub fn find_activity_overlaps(models: &[GoCamModel])
                 continue;
             }
 
+        if has_incoming != has_outgoing {
+            // special case: one activity is in middle of the model but the others
+            // are at the top or bottom
+            // choose the middle-of-model activity as the one that is in its "home" model
+
+            for (model_id, _, dir) in &model_ids_and_titles {
+                if matches!(dir, GoCamDirection::None) {
+                    original_model_id = Some(model_id.to_owned());
+                    break;
+                }
+            }
+        }
+
         let enabled_by =
             if let GoCamEnabledBy::Complex(complex) = enabled_by {
                 let mut complex = complex.to_owned();
@@ -752,7 +765,7 @@ mod tests {
 
     use petgraph::graph::NodeIndex;
 
-    use crate::{GoCamDirection, GoCamModel, overlaps::*, parse_raw_gocam_model};
+    use crate::{GoCamDirection, GoCamModel, overlaps::*, parse_gocam_py_model, parse_raw_gocam_model};
 
     fn find_idx_by_node_id(model: &GoCamModel, search_id: &str)
         -> NodeIndex
@@ -952,5 +965,27 @@ mod tests {
 
         assert_eq!(activity_enabled_by_ids, expected_enabled_by_ids);
         assert_eq!(chemical_ids, expected_chemical_ids);
+    }
+
+    #[test]
+    fn overlap_home_model_test() {
+        let mut source1 = File::open("tests/data/66c7d41500000963.yaml").unwrap();
+        let model1 = parse_gocam_py_model(&mut source1).unwrap();
+        assert_eq!(model1.id(), "gomodel:66c7d41500000963");
+        assert_eq!(model1.node_iterator().count(), 40);
+
+        let mut source2 = File::open("tests/data/67b1629100000953.yaml").unwrap();
+        let model2 = parse_gocam_py_model(&mut source2).unwrap();
+        assert_eq!(model2.id(), "gomodel:67b1629100000953");
+        assert_eq!(model2.node_iterator().count(), 32);
+
+        let overlaps = find_activity_overlaps(&[model1, model2]);
+
+        assert_eq!(overlaps.len(), 3);
+
+        let activity_overlap = overlaps.iter()
+            .find(|o| o.node_type.is_activity())
+            .unwrap();
+        assert_eq!(activity_overlap.original_model_id.clone().unwrap(), "gomodel:66c7d41500000963");
     }
 }
