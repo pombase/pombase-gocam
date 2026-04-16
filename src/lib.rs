@@ -1982,7 +1982,8 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             let part_of_object = object_map.get(&p.term).unwrap();
             let part_of_parent = p.part_of.as_ref()
                 .map(|part_of_parent| {
-                    let part_of_parent_object = object_map.get(&part_of_parent.term).unwrap();
+                    let part_of_parent_object = object_map.get(&part_of_parent.term)
+                        .unwrap_or_else(|| panic!("can't find {} in objects map", part_of_parent.term));
                     Box::new(GoCamProcess {
                         id: part_of_parent_object.id.clone(),
                         label: part_of_parent_object.label.clone().unwrap(),
