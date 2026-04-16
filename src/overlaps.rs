@@ -581,6 +581,8 @@ fn inputs_outputs_of(model: &GoCamModel, activity_index: NodeIndex)
         graph::subgraph_by(graph, start_idx, &same_process)
     }
 
+/// Return true iff all activities in the the process sub-graph that includes `start_idx`
+/// are included in `id_overlaps`
 fn process_subgraph_in_overlap(model: &GoCamModel, start_idx: NodeIndex,
                                id_overlaps: &HashSet<IndividualId>)
                                -> bool
