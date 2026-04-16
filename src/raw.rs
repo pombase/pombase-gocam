@@ -138,11 +138,10 @@ impl Individual {
     /// Individual
     pub fn has_root_term(&self, term_id: &str) -> bool {
         for individual_type in &self.root_types {
-            if let Some(ref individual_type_id) = individual_type.id {
-                if individual_type_id == term_id {
+            if let Some(ref individual_type_id) = individual_type.id &&
+                individual_type_id == term_id {
                     return true;
                 }
-            }
         }
 
         false
@@ -193,10 +192,8 @@ impl Individual {
             return false;
         };
 
-        if let Some(ref id) = individual_type.id {
-            if id.starts_with("CHEBI:") {
-                return false;
-            }
+        if let Some(ref id) = individual_type.id && id.starts_with("CHEBI:") {
+            return false;
         }
 
         true
@@ -212,11 +209,10 @@ impl Individual {
             return false;
         };
 
-        if let Some(ref id) = individual_type.id {
-            if id.starts_with("CHEBI:") || id.starts_with("SO:") {
+        if let Some(ref id) = individual_type.id
+            && (id.starts_with("CHEBI:") || id.starts_with("SO:")) {
                 return true;
             }
-        }
 
         false
     }
@@ -254,11 +250,10 @@ impl Individual {
             return false;
         };
 
-        if let Some(ref individual_type_id) = individual_type.id {
-            if individual_type_id == CHEBI_PROTEIN_ID {
+        if let Some(ref individual_type_id) = individual_type.id
+            && individual_type_id == CHEBI_PROTEIN_ID {
                 return true;
             }
-        }
 
         false
     }

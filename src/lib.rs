@@ -378,11 +378,11 @@ impl GoCamModel {
                 },
                 GoCamNodeType::MRNA(mrna) => {
                     // temporary hack
-                    if let Some((prefix, suffix)) = mrna.id().rsplit_once('.') {
-                        if suffix.len() == 1 && suffix.chars().next().unwrap().is_numeric() {
+                    if let Some((prefix, suffix)) = mrna.id().rsplit_once('.') &&
+                        suffix.len() == 1 &&
+                        suffix.chars().next().unwrap().is_numeric() {
                             ret_genes.insert(prefix.to_owned());
                         }
-                    }
                 },
                 GoCamNodeType::ModifiedProtein(modified_protein) => {
                     let pro_id = modified_protein.id();
