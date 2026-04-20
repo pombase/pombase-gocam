@@ -186,6 +186,12 @@ pub type GoCamGeneName = String;
 
 type GoCamNodeMap = BTreeMap<IndividualId, GoCamNode>;
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct GoCamGeneDetails {
+    pub name: Option<String>,
+    pub product: Option<String>,
+}
+
 static TITLE_GO_TERM_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\((\s*GO:\d+)\s*\)").unwrap());
 
@@ -207,7 +213,7 @@ pub struct GoCamModel {
     date: String,
     contributors: BTreeSet<String>,
     graph: GoCamGraph,
-    gene_name_map: HashMap<String, String>,
+    gene_name_map: HashMap<String, GoCamGeneDetails>,
     pro_term_to_gene_map: HashMap<String, String>,
 }
 
@@ -311,9 +317,9 @@ impl GoCamModel {
         }
     }
 
-    /// Add a map from gene ID to gene name to the model. This map is used to
+    /// Add a map from gene ID to gene name and product to the model. This map is used to
     /// make the return value of genes_enabling_activities() more useful.
-    pub fn add_gene_name_map(&mut self, gene_name_map: &HashMap<String, String>) {
+    pub fn add_gene_details_map(&mut self, gene_name_map: &HashMap<String, GoCamGeneDetails>) {
         let mut model_gene_name_map = HashMap::new();
 
         for (orig_gene_id, _) in self.genes_in_model() {
@@ -324,9 +330,9 @@ impl GoCamModel {
                     orig_gene_id.to_owned()
                 };
 
-            if let Some(name) = gene_name_map.get(&gene_id) {
-                model_gene_name_map.insert(orig_gene_id, name.to_owned());
-                model_gene_name_map.insert(gene_id.clone(), name.to_owned());
+            if let Some(details) = gene_name_map.get(&gene_id) {
+                model_gene_name_map.insert(orig_gene_id, details.to_owned());
+                model_gene_name_map.insert(gene_id.clone(), details.to_owned());
             }
         }
 
@@ -367,7 +373,7 @@ impl GoCamModel {
     /// Return the IDs of all the genes in the model, including input and output genes, genes
     /// of mRNAs and genes in complexes.
     pub fn genes_in_model(&self)
-         -> HashMap<GoCamGeneIdentifier, Option<GoCamGeneName>>
+         -> HashMap<GoCamGeneIdentifier, Option<GoCamGeneDetails>>
     {
         let mut ret_genes = BTreeSet::new();
 
@@ -424,56 +430,56 @@ impl GoCamModel {
             }
         }
 
-        let get_gene_and_name = |gene_id: &GoCamGeneIdentifier| {
-            let gene_name =
+        let get_gene_and_details = |gene_id: &GoCamGeneIdentifier| {
+            let gene_details =
                 if gene_id.contains(":") {
                     let id = gene_id.split(":").last().unwrap();
                     self.gene_name_map.get(id)
                 } else {
                     self.gene_name_map.get(gene_id)
                 };
-            (gene_id.to_owned(), gene_name.map(String::to_owned))
+            (gene_id.to_owned(), gene_details.map(|d| d.to_owned()))
         };
 
-        ret_genes.iter().map(get_gene_and_name).collect()
+        ret_genes.iter().map(get_gene_and_details).collect()
     }
 
     /// Return the IDs and name of the genes that enable an activity, including genes in complexes.
     /// The pro_term_to_gene_map is a map of protein ontology term IDs to gene IDs that
     /// allows counting modified genes.
     pub fn genes_enabling_activities(&self)
-          -> HashMap<GoCamGeneIdentifier, Option<GoCamGeneName>>
+          -> HashMap<GoCamGeneIdentifier, Option<GoCamGeneDetails>>
     {
         let mut ret_genes = HashMap::new();
 
-        let get_gene_and_name = |gene_id: &GoCamGeneIdentifier| {
-            let gene_name =
+        let get_gene_and_details = |gene_id: &GoCamGeneIdentifier| {
+            let gene_details =
                 if gene_id.contains(":") {
                     let id = gene_id.split(":").last().unwrap();
                     self.gene_name_map.get(id)
                 } else {
                     self.gene_name_map.get(gene_id)
                 };
-            (gene_id.to_owned(), gene_name.map(String::to_owned))
+            (gene_id.to_owned(), gene_details.map(|d| d.to_owned()))
         };
 
         for (_, node) in self.node_iterator() {
             if let GoCamNodeType::Activity(GoCamActivity { enabler: enabled_by, .. }) = &node.node_type {
                 match enabled_by {
                     GoCamEnabledBy::Gene(gene) => {
-                        let (gene_id,_name) = get_gene_and_name(&gene.id);
+                        let (gene_id,_name) = get_gene_and_details(&gene.id);
                         ret_genes.insert(gene_id,_name);
                     },
                     GoCamEnabledBy::Complex(complex) => {
                         for gene_id in &complex.has_part_genes {
-                            let (gene_id,_name) = get_gene_and_name(gene_id);
+                            let (gene_id,_name) = get_gene_and_details(gene_id);
                             ret_genes.insert(gene_id,_name);
                         }
                     },
                     GoCamEnabledBy::ModifiedProtein(modified_protein) => {
                         let pro_id = modified_protein.id();
                         if let Some(gene_id) = self.pro_term_to_gene_map.get(pro_id) {
-                            let (gene_id,_name) = get_gene_and_name(gene_id);
+                            let (gene_id,_name) = get_gene_and_details(gene_id);
                             ret_genes.insert(gene_id,_name);
                         }
                     },
@@ -2350,7 +2356,7 @@ mod tests {
             "PomBase:SPBC26H8.16", "PomBase:SPBP23A10.03c"
         ];
 
-        let expected_genes_in_model: HashMap<GoCamGeneIdentifier, Option<GoCamGeneName>> =
+        let expected_genes_in_model: HashMap<GoCamGeneIdentifier, Option<GoCamGeneDetails>> =
             expected_ids.into_iter().map(|uniquename| {
                 (String::from(uniquename), None)
             }).collect();
@@ -2373,7 +2379,7 @@ mod tests {
             "PomBase:SPBC29A10.14"
         ];
 
-        let expected_genes_in_model: HashMap<GoCamGeneIdentifier, Option<GoCamGeneName>> =
+        let expected_genes_in_model: HashMap<GoCamGeneIdentifier, Option<GoCamGeneDetails>> =
             expected_ids.into_iter().map(|uniquename| {
                 (String::from(uniquename), None)
             }).collect();
@@ -2399,23 +2405,31 @@ mod tests {
     #[test]
     fn test_genes_enabling_activities() {
         let mut source = File::open("tests/data/gomodel_67f85f2b00003383.json").unwrap();
-        let mut gene_name_map = HashMap::new();
-        gene_name_map.insert("SPAC12B10.06c".to_owned(), "sdh5".to_owned());
+        let mut gene_details_map = HashMap::new();
+        gene_details_map.insert("SPAC12B10.06c".to_owned(),
+                                GoCamGeneDetails {
+                                    name: Some("sdh5".to_owned()),
+                                    product: Some("succinate dehydrogenase complex assembly protein Sdh5".to_owned()),
+                                });
         let mut model = parse_raw_gocam_model(&mut source).unwrap();
-        model.add_gene_name_map(&gene_name_map);
+        model.add_gene_details_map(&gene_details_map);
 
         assert_eq!(model.id(), "gomodel:67f85f2b00003383");
 
         let expected = vec![
-            ("PomBase:SPAC12B10.06c", Some("sdh5".to_owned())),
+            ("PomBase:SPAC12B10.06c",
+             Some(GoCamGeneDetails {
+                name: Some("sdh5".to_owned()),
+                product: Some("succinate dehydrogenase complex assembly protein Sdh5".to_owned()),
+             })),
             ("PomBase:SPAC664.12c", None),
             ("PomBase:SPBC26H8.16", None),
             ("PomBase:SPBP23A10.03c", None)
         ];
-        let expected_genes_in_model: HashMap<String, Option<String>> =
+        let expected_genes_in_model: HashMap<String, Option<GoCamGeneDetails>> =
             expected.into_iter()
-            .map(|(id, name)| {
-                (id.to_owned(), name)
+            .map(|(id, details)| {
+                (id.to_owned(), details)
             }).collect();
 
         assert_eq!(expected_genes_in_model,
