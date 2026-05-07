@@ -849,7 +849,7 @@ impl Display for GoCamDirection {
         let dir_str =
             match self {
                 GoCamDirection::Incoming => "Incoming",
-                GoCamDirection::Outgoing => "Incoming",
+                GoCamDirection::Outgoing => "Outgoing",
                 GoCamDirection::IncomingConstitutivelyUpstream => "IncomingConstitutivelyUpstream",
                 GoCamDirection::None => "None",
             };
