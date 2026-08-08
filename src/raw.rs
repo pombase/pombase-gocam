@@ -91,6 +91,7 @@ pub struct IndividualType {
 
 const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
+const PRO_PROTEIN_ID: &str = "PR:000000001";
 const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
 const SO_MRNA_ID: &str = "SO:0000234";
 
@@ -183,7 +184,7 @@ impl Individual {
             return false;
         }
 
-        if self.has_root_term(CHEBI_PROTEIN_ID) {
+        if self.has_root_term(CHEBI_PROTEIN_ID) || self.has_root_term(PRO_PROTEIN_ID) {
             return false;
         }
 
@@ -251,7 +252,8 @@ impl Individual {
         };
 
         if let Some(ref individual_type_id) = individual_type.id
-            && individual_type_id == CHEBI_PROTEIN_ID {
+            && (individual_type_id == CHEBI_PROTEIN_ID ||
+                individual_type_id == PRO_PROTEIN_ID) {
                 return true;
             }
 
