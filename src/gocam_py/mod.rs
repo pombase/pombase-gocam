@@ -1,4 +1,31 @@
 //! Functions for parsing [gocam-py models](https://github.com/geneontology/gocam-py).
+//!
+//! [GoCamPyModel] closely matches the
+//! [gocam-py data model](https://github.com/geneontology/gocam-py).
+//!
+//! Example
+//! ```rust
+//! use std::fs::File;
+//! use pombase_gocam::gocam_py::gocam_py_parse;
+//!
+//! // Low level representation:
+//! let mut source = File::open("tests/data/66c7d41500000963.yaml").unwrap();
+//! let gocam_py_model = gocam_py_parse(&mut source).unwrap();
+//! assert_eq!(gocam_py_model.id, "gomodel:66c7d41500000963");
+//! assert_eq!(gocam_py_model.activities.len(), 15);
+//! assert_eq!(gocam_py_model.title, "thiamine-containing compound metabolic process (GO:0042723)");
+//!
+//! let first_activity = gocam_py_model.activities.first().unwrap();
+//! let enabled_by = &first_activity.enabled_by;
+//! let enabled_by_term_id = &enabled_by.term;
+//! let enabled_by_term_object = gocam_py_model.get_object(enabled_by_term_id).unwrap();
+//! assert_eq!(enabled_by_term_object.label.as_ref().unwrap(), "SPBC1604.04 Spom");
+//!
+//!
+//!
+//!
+//!
+
 use std::{collections::HashMap, io::{BufReader, Read}};
 
 use serde::{Deserialize, Deserializer};

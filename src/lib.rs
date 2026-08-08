@@ -16,27 +16,17 @@
 //!
 //! ```
 //! use std::fs::File;
-//! use pombase_gocam::raw::gocam_parse_raw;
+//! use pombase_gocam::gocam_py::gocam_py_parse;
+//! use pombase_gocam::{GoCamModel, GoCamNodeType, GoCamActivity};
 //!
-//! let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+//! let mut source = File::open("tests/data/66c7d41500000963.yaml").unwrap();
 //!
 //! // Low level representation:
-//! let raw_model = gocam_parse_raw(&mut source).unwrap();
-//! assert_eq!(raw_model.id(), "gomodel:66187e4700001744");
+//! let gocam_py_model = gocam_py_parse(&mut source).unwrap();
+//! assert_eq!(gocam_py_model.id, "gomodel:66c7d41500000963");
 //!
-//! for fact in raw_model.facts() {
-//!     let subject_id = &fact.subject;
-//!     println!("subject_id: {}", subject_id);
-//!     let subject_individual = raw_model.get_individual(subject_id);
-//!     let first_type = &subject_individual.types[0];
-//!     if let Some(ref label) = first_type.label {
-//!         println!("type label: {}", label);
-//!     }
-//! }
-//!
-//! // Higher level representation:
-//! use pombase_gocam::{GoCamModel, GoCamNodeType, GoCamActivity};
-//! let model = GoCamModel::new_from_raw(raw_model);
+//! // High level representation:
+//! let model = GoCamModel::new_from_gocam_py(gocam_py_model);
 //!
 //! for (_, node) in model.node_iterator() {
 //!     println!("node: {}", node);
