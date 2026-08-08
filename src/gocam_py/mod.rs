@@ -1,6 +1,6 @@
 //! Functions for parsing [gocam-py models](https://github.com/geneontology/gocam-py).
 //!
-//! [GoCamPyModel] closely matches the
+//! These structs closely match the
 //! [gocam-py data model](https://github.com/geneontology/gocam-py).
 //!
 //! Example
@@ -20,11 +20,7 @@
 //! let enabled_by_term_id = &enabled_by.term;
 //! let enabled_by_term_object = gocam_py_model.get_object(enabled_by_term_id).unwrap();
 //! assert_eq!(enabled_by_term_object.label.as_ref().unwrap(), "SPBC1604.04 Spom");
-//!
-//!
-//!
-//!
-//!
+//! ```
 
 use std::{collections::HashMap, io::{BufReader, Read}};
 
@@ -89,6 +85,9 @@ pub type TaxonTermObject = String;
 pub type PredicateTermObject = String;
 
 pub type GoCamPyObjectMap = HashMap<String, Object>;
+
+/// GoCamPyModel is a low level representation of a GO-CAM pathway, similar in structure to the
+/// [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py).
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct GoCamPyModel {

@@ -1,15 +1,11 @@
 //! A library for parsing and processing [GO-CAM](https://geneontology.org/docs/gocam-overview)
 //! JSON format model files
 //!
-//! [GoCamRawModel] is a low level representation which closely
-//! matches the JSON data, containing Fact, Individual and Annotation
-//! structs.
-//!
-//! [GoCamModel] is a higher level representation, implemented as a
+//! [GoCamModel] is a high level representation, implemented as a
 //! graph of nodes (activities, chemical, complexes etc.) and edges
 //! (mostly causal relations).
 //!
-//! This high level representation is somewhat similar to the
+//! See [gocam_py] for a lower level representation that's more similar to the
 //! [GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py).
 //!
 //! ## Example
@@ -246,10 +242,6 @@ fn process_term_ids_from_title(title: &str) -> HashSet<TermId> {
 
 impl GoCamModel {
     /// Create a [GoCamModel] from a [GoCamRawModel]
-    /// `gene_name_map` is a map from gene indentifiers to gene names (used
-    /// to fill gene names of complex members)
-    /// `pro_term_to_gene_map` is a map from PRO ID to gene identifier (needed
-    /// because this information isn't in the raw JSON file)
     ///
     /// ## Example
     /// ```
@@ -284,6 +276,16 @@ impl GoCamModel {
         }
     }
 
+    /// Create a [GoCamModel] from a [GoCamPyModel]
+    ///
+    /// ## Example
+    /// ```
+    /// use pombase_gocam::GoCamModel;
+    /// use pombase_gocam::gocam_py::gocam_py_parse;
+    /// let mut source = std::fs::File::open("tests/data/66c7d41500000963.yaml").unwrap();
+    /// let raw_model = gocam_py_parse(&mut source).unwrap();
+    /// let model = GoCamModel::new_from_gocam_py(raw_model);
+    /// ```
     pub fn new_from_gocam_py(gocam_py_model: GoCamPyModel) -> GoCamModel {
         let graph = make_graph_from_gocam_py(&gocam_py_model);
 
