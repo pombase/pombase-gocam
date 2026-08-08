@@ -13,13 +13,9 @@ The main entry points are the high level representation,
 which is implemented internally as a graph of nodes (activities,
 chemical, complexes etc.) and edges (mostly causal relations).
 
-This representation is similar to the
-[GO CAM Data Model - gocam-py](https://github.com/geneontology/gocam-py)
-
 There is a low level representation which closely matches the
 [gocam-py YAML data](https://github.com/geneontology/gocam-py):
-[GoCamPyModel](https://docs.rs/pombase-gocam/latest/pombase_gocam/gocam_py/struct.GoCamPyModel.html)
-(containing Fact, Individual and Annotation structs).
+[GoCamPyModel](https://docs.rs/pombase-gocam/latest/pombase_gocam/gocam_py/struct.GoCamPyModel.html).
 
 See the [documentation on docs.rs](https://docs.rs/pombase-gocam/latest/pombase_gocam/)
 for usage.
