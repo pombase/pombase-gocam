@@ -158,6 +158,8 @@ pub const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
 pub const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
 pub const CELLULAR_COMPONENT_ID: &str = "GO:0005575";
 
+pub const PRO_PROTEIN_ID: &str = "PR:000000001";
+
 pub type GoCamModelId = String;
 pub type GoCamModelTitle = String;
 

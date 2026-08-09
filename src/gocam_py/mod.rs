@@ -26,7 +26,7 @@ use std::{collections::HashMap, io::{BufReader, Read}};
 
 use serde::{Deserialize, Deserializer};
 
-use crate::GoCamError;
+use crate::{GoCamError, PRO_PROTEIN_ID};
 
 /// Parse a model in gocam-py YAML format.
 pub fn gocam_py_parse(source: &mut dyn Read) -> Result<GoCamPyModel, GoCamError> {
@@ -246,12 +246,12 @@ pub enum GoCamPyEnablerType {
 
 impl EnabledByAssociation {
     pub fn enabler_type(&self) -> GoCamPyEnablerType {
+        if self.term.starts_with("CHEBI:") || self.term == "SO:0000234" ||
+            self.term == "SO:0000185" || self.term == PRO_PROTEIN_ID {
+            return GoCamPyEnablerType::Chemical;
+        }
         if self.term.starts_with("PR:") {
             return GoCamPyEnablerType::ModifiedProtein;
-        }
-        if self.term.starts_with("CHEBI:") || &self.term == "SO:0000234" ||
-            &self.term == "SO:0000185" {
-            return GoCamPyEnablerType::Chemical;
         }
         match self.type_.as_str() {
             "EnabledByGeneProductAssociation" => GoCamPyEnablerType::Gene,

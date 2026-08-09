@@ -27,7 +27,7 @@
 use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet},
          fmt::{self, Display}, io::{BufReader, Read}};
 
-use crate::{GoCamError, GoCamModelId, MOLECULAR_FUNCTION_ID, REL_NAMES};
+use crate::{GoCamError, GoCamModelId, MOLECULAR_FUNCTION_ID, PRO_PROTEIN_ID, REL_NAMES};
 
 pub type FactId = String;
 pub type IndividualId = String;
@@ -91,7 +91,6 @@ pub struct IndividualType {
 
 const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
-const PRO_PROTEIN_ID: &str = "PR:000000001";
 const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
 const SO_MRNA_ID: &str = "SO:0000234";
 
