@@ -48,7 +48,7 @@ pub mod graph;
 pub mod overlaps;
 pub mod gocam_py;
 
-use overlaps::{find_activity_overlaps, find_chemical_overlaps};
+use overlaps::{find_activity_overlaps, find_chemical_overlaps, GoCamNodeOverlap};
 use raw::{gocam_parse_raw, GoCamRawModel, Individual, IndividualId, IndividualType};
 use gocam_py::{GoCamPyModel, gocam_py_parse};
 
@@ -203,6 +203,8 @@ pub struct GoCamModel {
     graph: GoCamGraph,
     gene_name_map: HashMap<String, GoCamGeneDetails>,
     pro_term_to_gene_map: HashMap<String, String>,
+    /// the overlaps used if this is a merged model
+    overlaps: Vec<GoCamNodeOverlap>,
 }
 
 const EMPTY_STR: &str = "";
@@ -275,6 +277,7 @@ impl GoCamModel {
             graph,
             gene_name_map: HashMap::new(),
             pro_term_to_gene_map: HashMap::new(),
+            overlaps: vec![],
         }
     }
 
@@ -308,6 +311,7 @@ impl GoCamModel {
             graph,
             gene_name_map: HashMap::new(),
             pro_term_to_gene_map: HashMap::new(),
+            overlaps: vec![],
         }
     }
 
@@ -534,7 +538,7 @@ impl GoCamModel {
 
         let mut overlap_map = HashMap::new();
 
-        for overlap in overlaps.into_iter() {
+        for overlap in overlaps.iter() {
             let overlap_id = overlap.id();
 
             let models = overlap.models.iter()
@@ -543,14 +547,14 @@ impl GoCamModel {
 
             let overlap_node = GoCamNode {
                 individual_gocam_id: overlap_id,
-                node_id: overlap.node_id,
-                label: overlap.node_label,
-                node_type: overlap.node_type,
-                occurs_in: overlap.occurs_in,
-                part_of_process: overlap.part_of_process,
-                happens_during: overlap.happens_during,
+                node_id: overlap.node_id.clone(),
+                label: overlap.node_label.clone(),
+                node_type: overlap.node_type.clone(),
+                occurs_in: overlap.occurs_in.clone(),
+                part_of_process: overlap.part_of_process.clone(),
+                happens_during: overlap.happens_during.clone(),
                 source_ids: overlap.overlapping_individual_ids.clone(),
-                original_model_id: overlap.original_model_id,
+                original_model_id: overlap.original_model_id.clone(),
                 models,
             };
 
@@ -614,6 +618,7 @@ impl GoCamModel {
             graph: merged_graph,
             gene_name_map,
             pro_term_to_gene_map: first_model.pro_term_to_gene_map.clone(),
+            overlaps,
         })
     }
 
@@ -756,8 +761,49 @@ impl GoCamModel {
             graph,
             gene_name_map: self.gene_name_map.clone(),
             pro_term_to_gene_map: self.pro_term_to_gene_map.clone(),
+            overlaps: vec![],
         }
     }
+
+    /// Return a new GoCamModel after removing all singleton models
+    /// from a merged model: those that aren't connected to at least
+    /// one other
+    pub fn remove_singleton_models(&self) -> GoCamModel {
+        let mut graph = self.graph.clone();
+        let overlaps = &self.overlaps;
+
+        let mut models_with_overlap = BTreeSet::new();
+
+        for overlap in overlaps {
+            let iter = overlap.models.iter().map(|(model_id, model_title, _)| {
+                (model_id.to_owned(), model_title.to_owned())
+            });
+            models_with_overlap.extend(iter)
+        }
+
+        graph.retain_nodes(|_, node_idx| {
+            let node = self.graph().node_weight(node_idx).unwrap();
+            if !node.models.is_disjoint(&models_with_overlap) {
+                return true;
+            }
+            false
+        });
+
+        let title_process_term_ids = process_term_ids_from_title(&self.title);
+
+        GoCamModel {
+            id: self.id.clone(),
+            title: self.title.clone(),
+            title_process_term_ids,
+            taxon: self.taxon.clone(),
+            contributors: self.contributors.clone(),
+            date: self.date.clone(),
+            graph,
+            gene_name_map: self.gene_name_map.clone(),
+            pro_term_to_gene_map: self.pro_term_to_gene_map.clone(),
+            overlaps: overlaps.clone(),
+        }
+   }
 
     /// Given a model with the inputs/outputs removed (using remove_nodes()), return a clone
     /// containing only those activities enabled by a gene in the `retain_genes` set.
@@ -797,6 +843,7 @@ impl GoCamModel {
             graph,
             gene_name_map: self.gene_name_map.clone(),
             pro_term_to_gene_map: self.pro_term_to_gene_map.clone(),
+            overlaps: vec![],
         }
     }
 
@@ -2741,5 +2788,28 @@ mod tests {
             .collect();
 
         assert_eq!(non_located_nodes.len(), 8);
+    }
+
+    #[test]
+    fn test_remove_singleton_models() {
+        let mut source1 = File::open("tests/data/gomodel_663d668500002178.json").unwrap();
+        let model1 = parse_raw_gocam_model(&mut source1).unwrap();
+
+        let mut source2 = File::open("tests/data/gomodel_665912ed00000192.json").unwrap();
+        let model2 = parse_raw_gocam_model(&mut source2).unwrap();
+
+        let mut source3 = File::open("tests/data/gomodel_67f85f2b00003383.json").unwrap();
+        let model3 = parse_raw_gocam_model(&mut source3).unwrap();
+ 
+        let merged = GoCamModel::merge_models("new_id", "new_title",
+                                              &[model1, model2, model3],
+                                              GoCamMergeAlgorithm::Activity).unwrap();
+
+        assert_eq!(merged.node_iterator().count(), 56);
+        assert_eq!(merged.overlaps.len(), 2);
+
+        let no_singletons = merged.remove_singleton_models();
+
+        assert_eq!(no_singletons.node_iterator().count(), 46);
     }
 }
