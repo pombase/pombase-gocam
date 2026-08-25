@@ -1584,6 +1584,11 @@ impl GoCamNode {
             _ => false,
         }
     }
+
+    /// Return true if the node is an activity with a process
+    pub fn has_process(&self) -> bool {
+        self.is_activity() && self.part_of_process.is_some()
+    }
 }
 
 impl Display for GoCamNode {
@@ -2791,6 +2796,29 @@ mod tests {
     }
 
     #[test]
+    fn test_has_process() {
+        let mut source = File::open("tests/data/gomodel_66187e4700001744.json").unwrap();
+        let model = parse_raw_gocam_model(&mut source).unwrap();
+
+        let nodes_with_process: Vec<_> =
+            model.node_iterator().filter(|(_, node)| {
+                node.has_process()
+            })
+            .collect();
+
+        assert_eq!(nodes_with_process.len(), 10);
+
+        let activities_with_no_process: Vec<_> =
+            model.node_iterator().filter(|(_, node)| {
+                node.is_activity() && !node.has_process()
+            })
+            .collect();
+
+        assert_eq!(activities_with_no_process.len(), 1);
+
+    }
+
+    #[test]
     fn test_remove_singleton_models() {
         let mut source1 = File::open("tests/data/gomodel_663d668500002178.json").unwrap();
         let model1 = parse_raw_gocam_model(&mut source1).unwrap();
@@ -2800,7 +2828,7 @@ mod tests {
 
         let mut source3 = File::open("tests/data/gomodel_67f85f2b00003383.json").unwrap();
         let model3 = parse_raw_gocam_model(&mut source3).unwrap();
- 
+
         let merged = GoCamModel::merge_models("new_id", "new_title",
                                               &[model1, model2, model3],
                                               GoCamMergeAlgorithm::Activity).unwrap();
