@@ -145,9 +145,11 @@ pub static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
     "RO:0004035" => "acts upstream of, negative effect",
     "RO:0004046" => "causally upstream of or within, negative effect",
     "RO:0004047" => "causally upstream of or within, positive effect",
+    "RO:0012000" => "has small molecule regulator",
     "RO:0012001" => "has small molecule activator",
     "RO:0012002" => "has small molecule inhibitor",
     "RO:0012003" => "acts on population of",
+    "RO:0012004" => "is small molecule regulator of",
     "RO:0012005" => "is small molecule activator of",
     "RO:0012006" => "is small molecule inhibitor of",
     "RO:0012009" => "constitutively upstream of",
@@ -2149,8 +2151,10 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             },
             "RO:0012005" => (),    // is small molecule activator of
             "RO:0012006" => (),    // is small molecule inhibitor of
+            "RO:0012000" => (),    // has small molecule regulator
             "RO:0012001" => (),    // has small molecule activator
             "RO:0012002" => (),    // has small molecule inhibitor
+            "RO:0012004" => (),    // is small molecule regulator of
             "RO:0004009" => (),    // has primary input
             "RO:0004008" => (),    // has primary output
             _ => {
