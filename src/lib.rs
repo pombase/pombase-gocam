@@ -444,9 +444,7 @@ impl GoCamModel {
         ret_genes.iter().map(get_gene_and_details).collect()
     }
 
-    /// Return the IDs and name of the genes that enable an activity, including genes in complexes.
-    /// The pro_term_to_gene_map is a map of protein ontology term IDs to gene IDs that
-    /// allows counting modified genes.
+    /// Return the IDs and names of the genes that enable an activity, including genes in complexes
     pub fn genes_enabling_activities(&self)
           -> HashMap<GoCamGeneIdentifier, Option<GoCamGeneDetails>>
     {
