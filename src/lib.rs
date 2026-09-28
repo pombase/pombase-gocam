@@ -58,7 +58,7 @@ use petgraph::{Direction, Graph, graph::{EdgeIndex, EdgeReferences, NodeIndex, N
                visit::{Bfs, EdgeRef, IntoNodeReferences, UndirectedAdaptor}};
 use regex::Regex;
 
-use crate::gocam_py::{Activity, GoCamPyEnablerType, GoCamPyObjectMap, MoleculeNode};
+use crate::{gocam_py::{Activity, GoCamPyEnablerType, GoCamPyObjectMap, MoleculeNode}, raw::{CHEBI_PROTEIN_ID, PRO_PROTEIN_ID}};
 
 #[derive(Error, Debug)]
 pub enum GoCamError {
@@ -159,8 +159,6 @@ pub static REL_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
 pub const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
 pub const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
 pub const CELLULAR_COMPONENT_ID: &str = "GO:0005575";
-
-pub const PRO_PROTEIN_ID: &str = "PR:000000001";
 
 pub type GoCamModelId = String;
 pub type GoCamModelTitle = String;
@@ -1358,6 +1356,7 @@ pub enum GoCamEnabledBy {
     Gene(GoCamGene),
     Chemical(GoCamChemical),
     ModifiedProtein(GoCamModifiedProtein),
+    Unknown,
 }
 
 impl Display for GoCamEnabledBy {
@@ -1375,6 +1374,7 @@ impl GoCamEnabledBy {
             GoCamEnabledBy::Gene(gene) => &gene.id,
             GoCamEnabledBy::Chemical(chemical) => &chemical.id,
             GoCamEnabledBy::ModifiedProtein(modified_protein) => &modified_protein.id,
+            GoCamEnabledBy::Unknown => "unknown",
         }
     }
 
@@ -1385,6 +1385,7 @@ impl GoCamEnabledBy {
             GoCamEnabledBy::Gene(gene) => &gene.label,
             GoCamEnabledBy::Chemical(chemical) => &chemical.label,
             GoCamEnabledBy::ModifiedProtein(modified_protein) => &modified_protein.label,
+            GoCamEnabledBy::Unknown => "unknown",
         }
     }
 }
@@ -1528,6 +1529,7 @@ impl GoCamNode {
                 GoCamEnabledBy::Gene(_) => "enabled_by_gene",
                 GoCamEnabledBy::ModifiedProtein(_) => "enabled_by_modified_protein",
                 GoCamEnabledBy::Complex(_) => "enabled_by_complex",
+                GoCamEnabledBy::Unknown => "enabled_by_unknown",
             }
         }
     }
@@ -1786,7 +1788,13 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
         match fact.property_label.as_str() {
             "enabled by" => {
                 if let Some(ref object_type_id) = object_type.id {
-                    if is_gene_id(object_type_id) {
+                    if object_type_id == PRO_PROTEIN_ID || object_type_id == CHEBI_PROTEIN_ID {
+                       let enabler = GoCamEnabledBy::Unknown;
+                        subject_node.node_type = GoCamNodeType::Activity(GoCamActivity {
+                            enabler, inputs: BTreeSet::new(), outputs: BTreeSet::new(),
+                        });
+                    }
+                    else if is_gene_id(object_type_id) {
                         let facts = model.facts_of_subject(&object_individual.id);
                         let complex = facts.iter()
                             .find(|f| f.property_label == "part of")
@@ -2112,6 +2120,9 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             };
             GoCamEnabledBy::ModifiedProtein(modified_protein)
         },
+        GoCamPyEnablerType::Unknown => {
+            GoCamEnabledBy::Unknown
+        },
     };
 
     let mut inputs = BTreeSet::new();
@@ -2215,6 +2226,9 @@ fn node_from_gocam_py_molecule(gocam_py_model: &GoCamPyModel,
         };
         GoCamNodeType::Chemical(gocam_chemical)
     } else if node_id.starts_with("PR:") {
+        if node_id == PRO_PROTEIN_ID {
+            panic!("internal error: chemical is {} in {}", node_id, gocam_py_model.id);
+        }
         let pr = GoCamModifiedProtein {
             id: node_id.clone(),
             label: label.clone(),
