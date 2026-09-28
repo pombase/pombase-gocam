@@ -1353,7 +1353,7 @@ pub enum GoCamEnabledBy {
     Gene(GoCamGene),
     Chemical(GoCamChemical),
     ModifiedProtein(GoCamModifiedProtein),
-    Unknown,
+    UnknownProtein,
 }
 
 impl Display for GoCamEnabledBy {
@@ -1371,7 +1371,7 @@ impl GoCamEnabledBy {
             GoCamEnabledBy::Gene(gene) => &gene.id,
             GoCamEnabledBy::Chemical(chemical) => &chemical.id,
             GoCamEnabledBy::ModifiedProtein(modified_protein) => &modified_protein.id,
-            GoCamEnabledBy::Unknown => "unknown",
+            GoCamEnabledBy::UnknownProtein => PRO_PROTEIN_ID,
         }
     }
 
@@ -1382,7 +1382,7 @@ impl GoCamEnabledBy {
             GoCamEnabledBy::Gene(gene) => &gene.label,
             GoCamEnabledBy::Chemical(chemical) => &chemical.label,
             GoCamEnabledBy::ModifiedProtein(modified_protein) => &modified_protein.label,
-            GoCamEnabledBy::Unknown => "unknown",
+            GoCamEnabledBy::UnknownProtein => "unknown protein",
         }
     }
 }
@@ -1401,7 +1401,7 @@ impl From<&IndividualType> for GoCamChemical {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum GoCamNodeType {
-    Unknown,
+    UnknownProtein,
     Chemical(GoCamChemical),
     Gene(GoCamGene),
     Complex(GoCamComplex),
@@ -1426,7 +1426,7 @@ impl GoCamNodeType {
 
     pub fn id(&self) -> &str {
         match self {
-            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::UnknownProtein => PRO_PROTEIN_ID,
             GoCamNodeType::Chemical(chemical) => &chemical.id,
             GoCamNodeType::Gene(gene) => &gene.id,
             GoCamNodeType::Complex(complex) => &complex.id,
@@ -1439,7 +1439,7 @@ impl GoCamNodeType {
 
     pub fn label(&self) -> &str {
         match self {
-            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::UnknownProtein => "unknown protein",
             GoCamNodeType::Chemical(chemical) => &chemical.label,
             GoCamNodeType::Gene(gene) => &gene.label,
             GoCamNodeType::Complex(complex) => &complex.label,
@@ -1454,7 +1454,7 @@ impl GoCamNodeType {
 impl Display for GoCamNodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GoCamNodeType::Unknown => write!(f, "unknown")?,
+            GoCamNodeType::UnknownProtein => write!(f, "unknown protein")?,
             GoCamNodeType::Chemical(chemical) => {
                 write!(f, "chemical: {} ({})", chemical.label, chemical.id)?
             },
@@ -1514,7 +1514,7 @@ impl GoCamNode {
     /// The type of this node, e.g. "chemical" or "enabled_by_gene"
     pub fn type_string(&self) -> &str {
         match &self.node_type {
-            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::UnknownProtein => "unknown_protein",
             GoCamNodeType::Chemical(_) => "chemical",
             GoCamNodeType::UnknownMRNA => "unknown_mrna",
             GoCamNodeType::Gene(_) => "gene",
@@ -1526,7 +1526,7 @@ impl GoCamNode {
                 GoCamEnabledBy::Gene(_) => "enabled_by_gene",
                 GoCamEnabledBy::ModifiedProtein(_) => "enabled_by_modified_protein",
                 GoCamEnabledBy::Complex(_) => "enabled_by_complex",
-                GoCamEnabledBy::Unknown => "enabled_by_unknown",
+                GoCamEnabledBy::UnknownProtein => "enabled_by_unknown",
             }
         }
     }
@@ -1713,7 +1713,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
                         GoCamNodeType::Gene(gene)
                     }
                 } else {
-                    GoCamNodeType::Unknown
+                    GoCamNodeType::UnknownProtein
                 };
             let mut source_ids = BTreeSet::new();
             source_ids.insert(individual.id.clone());
@@ -1786,7 +1786,7 @@ fn make_nodes(model: &GoCamRawModel) -> GoCamNodeMap {
             "enabled by" => {
                 if let Some(ref object_type_id) = object_type.id {
                     if object_type_id == PRO_PROTEIN_ID || object_type_id == CHEBI_PROTEIN_ID {
-                       let enabler = GoCamEnabledBy::Unknown;
+                       let enabler = GoCamEnabledBy::UnknownProtein;
                         subject_node.node_type = GoCamNodeType::Activity(GoCamActivity {
                             enabler, inputs: BTreeSet::new(), outputs: BTreeSet::new(),
                         });
@@ -2118,7 +2118,7 @@ fn node_from_gocam_py_activity(gocam_py_model: &GoCamPyModel,
             GoCamEnabledBy::ModifiedProtein(modified_protein)
         },
         GoCamPyEnablerType::Unknown => {
-            GoCamEnabledBy::Unknown
+            GoCamEnabledBy::UnknownProtein
         },
     };
 
