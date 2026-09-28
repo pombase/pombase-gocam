@@ -781,10 +781,7 @@ impl GoCamModel {
 
         graph.retain_nodes(|_, node_idx| {
             let node = self.graph().node_weight(node_idx).unwrap();
-            if !node.models.is_disjoint(&models_with_overlap) {
-                return true;
-            }
-            false
+            !node.models.is_disjoint(&models_with_overlap)
         });
 
         let title_process_term_ids = process_term_ids_from_title(&self.title);
